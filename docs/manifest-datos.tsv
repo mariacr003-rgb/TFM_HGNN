@@ -1,0 +1,10 @@
+archivo	rol	origen	descripcion	restricciones	url
+datos-raw/BRCA_clinical.tsv	entrada	datos reales descargados del GDC	Datos clinicos y de supervivencia de la cohorte TCGA-BRCA	Acceso publico, requiere registro GDC para datos controlados	https://portal.gdc.cancer.gov/projects/TCGA-BRCA
+datos-raw/BRCA_rnaseq.tsv	entrada	datos reales descargados del GDC	Expresion RNA-seq (STAR counts) de la cohorte TCGA-BRCA	Acceso publico	https://portal.gdc.cancer.gov/projects/TCGA-BRCA
+datos-raw/9606.protein.links.v12.0.txt.gz	entrada	datos reales descargados de STRING	Interacciones proteina-proteina humano (PPI), score combinado	Acceso publico	https://string-db.org/cgi/download
+datos-raw/ReactomePathways.txt	entrada	datos reales descargados de Reactome	Listado de vias biologicas humanas	Acceso publico	https://reactome.org/download-data
+datos-intermedios/BRCA_clinical_valid.tsv	intermedio	generado por scripts/01_validate_data.py	Datos clinicos validados (pacientes con seguimiento valido)	ninguna
+datos-intermedios/BRCA_rnaseq_valid.tsv	intermedio	generado por scripts/01_validate_data.py	RNA-seq validado (genes con menos del 50% de NaN)	ninguna
+resultados/	salida	ejecucion de los scripts del pipeline	Tablas y figuras de la Seccion 5 del TFM (C-index, AUROC, subtipos)	ninguna
+docs/tests/test_clinical.tsv	entrada	generado artificialmente con scripts/00_generar_datos_prueba.py (seed=0)	Datos clinicos simulados de 10 pacientes ficticios, para verificar el pipeline antes de usar datos reales	ninguna
+docs/tests/test_rnaseq.tsv	entrada	generado artificialmente con scripts/00_generar_datos_prueba.py (seed=0)	Expresion RNA-seq simulada de 20 genes ficticios x 10 pacientes, con NaN inducidos en GENE0 para probar el filtro de calidad	ninguna

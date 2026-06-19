@@ -1,0 +1,11 @@
+case_id	vital_status	days_to_death	days_to_last_follow_up	age_at_diagnosis	ajcc_pathologic_stage
+TCGA-00	Dead	120.0		55	Stage II
+TCGA-01	Alive		800.0	62	Stage I
+TCGA-02	Dead	340.0		48	Stage III
+TCGA-03	Alive		950.0	70	Stage I
+TCGA-04	Alive		1200.0	58	Stage II
+TCGA-05	Dead	89.0		61	Stage III
+TCGA-06	Alive		430.0	45	Stage I
+TCGA-07	Alive		760.0	67	Stage II
+TCGA-08	Dead	600.0		52	Stage IV
+TCGA-09	Alive		90.0	59	Stage I
