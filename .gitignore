@@ -1,0 +1,24 @@
+# Datos grandes y sensibles (TCGA, STRING, Reactome, KEGG)
+datos-raw/*.tsv
+datos-raw/*.txt.gz
+datos-raw/*.txt
+datos-raw/*.svs
+datos-raw/*.pt
+
+# Resultados e intermedios
+resultados/
+datos-intermedios/
+
+# Entornos locales
+__pycache__/
+.venv/
+venv/
+env/
+
+# Archivos temporales
+*.tmp
+*.log
+
+
+
+
