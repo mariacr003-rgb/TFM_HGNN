@@ -1,13 +1,20 @@
 # Datos grandes y sensibles (TCGA, STRING, Reactome, KEGG)
-datos-raw/*.tsv
-datos-raw/*.txt.gz
-datos-raw/*.txt
-datos-raw/*.svs
-datos-raw/*.pt
+data/raw/*.tsv
+data/raw/*.txt.gz
+data/raw/*.txt
+data/raw/*.svs
+data/raw/*.pt
+data/processed/*.tsv
+data/processed/*.txt
 
-# Resultados e intermedios
-resultados/
-datos-intermedios/
+# Mantener la carpeta en git aunque este vacia
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Resultados pesados 
+results/*
+!results/.gitkeep
+!results/2026-06-19-paso1/
 
 # Entornos locales
 __pycache__/
@@ -18,7 +25,4 @@ env/
 # Archivos temporales
 *.tmp
 *.log
-
-
-
 
