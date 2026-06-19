@@ -1,12 +1,23 @@
 ID de ejecucion: 2026-06-19-paso1
 Fecha: 19 de junio de 2026
-Objetivo: Validar datos clinicos y de expresion RNA-seq de la cohorte BRCA antes de construir el grafo heterogeneo 
-Entrada: docs/tests/test_clinical.tsv, docs/tests/test_rnaseq.tsv
-Salida: datos-intermedios/BRCA_clinical_valid.tsv, datos-intermedios/BRCA_rnaseq_valid.tsv, datos-intermedios/BRCA_validation_report.txt
-Comando: python scripts/01_validate_data.py BRCA docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv datos-intermedios
-Parametros: ninguno (umbral de NaN fijo al 50% dentro del script)
-Commit: (pendiente de rellenar tras el git commit)
-Observaciones: Ejecucion de prueba con dataset simulado de 10 pacientes. Resultado correcto: 10/10 pacientes validos, 19/20 genes retenidos (1 gen descartado por superar el 50% de NaN). Pendiente repetir con datos reales de TCGA-BRCA descargados del GDC (ver docs/manifest-datos.tsv).
+
+- Objetivo: Validar datos clinicos y de expresion RNA-seq de la cohorte BRCA antes de construir el grafo heterogeneo 
+
+- Entrada: docs/tests/test_clinical.tsv, docs/tests/test_rnaseq.tsv
+
+- Salida: data/processed/BRCA_clinical_valid.tsv, data/processed/BRCA_rnaseq_valid.tsv, data/processed/BRCA_validation_report.txt
+
+- Comando: python scripts/01_validate_data.py BRCA docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv data/processed
+
+- Parametros: ninguno (umbral de NaN fijo al 50% dentro del script)
+
+- Commit: (pendiente de rellenar tras el git commit)
+
+- Observaciones: Ejecucion de prueba con dataset simulado de 10 pacientes. 
+- Resultado obtenido:
+Clinical: 10 pacientes -> 10 validos (0 descartados por falta de seguimiento)
+RNA-seq: 20 genes, 10 muestras -> 19 genes tras filtrar >50% de valores vacíos
+
 
 Medicion basica de eficiencia:
 - Tiempo de ejecucion: <100 ms
