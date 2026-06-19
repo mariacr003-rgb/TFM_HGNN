@@ -11,7 +11,7 @@ Fecha: 19 de junio de 2026
 
 - Parametros: ninguno (umbral de NaN fijo al 50% dentro del script)
 
-- Commit: (pendiente de rellenar tras el git commit)
+- Commit: c792c41
 
 - Observaciones: Ejecucion de prueba con dataset simulado de 10 pacientes. 
 - Resultado obtenido:
