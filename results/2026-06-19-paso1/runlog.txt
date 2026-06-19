@@ -5,15 +5,22 @@ Fecha: 19 de junio de 2026
 
 - Entrada: docs/tests/test_clinical.tsv, docs/tests/test_rnaseq.tsv
 
-- Salida: data/processed/BRCA_clinical_valid.tsv, data/processed/BRCA_rnaseq_valid.tsv, data/processed/BRCA_validation_report.txt
+- Salida: data/processed/PRUEBA_clinical_valid.tsv, data/processed/PRUEBA_rnaseq_valid.tsv, data/processed/PRUEBA_validation_report.txt
 
-- Comando: python scripts/01_validate_data.py BRCA docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv data/processed
+- Comando:   python src/00_generar_datos_prueba.py docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv
+  python src/01_validate_data.py PRUEBA docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv data/processed
 
 - Parametros: ninguno (umbral de NaN fijo al 50% dentro del script)
 
-- Commit: c792c41
+- Commit: 
 
-- Observaciones: Ejecucion de prueba con dataset simulado de 10 pacientes. 
+- Observaciones: 
+  Ejecucion de prueba con dataset simulado de 10 pacientes ficticios (prefijo "PRUEBA-" para evitar cualquier confusion con datos reales).
+- IMPORTANTE: en una ejecucion anterior se utilizo por error la etiqueta de "BRCA" para procesar estos mismos datos ficticios, lo que genero
+  ficheros BRCA_clinical_valid.tsv y BRCA_rnaseq_valid.tsv en data/processed/ que en realidad NO contenian datos reales de TCGA-BRCA, sino los datos de
+  prueba. Esos ficheros se han eliminado y sustituido por estos con la etiqueta correcta "PRUEBA". A partir de ahora la etiqueta "BRCA" se
+  reserva exclusivamente para los datos reales descargados del GDC (Paso 2).
+
 - Resultado obtenido:
 Clinical: 10 pacientes -> 10 validos (0 descartados por falta de seguimiento)
 RNA-seq: 20 genes, 10 muestras -> 19 genes tras filtrar >50% de valores vacíos
