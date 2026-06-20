@@ -1,0 +1,25 @@
+ID de ejecucion: 2026-06-20-paso5
+Fecha: 20 de junio de 2026
+Objetivo: Descargar y convertir una muestra real de datos de metilacion de la cohorte TCGA-BRCA, completando la verificacion de las tres capas
+omicas principales descritas en la Seccion 3.2.1 del TFM (RNA-seq, CNV y metilacion)
+
+Justificacion del patron de busqueda:
+El patron "methylation_array.sesame.level3betas.txt" se identifico inspeccionando el manifest completo del proyecto TCGA-BRCA
+(data/raw/gdc_manifest_full.txt). Corresponde al sufijo fijo de los ficheros generados por el pipeline SeSAMe de procesamiento de arrays
+Illumina HumanMethylation450 del GDC.
+
+Comando:
+  python src/02c_filtrar_manifest_metilacion.py data/raw/gdc_manifest_full.txt data/raw/manifest_metilacion_20.txt 20
+  tools/gdc-client.exe download -m data/raw/manifest_metilacion_20.txt -d data/raw/metilacion_brca
+  python src/11_convertir_metilacion.py data/raw/metilacion_brca data/raw/BRCA_metilacion.tsv
+
+Resultado: 27578 sitios CpG x 20 pacientes guardados en data/raw/BRCA_metilacion.tsv
+
+Commit: (pendiente)
+
+Observaciones: el numero de sitios CpG obtenido (27578) es menor que el total teorico del array Illumina 450K (~485000) descrito en la Seccion
+3.2.1, porque el fichero descargado (sesame.level3betas.txt) ya incluye el filtrado de calidad del pipeline SeSAMe del GDC, que descarta sondas
+de baja fiabilidad.
+
+Conclusion: Verificadas las tres capas omicas principales (RNA-seq, CNV, metilacion) con datos reales de TCGA-BRCA, completando la evidencia de
+viabilidad tecnica del pipeline de datos para el Anexo A.

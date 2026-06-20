@@ -8,6 +8,8 @@ data/raw/rnaseq_brca/
 data/raw/cnv_brca/
 data/processed/*.tsv
 data/processed/*.txt
+data/raw/metilacion_brca/
+
 
 # Mantener la carpeta en git aunque este vacia
 !data/raw/.gitkeep
@@ -20,6 +22,7 @@ results/*
 !results/2026-06-19-paso2/
 !results/2026-06-20-paso3/
 !results/2026-06-20-paso4/
+!results/2026-06-20-paso5/
 
 # Entornos locales
 __pycache__/
