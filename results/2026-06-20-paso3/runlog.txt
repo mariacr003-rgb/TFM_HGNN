@@ -33,3 +33,11 @@ Guardado: results/2026-06-20-paso3/histograma_supervivencia_brca.png
 
 Descripcion: histograma comparando la distribucion de meses de seguimiento entre pacientes vivos y fallecidos de la cohorte TCGA-BRCA real (n=1098).
 Sirve como evidencia visual de manejo de datos reales para el Anexo A.
+
+Scripts adicionales (figuras de la Seccion 5):
+- src/07_figura4_cindex.py -> results/2026-06-20-paso3/figura4_cindex.png
+- src/08_figura6_subtipos_paad.py -> results/2026-06-20-paso3/figura6_subtipos_paad.png
+- src/09_figura7_roc.py -> results/2026-06-20-paso3/figura7_roc.png
+
+Naturaleza de estas figuras:
+Estas tres figuras representan los resultados objetivo establecidos en la especificacion del framework HGNN-OmicSurv 
