@@ -1,0 +1,18 @@
+Total de pacientes: 1098
+Fallecidos (Dead): 152
+Vivos (Alive): 945
+Edad media al diagnostico: 59.2 anos
+
+Distribucion por estadio AJCC:
+  Stage IA: 85
+  Stage I: 83
+  Stage IIB: 235
+  Stage IIA: 334
+  Stage 0: 4
+  Stage IV: 18
+  Stage IIIA: 138
+  Stage IIIC: 56
+  Stage IB: 6
+  Stage II: 7
+  Stage X: 7
+  Stage IIIB: 23

@@ -1,0 +1,23 @@
+ID de ejecucion: 2026-06-20-paso3
+Fecha: 20 de junio de 2026
+Objetivo: Generar estadisticas descriptivas reales sobre la cohorte completa TCGA-BRCA (1098 pacientes), como evidencia de analisis exploratorio para el Anexo A y la Seccion 5 del TFM
+
+Entrada: data/raw/BRCA_clinical.tsv (1098 pacientes reales, generado en el Paso 2)
+
+Comando:
+  python src/05_estadisticas_descriptivas.py data/raw/BRCA_clinical.tsv results/2026-06-20-paso3/estadisticas_brca_real.txt
+
+Salida: results/2026-06-20-paso3/estadisticas_brca_real.txt
+
+Commit: (pendiente)
+
+Resultado obtenido:
+Total de pacientes: 1098
+Fallecidos (Dead): 152 (13.8%)
+Vivos (Alive): 945 (86.1%)
+Edad media al diagnostico: 59.2 anos
+Distribucion por estadio AJCC: mayoria en estadios IIA (334) y IIB (235), consistente con la deteccion temprana habitual en cancer de mama.
+
+Observaciones: la suma de Dead+Alive (1097) es uno menos que el total (1098), indicando 1 paciente sin vital_status registrado en el GDC. No afecta a la validez del analisis.
+
+Conclusion: Estadisticas reales coherentes con la literatura epidemiológica de cancer de mama. Sirve como evidencia de manejo correcto de datos reales del TCGA para el Anexo A del TFM.
