@@ -16,6 +16,6 @@ Comando:
 
 Resultado: 60624 genes x 20 pacientes guardados en data/raw/BRCA_cnv.tsv
 
-Commit: (pendiente)
+Commit: 958b35f 
 
 Conclusion: Verificada una segunda capa omica real (CNV) ademas de RNA-seq, reforzando la evidencia de viabilidad tecnica del pipeline de datos descrito en la Seccion 3 del TFM (Anexo A).
