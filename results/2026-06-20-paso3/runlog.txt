@@ -9,7 +9,7 @@ Comando:
 
 Salida: results/2026-06-20-paso3/estadisticas_brca_real.txt
 
-Commit: 920276b 
+Commit: c1fa380 
 
 Resultado obtenido:
 Total de pacientes: 1098
