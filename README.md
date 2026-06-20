@@ -2,9 +2,17 @@
 
 Master Universitario en Bioinformatica - UAX
 
-\## Objetivo
+## Objetivo
 
-Implementar el framework HGNN-OmicSurv (Red Neuronal de Grafos Heterogenea + VGAE + MIL + Deep Clustering) descrito en la Seccion 4 del TFM, para prediccion de supervivencia, estratificacion histomolecular, descubrimiento de subtipos moleculares e identificacion de biomarcadores de inmunoterapia sobre datos del TCGA.
+Este repositorio implementa el pipeline de adquisicion, validacion y preprocesamiento de datos reales del TCGA (Seccion 3 del TFM), que
+constituye la base de datos verificada sobre la que se proyecta la implementacion del framework HGNN-OmicSurv (Red Neuronal de Grafos
+Heterogenea + VGAE + MIL + Deep Clustering, Seccion 4 del TFM) para prediccion de supervivencia, estratificacion histomolecular,
+descubrimiento de subtipos moleculares e identificacion de biomarcadores de inmunoterapia.
+
+El pipeline aqui contenido ha sido verificado con datos reales de la cohorte TCGA-BRCA en sus cuatro capas omicas (datos clinicos completos,
+n=1.098; muestra representativa de RNA-seq, CNV y metilacion, n=20 cada una). La implementacion del framework HGNN-OmicSurv en si misma
+(arquitecturas GAT, GCN, VGAE, MIL, DEC sobre PyTorch Geometric) y su ejecucion sobre las cinco cohortes completas (BRCA, LUAD, LUSC, COAD,
+KIRC) constituyen la siguiente fase del proyecto, no implementada en el presente repositorio.
 
 \## Estructura del proyecto
 
