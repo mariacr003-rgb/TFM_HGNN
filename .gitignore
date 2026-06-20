@@ -13,6 +13,7 @@ results/*
 !results/.gitkeep
 !results/2026-06-19-paso1/
 !results/2026-06-19-paso2/
+!results/2026-06-20-paso3/
 
 # Entornos locales
 __pycache__/
