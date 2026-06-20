@@ -4,17 +4,15 @@ data/raw/*.txt.gz
 data/raw/*.txt
 data/raw/*.svs
 data/raw/*.pt
+data/raw/rnaseq_brca/
 data/processed/*.tsv
 data/processed/*.txt
 
-# Mantener la carpeta en git aunque este vacia
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-
-# Resultados pesados 
+# Resultados pesados
 results/*
 !results/.gitkeep
 !results/2026-06-19-paso1/
+!results/2026-06-19-paso2/
 
 # Entornos locales
 __pycache__/
@@ -26,3 +24,9 @@ env/
 *.tmp
 *.log
 
+# Herramienta externa GDC Data Transfer Tool
+tools/
+
+# Archivos de R generados automaticamente
+.Rhistory
+.RData
