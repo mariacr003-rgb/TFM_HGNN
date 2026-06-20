@@ -21,3 +21,15 @@ Distribucion por estadio AJCC: mayoria en estadios IIA (334) y IIB (235), consis
 Observaciones: la suma de Dead+Alive (1097) es uno menos que el total (1098), indicando 1 paciente sin vital_status registrado en el GDC. No afecta a la validez del analisis.
 
 Conclusion: Estadisticas reales coherentes con la literatura epidemiológica de cancer de mama. Sirve como evidencia de manejo correcto de datos reales del TCGA para el Anexo A del TFM.
+
+Script adicional: src/06_grafico_supervivencia.py
+Comando:
+  python src/06_grafico_supervivencia.py data/raw/BRCA_clinical.tsv results/2026-06-20-paso3/histograma_supervivencia_brca.png
+
+Resultado:
+Pacientes fallecidos con datos validos: 151
+Pacientes vivos con datos validos: 884
+Guardado: results/2026-06-20-paso3/histograma_supervivencia_brca.png
+
+Descripcion: histograma comparando la distribucion de meses de seguimiento entre pacientes vivos y fallecidos de la cohorte TCGA-BRCA real (n=1098).
+Sirve como evidencia visual de manejo de datos reales para el Anexo A.
