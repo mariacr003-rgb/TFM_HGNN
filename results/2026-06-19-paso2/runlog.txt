@@ -31,7 +31,7 @@ Salida:
 - data/processed/BRCA_rnaseq_valid.tsv
 - data/processed/BRCA_validation_report.txt
 
-Commit: (pendiente de rellenar tras el git commit)
+Commit: 3c1e3ef
 
 Resultado final de la validacion con datos reales:
 Clinical: 1098 pacientes -> 1036 validos (62 descartados por falta de seguimiento)
