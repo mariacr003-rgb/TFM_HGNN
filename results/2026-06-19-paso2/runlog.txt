@@ -1,0 +1,58 @@
+ID de ejecucion: 2026-06-19-paso2
+Fecha: 19 de junio de 2026
+Objetivo: Descargar datos reales de expresion RNA-seq y datos clinicos de la cohorte TCGA-BRCA desde el portal GDC, para sustituir los datos de prueba ficticios del Paso 1
+
+Entrada: 
+- data/raw/gdc_manifest_full.txt (manifest completo de 70.774 ficheros de TCGA-BRCA, descargado manualmente desde https://portal.gdc.cancer.gov/projects/TCGA-BRCA mediante el boton "Manifest")
+- data/raw/BRCA_clinical_gdc.tsv (datos clinicos completos de los 1098 pacientes, descargado manualmente mediante el boton "Clinical" de la misma pagina)
+
+Proceso:
+1. Descarga manual del manifest completo del proyecto TCGA-BRCA desde el portal GDC (boton Manifest, pagina del proyecto)
+2. Filtrado del manifest completo con src/02_filtrar_manifest.py, seleccionando solo los primeros 20 ficheros de tipo "rna_seq.augmented_star_gene_counts.tsv"
+3. Descarga de esos 20 ficheros reales mediante el GDC Data Transfer Tool (gdc-client.exe), usando el manifest filtrado como entrada
+4. Conversion de los 20 ficheros individuales (formato STAR counts, 9 columnas) a una unica tabla gene_id + pacientes con src/03_convertir_rnaseq.py, usando la columna tpm_unstranded
+5. Descarga manual de los datos clinicos completos del proyecto (boton Clinical)
+6. Conversion del fichero clinico real (mas de 150 columnas del GDC) a las 6 columnas necesarias con src/04_convertir_clinical.py
+7. Validacion final del conjunto completo con src/01_validate_data.py (reutilizado sin modificar del Paso 1)
+
+Comando:
+  python src/02_filtrar_manifest.py data/raw/gdc_manifest_full.txt data/raw/manifest_rnaseq_20.txt 20
+  tools/gdc-client.exe download -m data/raw/manifest_rnaseq_20.txt -d data/raw/rnaseq_brca
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_brca data/raw/BRCA_rnaseq.tsv
+  python src/04_convertir_clinical.py data/raw/BRCA_clinical_gdc.tsv data/raw/BRCA_clinical.tsv
+  python src/01_validate_data.py BRCA data/raw/BRCA_clinical.tsv data/raw/BRCA_rnaseq.tsv data/processed
+
+Salida: 
+- data/raw/manifest_rnaseq_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/rnaseq_brca/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/BRCA_rnaseq.tsv (19962 genes x 20 pacientes)
+- data/raw/BRCA_clinical.tsv (1098 pacientes, 6 columnas limpias)
+- data/processed/BRCA_clinical_valid.tsv
+- data/processed/BRCA_rnaseq_valid.tsv
+- data/processed/BRCA_validation_report.txt
+
+Commit: (pendiente de rellenar tras el git commit)
+
+Resultado final de la validacion con datos reales:
+Clinical: 1098 pacientes -> 1036 validos (62 descartados por falta de seguimiento)
+RNA-seq: 19962 genes, 20 muestras -> 19962 genes tras filtrar >50% de valores vacios
+
+Scripts utilizados en este paso:
+- src/02_filtrar_manifest.py
+- src/03_convertir_rnaseq.py
+- src/04_convertir_clinical.py
+- src/01_validate_data.py (reutilizado del Paso 1, sin modificar)
+
+Observaciones:
+- Los filtros del Repository web del GDC (Cases > Project, Experimental Strategy, Data Category) dieron resultados inconsistentes (0 coincidencias en varias combinaciones), por lo que se opto por descargar el manifest completo del proyecto directamente desde el boton "Manifest" de la pagina del proyecto, y filtrarlo localmente con un script propio.
+- El fichero clinico real del GDC (BRCA_clinical_gdc.tsv) contiene mas de 150 columnas, la mayoria vacias por ser especificas de otros tipos de cancer (linfoma, prostata, etc.) no aplicables a mama. Se selecciono y limpio solo las 6 columnas necesarias para el pipeline.
+- El fichero gdc_manifest_full.txt (70.774 lineas) NO se sube a git por su tamano; queda documentado en docs/manifest-datos.tsv con la URL exacta de descarga para que pueda regenerarse.
+- Los ficheros .tsv reales (rnaseq_brca/, BRCA_clinical_gdc.tsv, BRCA_clinical.tsv, BRCA_rnaseq.tsv) tampoco se suben a git (datos pesados o sensibles del TCGA); se documentan en docs/manifest-datos.tsv.
+- data/raw/manifest_rnaseq_20.txt SI se sube a git, por ser pequeno y documentar exactamente que 20 ficheros se usaron (trazabilidad).
+
+Medicion basica de eficiencia:
+- Descarga de 20 ficheros RNA-seq: ~85 MB, completada en aproximadamente 1 minuto
+- Tiempo de ejecucion de los scripts de conversion: menor de 5 segundos cada uno
+- Repetibilidad: alta (los scripts son deterministas sobre los mismos ficheros de entrada)
+
+Conclusion: Pipeline completo verificado con datos reales de TCGA-BRCA. 1036 pacientes con datos de supervivencia validos y 19962 genes protein_coding disponibles para 20 muestras de RNA-seq. Pendiente: ampliar la muestra de RNA-seq a los 1098 pacientes completos (actualmente solo 20), y repetir el proceso completo para las otras cuatro cohortes del TFM (LUAD, LUSC, COAD, KIRC).les de estos mismos 20 pacientes.
