@@ -29,6 +29,7 @@ __pycache__/
 .venv/
 venv/
 env/
+venv_pytorch/
 
 # Archivos temporales
 *.tmp
