@@ -12,7 +12,7 @@ Fecha: 19 de junio de 2026
 
 - Parametros: ninguno (umbral de NaN fijo al 50% dentro del script)
 
-- Commit: 9094096 
+- Commit: 7d06b95  
 
 - Observaciones: 
   Ejecucion de prueba con dataset simulado de 10 pacientes ficticios (prefijo "PRUEBA-" para evitar cualquier confusion con datos reales).

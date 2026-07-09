@@ -17,7 +17,7 @@ Salida:
 - data/raw/metilacion_brca/ (20 subcarpetas con ficheros .txt reales descargados)
 - data/raw/BRCA_metilacion.tsv (27578 sitios CpG x 20 pacientes)
 
-Commit: 16fcc08
+Commit: 7d06b95 
 
 Resultado: 27578 sitios CpG x 20 pacientes guardados en data/raw/BRCA_metilacion.tsv
 

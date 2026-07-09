@@ -17,7 +17,7 @@ Salida:
 - data/raw/cnv_brca/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/BRCA_cnv.tsv (60624 genes x 20 pacientes)
 
-Commit: 958b35f
+Commit: 7d06b95 
 
 Resultado: 60624 genes x 20 pacientes guardados en data/raw/BRCA_cnv.tsv
 
