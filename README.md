@@ -4,76 +4,67 @@ Master Universitario en Bioinformatica - UAX
 
 ## Objetivo
 
-Este repositorio implementa el pipeline de adquisicion, validacion y preprocesamiento de datos reales del TCGA (Seccion 3 del TFM), que
-constituye la base de datos verificada sobre la que se proyecta la implementacion del framework HGNN-OmicSurv (Red Neuronal de Grafos
-Heterogenea + VGAE + MIL + Deep Clustering, Seccion 4 del TFM) para prediccion de supervivencia, estratificacion histomolecular,
-descubrimiento de subtipos moleculares e identificacion de biomarcadores de inmunoterapia.
+Este repositorio implementa el framework HGNN-OmicSurv sobre datos reales de TCGA-BRCA, en dos fases:
 
-El pipeline aqui contenido ha sido verificado con datos reales de la cohorte TCGA-BRCA en sus cuatro capas omicas (datos clinicos completos,
-n=1.098; muestra representativa de RNA-seq, CNV y metilacion, n=20 cada una). La implementacion del framework HGNN-OmicSurv en si misma
-(arquitecturas GAT, GCN, VGAE, MIL, DEC sobre PyTorch Geometric) y su ejecucion sobre las cinco cohortes completas (BRCA, LUAD, LUSC, COAD,
-KIRC) constituyen la siguiente fase del proyecto, no implementada en el presente repositorio.
+**Fase 1 (completada):** pipeline de adquisicion, validacion y preprocesamiento de datos reales del TCGA. Verificado con datos reales de la cohorte TCGA-BRCA en sus cuatro capas omicas (datos clinicos completos, n=1.098; muestra representativa de RNA-seq,
+CNV y metilacion, n=20 cada una).
 
-\## Estructura del proyecto
+**Fase 2 (en curso):** implementacion y entrenamiento de tres arquitecturas del framework —GAT (Graph Attention Network), GCN (Graph Convolutional
+Network) y VGAE (Variational Graph Autoencoder)— sobre PyTorch Geometric, usando los datos verificados en la Fase 1, para la prediccion de
+supervivencia y el manejo generativo de datos faltantes en pacientes de cancer de mama (TCGA-BRCA).
 
-```
+## Estructura del proyecto
+data/raw/           Datos originales descargados (GDC, STRING)
+data/processed/     Datos generados por los scripts (validados, preprocesados)
+src/                Scripts numerados en orden de ejecucion (00_, 01_, ...)
+results/            Runlogs y resultados de cada paso del proceso
+docs/               Manifest de datos y tests
+config/             Ficheros de configuracion
+entorno/            Especificacion del entorno (requirements.txt)
+venv_pytorch/       Entorno virtual Python 3.11 con PyTorch (no versionado)
 
-data/raw/           Datos originales descargados (GDC, STRING, Reactome, KEGG)
+## Entrada de prueba
+docs/tests/test_clinical.tsv y docs/tests/test_rnaseq.tsv (mini dataset
+simulado de 10 pacientes, generado con src/00_generar_datos_prueba.py,
+para verificar que el pipeline funciona antes de usar datos reales).
 
-data/processed/   Datos generados por los scripts (validados, preprocesados)
+IMPORTANTE: al ejecutar src/01_validate_data.py sobre estos datos de
+prueba, se debe usar la etiqueta de cohorte "PRUEBA", para no confundir
+los resultados de prueba con los resultados reales en data/processed/.
 
-scripts/             Scripts numerados en orden de ejecucion (01\_, 02\_, ...)
+## Entrada real
+data/raw/BRCA_clinical.tsv, data/raw/BRCA_rnaseq.tsv, data/raw/BRCA_cnv.tsv,
+data/raw/BRCA_metilacion.tsv (descargados del portal GDC), y
+data/raw/9606.protein.links.v12.0.txt.gz (descargado de STRING v12).
+Ver docs/manifest-datos.tsv para el origen exacto y la URL de cada fichero.
 
-results/          Tablas y figuras finales (Seccion 5 del TFM)
+## Dependencias
 
-docs/                Manifest de datos y tests
+### Fase 1 (pipeline de datos)
+- Python 3.14 
+- Modulos estandar: csv, sys, pathlib
+- matplotlib (figuras de la Seccion 5)
 
-config/              Ficheros de configuracion (config.yaml)
+### Fase 2 (framework GAT+GCN+VGAE)
+- Python 3.11 (entorno virtual independiente: venv_pytorch/)
+- PyTorch 2.13 (CPU)
+- PyTorch Geometric 2.8
 
-entorno/             Especificacion del entorno (requirements.txt)
+## Como ejecutar
 
-```
-
-
-
-\## Entrada de prueba
-
-docs/tests/test_clinical.tsv y docs/tests/test_rnaseq.tsv (mini dataset simulado de 10 pacientes, generado con src/00_generar_datos_prueba.py, para verificar que el pipeline funciona antes de usar datos reales del TCGA.
-
-IMPORTANTE: al ejecutar src/01_validate_data.py sobre estos datos de prueba, se debe usar la etiqueta de cohorte "PRUEBA", para no confundir los resultados de prueba con los resultados reales en data/processed/. Ver docs/manifest-datos.tsv para el detalle de cada fichero.
-
-\## Entrada real
-
-data/raw/BRCA_clinical.tsv y data/raw/BRCA_rnaseq.tsv (descargados del portal GDC, ver docs/manifest-datos.tsv para el origen exacto y la URL).
-
-\## Dependencias
-
-\- Python 3.10
-\- pandas, numpy (Paso 1)
-\- PyTorch 2.1, PyTorch Geometric 2.4 (pasos posteriores de la Seccion 4)
-\- Git
-
-
-
-\## Como ejecutar (Paso 1)
-
+### Fase 1 - Pipeline de datos
 Con datos de prueba:
 
-```
 python src/00_generar_datos_prueba.py docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv
-
 python src/01_validate_data.py PRUEBA docs/tests/test_clinical.tsv docs/tests/test_rnaseq.tsv data/processed
-```
-
-
 
 Con datos reales:
 
-```
-
 python src/01_validate_data.py BRCA data/raw/BRCA_clinical.tsv data/raw/BRCA_rnaseq.tsv data/processed
 
-```
+### Fase 2 - Framework GAT+GCN+VGAE
+venv_pytorch\Scripts\activate
+python src/12_prueba_pytorch_geometric.py
 
 
 
@@ -86,7 +77,7 @@ logs/manifest.json y omite el recalculo.
 
 \## Trazabilidad de ejecuciones
 
-Cada ejecucion relevante se documenta en resultados/<fecha>-expNN/runlog.txt con: ID de ejecucion, comando exacto, commit de Git correspondiente y
+Cada ejecucion relevante se documenta en results/<fecha>-expNN/runlog.txt con: ID de ejecucion, comando exacto, commit de Git correspondiente y
 observaciones.
 
 

@@ -23,7 +23,7 @@ Fecha: 19 de junio de 2026
 
 - Resultado obtenido:
 Clinical: 10 pacientes -> 10 validos (0 descartados por falta de seguimiento)
-RNA-seq: 20 genes, 10 muestras -> 19 genes tras filtrar >50% de valores vacíos
+RNA-seq: 20 genes, 10 muestras -> 19 genes tras filtrar >50% de valores vacios
 
 
 Medicion basica de eficiencia:
@@ -33,4 +33,6 @@ Medicion basica de eficiencia:
 - Disco: Bajo
 - Repetibilidad: Alta (datos deterministas, seed fijada con np.random.seed)
 
-Conclusion: El script funciona correctamente sobre datos simulados. Esta ejecucion sirve como verificacion del pipeline antes de procesar los datos reales del TCGA, que se documentaran en una nueva carpeta resultados/<fecha>-pasoNN-real/.
+Conclusion: El script funciona correctamente sobre datos simulados. Esta ejecucion sirve como verificacion del pipeline antes de procesar los datos reales del TCGA, que se documentaran en una nueva carpeta results/<fecha>-paso2/ correspondiente a la descarga de datos reales."
+
+"Este runlog corresponde a la Fase 1 del proyecto (pipeline de datos), descrita en el README."

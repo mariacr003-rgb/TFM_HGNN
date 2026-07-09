@@ -26,6 +26,7 @@ results/*
 
 # Entornos locales
 __pycache__/
+*.pyc
 .venv/
 venv/
 env/

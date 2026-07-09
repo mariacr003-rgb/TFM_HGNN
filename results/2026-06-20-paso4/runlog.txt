@@ -1,21 +1,24 @@
 ID de ejecucion: 2026-06-20-paso4
 Fecha: 20 de junio de 2026
-Objetivo: Descargar y convertir una muestra real de datos de CNV (Copy Number Variation) de la cohorte TCGA-BRCA, ampliando la verificacion del
-pipeline a una segunda capa omica 
+Objetivo: Descargar y convertir una muestra real de datos de CNV (Copy Number Variation) de la cohorte TCGA-BRCA, ampliando la verificacion del pipeline a una segunda capa omica
+
+Entrada: data/raw/gdc_manifest_full.txt (manifest completo de TCGA-BRCA, descargado en el Paso 2)
 
 Justificacion del patron de busqueda:
-El patron "gene_level_copy_number.v36.tsv" se identifico inspeccionando manualmente el manifest completo del proyecto TCGA-BRCA
-(data/raw/gdc_manifest_full.txt, descargado desde el boton "Manifest" de https://portal.gdc.cancer.gov/projects/TCGA-BRCA). Corresponde al sufijo
-fijo de los ficheros generados por el pipeline ASCAT2 de armonizacion de CNV del GDC, version v36, documentado en
-https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/CNV_Pipeline.
+El patron "gene_level_copy_number.v36.tsv" se identifico inspeccionando manualmente el manifest completo del proyecto TCGA-BRCA (data/raw/gdc_manifest_full.txt, descargado desde el boton "Manifest" de https://portal.gdc.cancer.gov/projects/TCGA-BRCA). Corresponde al sufijo fijo de los ficheros generados por el pipeline ASCAT2 de armonizacion de CNV del GDC, version v36, documentado en https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/CNV_Pipeline.
 
 Comando:
-  python src/02b_filtrar_manifest_cnv.py data/raw/gdc_manifest_full.txt data/raw/manifest_cnv_20.txt 20 tools/gdc-client.exe download -m data/raw/manifest_cnv_20.txt -d data/raw/cnv_brca
-
+  python src/02b_filtrar_manifest_cnv.py data/raw/gdc_manifest_full.txt data/raw/manifest_cnv_20.txt 20
+  tools/gdc-client.exe download -m data/raw/manifest_cnv_20.txt -d data/raw/cnv_brca
   python src/10_convertir_cnv.py data/raw/cnv_brca data/raw/BRCA_cnv.tsv
 
-Resultado: 60624 genes x 20 pacientes guardados en data/raw/BRCA_cnv.tsv
+Salida: 
+- data/raw/manifest_cnv_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/cnv_brca/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/BRCA_cnv.tsv (60624 genes x 20 pacientes)
 
-Commit: 958b35f 
+Commit: 958b35f
+
+Resultado: 60624 genes x 20 pacientes guardados en data/raw/BRCA_cnv.tsv
 
 Conclusion: Verificada una segunda capa omica real (CNV) ademas de RNA-seq, reforzando la evidencia de viabilidad tecnica del pipeline de datos descrito en la Seccion 3 del TFM (Anexo A).

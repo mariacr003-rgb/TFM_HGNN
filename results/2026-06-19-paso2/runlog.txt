@@ -55,4 +55,4 @@ Medicion basica de eficiencia:
 - Tiempo de ejecucion de los scripts de conversion: menor de 5 segundos cada uno
 - Repetibilidad: alta (los scripts son deterministas sobre los mismos ficheros de entrada)
 
-Conclusion: Pipeline completo verificado con datos reales de TCGA-BRCA. 1036 pacientes con datos de supervivencia validos y 19962 genes protein_coding disponibles para 20 muestras de RNA-seq. Pendiente: ampliar la muestra de RNA-seq a los 1098 pacientes completos (actualmente solo 20), y repetir el proceso completo para las otras cuatro cohortes del TFM (LUAD, LUSC, COAD, KIRC).les de estos mismos 20 pacientes.
+Conclusion: Pipeline completo verificado con datos reales de TCGA-BRCA. 1036 pacientes con datos de supervivencia validos y 19962 genes protein_coding disponibles para 20 muestras de RNA-seq. Pendiente: ampliar la muestra de RNA-seq a los 1098 pacientes completos, como parte de la Fase 2 del proyecto (implementacion y entrenamiento de GAT, GCN y VGAE sobre esta cohorte, ver README).

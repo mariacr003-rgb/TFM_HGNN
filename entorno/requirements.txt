@@ -1,0 +1,8 @@
+# Fase 1 - Pipeline de datos (Python del sistema)
+# Solo usa modulos estandar de Python: csv, sys, pathlib
+# matplotlib se usa para las figuras 
+matplotlib==3.10.9
+
+# Fase 2 - Framework GAT+GCN+VGAE (entorno virtual venv_pytorch, Python 3.11)
+torch==2.13.0
+torch_geometric==2.8.0
