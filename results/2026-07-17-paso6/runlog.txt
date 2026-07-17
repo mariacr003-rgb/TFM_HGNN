@@ -1,0 +1,58 @@
+ID de ejecucion: 2026-07-17-paso6
+Fecha: 17 de julio de 2026
+
+Objetivo: Investigar si existe una via de descarga automatizada por linea de comandos (API REST del GDC, https://api.gdc.cancer.gov) para obtener, de las cuatro cohortes pendientes (TCGA-LUAD, TCGA-LUSC, TCGA-COAD, TCGA-KIRC), el equivalente a los dos botones que se usaron manualmente en el portal web para BRCA: "Manifest" (fichero data/raw/gdc_manifest_full.txt) y "Clinical" (fichero data/raw/BRCA_clinical_gdc.tsv). Si la API funciona de forma fiable, generar ya los manifests reales de las 4 cohortes pendientes.
+
+Entrada de referencia (BRCA, ya descargada manualmente):
+- data/raw/gdc_manifest_full.txt (70775 lineas: cabecera + 70774 ficheros, 5 columnas: id, filename, md5, size, state)
+- data/raw/BRCA_clinical_gdc.tsv (5547 lineas, 201 columnas: project.project_id, cases.case_id, cases.consent_type, demographic.*, diagnoses.*, treatments.*, etc., una fila por combinacion caso-diagnostico/tratamiento)
+
+Investigacion y comandos ejecutados:
+
+1) Manifest - verificacion del conteo total de ficheros por proyecto (sin descargar nada), comparando con el manifest ya descargado de BRCA:
+  curl -s "https://api.gdc.cancer.gov/files?filters={\"op\":\"in\",\"content\":{\"field\":\"cases.project.project_id\",\"value\":[\"TCGA-BRCA\"]}}&size=0"
+  -> total: 70774 (coincide exactamente con las 70774 filas de datos de gdc_manifest_full.txt)
+
+  curl -s "https://api.gdc.cancer.gov/files?filters={\"op\":\"in\",\"content\":{\"field\":\"cases.project.project_id\",\"value\":[\"TCGA-LUAD\"]}}&size=0"
+  -> total: 36224
+
+2) Manifest - generacion real via API (endpoint /files con return_type=manifest), probado primero con TCGA-LUAD:
+  Payload (payload_manifest.json):
+  {
+    "filters": {"op": "in", "content": {"field": "cases.project.project_id", "value": ["TCGA-LUAD"]}},
+    "return_type": "manifest",
+    "size": 100000
+  }
+
+  curl --request POST --header "Content-Type: application/json" --data @payload_manifest.json "https://api.gdc.cancer.gov/files" -o data/raw/luad_manifest_full.txt
+
+  Resultado: cabecera "id  filename  md5  size  state" identica byte a byte a gdc_manifest_full.txt (BRCA); 36225 lineas (36224 filas + cabecera), coincidiendo exactamente con el total contado en el paso 1. La cabecera HTTP de la respuesta incluye "Content-Disposition: attachment; filename=gdc_manifest.<fecha>.txt", confirmando que es el mismo fichero que genera el boton "Manifest" del portal.
+
+  Se repitio el mismo comando cambiando unicamente el valor del filtro ("TCGA-LUSC", "TCGA-COAD", "TCGA-KIRC"), guardando cada resultado en data/raw/<cohorte>_manifest_full.txt.
+
+3) Datos clinicos - intento de reproducir BRCA_clinical_gdc.tsv via API, pidiendo a /cases los mismos 201 campos del fichero original, en formato TSV, filtrando por TCGA-LUAD:
+  curl --request POST --header "Content-Type: application/json" --data @payload_clinical_luad.json "https://api.gdc.cancer.gov/cases" -o luad_clinical_test.tsv
+
+  Resultado: HTTP 200, TSV valido, PERO no equivalente al fichero manual de BRCA:
+  - Solo 178 de las 201 columnas pedidas; 23 campos se descartaron en silencio sin ningun error o aviso (incluyendo campos basicos presentes en BRCA_clinical_gdc.tsv: project.project_id, cases.case_id, cases.primary_site, demographic.gender, y decenas de subcampos especificos de diagnoses.*/treatments.*).
+  - Estructura de filas distinta: en vez de una fila por combinacion caso-diagnostico/tratamiento (como en BRCA_clinical_gdc.tsv, 5547 filas para 1098 casos), la API devolvio una fila por caso (586 filas para 585 casos) con los valores multiples aplanados en columnas indexadas (diagnoses.0.*, diagnoses.1.*, ...).
+  - Mismo tipo de inconsistencia que ya se observo antes con los filtros del Repository web para BRCA (Paso 2).
+
+  No se probaron formas alternativas (parametro expand, jobs asincronos del portal, otros endpoints) para no repetir el patron de ensayo-error sin confirmar antes con el usuario.
+
+Salida:
+- data/raw/luad_manifest_full.txt (36224 ficheros de TCGA-LUAD)
+- data/raw/lusc_manifest_full.txt (32065 ficheros de TCGA-LUSC)
+- data/raw/coad_manifest_full.txt (28900 ficheros de TCGA-COAD)
+- data/raw/kirc_manifest_full.txt (34535 ficheros de TCGA-KIRC)
+Ninguno de los 4 ficheros se sube a git (mismo criterio que gdc_manifest_full.txt de BRCA: excluidos por tamano en .gitignore).
+
+Commit: c88a9c1
+
+Resultado obtenido:
+- Manifest: automatizable por API, formato identico al del portal, generalizable a las 4 cohortes cambiando solo el nombre del proyecto. Verificado y generado con exito para LUAD, LUSC, COAD y KIRC.
+- Datos clinicos: NO automatizable de forma fiable por API con el metodo probado (columnas incompletas y estructura de filas distinta a la del fichero de referencia de BRCA).
+
+Observaciones: Para los datos clinicos completos de LUAD, LUSC, COAD y KIRC se debe seguir usando la descarga manual del boton "Clinical" del portal GDC, igual que se hizo con BRCA en el Paso 2, en vez de la API.
+
+Conclusion: Se automatiza la obtencion del manifest completo de las 4 cohortes pendientes via API REST del GDC, quedando pendiente unicamente la descarga manual de los datos clinicos completos de cada cohorte (equivalente al Paso 2 de BRCA), antes de poder replicar el resto del pipeline (filtrado de manifest, descarga de muestras de RNA-seq/CNV/metilacion) en LUAD, LUSC, COAD y KIRC.
