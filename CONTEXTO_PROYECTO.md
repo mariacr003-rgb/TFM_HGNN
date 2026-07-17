@@ -46,8 +46,7 @@ Datos reales ya descargados en data/raw/ (SOLO cohorte BRCA):
 - 9606.protein.links.v12.0.txt.gz (STRING v12 completo)
 - gen_proteina_conversion.txt (tabla ENSG->ENSP de BioMart)
 
-### Scripts recuperados pero SIN adaptar al nuevo alcance (generaban 
-figuras ilustrativas con datos de ejemplo, no datos reales):
+### Scripts recuperados pero SIN adaptar al nuevo alcance (generaban figuras ilustrativas con datos de ejemplo, no datos reales):
 - src/07_figura4_cindex.py
 - src/08_figura6_subtipos_paad.py
 - src/09_figura7_roc.py
