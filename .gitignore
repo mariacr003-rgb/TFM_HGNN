@@ -4,11 +4,11 @@ data/raw/*.txt.gz
 data/raw/*.txt
 data/raw/*.svs
 data/raw/*.pt
-data/raw/rnaseq_brca/
-data/raw/cnv_brca/
+data/raw/rnaseq_*/
+data/raw/cnv_*/
 data/processed/*.tsv
 data/processed/*.txt
-data/raw/metilacion_brca/
+data/raw/metilacion_*/
 
 
 # Mantener la carpeta en git aunque este vacia
