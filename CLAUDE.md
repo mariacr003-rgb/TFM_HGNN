@@ -71,9 +71,8 @@ posicionales (`sys.argv`), sin librería de parsing de argumentos:
 - `01_validate_data.py` → valida clínicos + una capa ómica (filtra
   pacientes sin seguimiento, filtra genes con >50% valores vacíos)
 - `02_filtrar_manifest.py` / `02b` (CNV) / `02c` (metilación) → filtran
-  el manifest completo del GDC (`data/raw/gdc_manifest_full.txt`, no
-  versionado) por patrón de nombre de fichero, para elegir qué
-  descargar con `gdc-client.exe`
+  el manifest completo del GDC (no versionado) por patrón de nombre de
+  fichero, para elegir qué descargar con `gdc-client.exe`
 - `03_convertir_rnaseq.py`, `04_convertir_clinical.py`,
   `10_convertir_cnv.py`, `11_convertir_metilacion.py` → convierten los
   ficheros crudos descargados del GDC (uno por paciente, en
@@ -84,6 +83,17 @@ posicionales (`sys.argv`), sin librería de parsing de argumentos:
   `09_figura7_roc.py` → generan figuras de resultados, pero **todavía
   con datos de ejemplo ilustrativos, sin adaptar a datos reales**
 - `12_prueba_pytorch_geometric.py` → primer script de Fase 2 (PyG)
+
+IMPORTANTE — convención de nombres de los manifests completos en
+`data/raw/`: el de BRCA se llama `gdc_manifest_full.txt`, **sin**
+prefijo de cohorte, porque fue el primero que se descargó (manualmente,
+desde el botón "Manifest" del portal). Los de las 4 cohortes
+siguientes, generadas vía API del GDC (ver
+`results/2026-07-17-paso6/runlog.txt`), sí llevan prefijo de cohorte en
+minúsculas: `luad_manifest_full.txt`, `lusc_manifest_full.txt`,
+`coad_manifest_full.txt`, `kirc_manifest_full.txt`. No asumir que
+`gdc_manifest_full.txt` es genérico o que existe un
+`brca_manifest_full.txt` — no existe.
 
 Flujo de datos: `data/raw/` (descargas GDC/STRING, muchas no
 versionadas por tamaño — ver `.gitignore`) → `data/processed/` (salida
