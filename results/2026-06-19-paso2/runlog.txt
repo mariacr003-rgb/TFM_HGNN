@@ -16,14 +16,14 @@ Proceso:
 7. Validacion final del conjunto completo con src/01_validate_data.py (reutilizado sin modificar del Paso 1)
 
 Comando:
-  python src/02_filtrar_manifest.py data/raw/gdc_manifest_full.txt data/raw/manifest_rnaseq_20.txt 20
-  tools/gdc-client.exe download -m data/raw/manifest_rnaseq_20.txt -d data/raw/rnaseq_brca
+  python src/02_filtrar_manifest.py data/raw/gdc_manifest_full.txt data/raw/manifest_rnaseq_brca_20.txt 20
+  tools/gdc-client.exe download -m data/raw/manifest_rnaseq_brca_20.txt -d data/raw/rnaseq_brca
   python src/03_convertir_rnaseq.py data/raw/rnaseq_brca data/raw/BRCA_rnaseq.tsv
   python src/04_convertir_clinical.py data/raw/BRCA_clinical_gdc.tsv data/raw/BRCA_clinical.tsv
   python src/01_validate_data.py BRCA data/raw/BRCA_clinical.tsv data/raw/BRCA_rnaseq.tsv data/processed
 
 Salida: 
-- data/raw/manifest_rnaseq_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/manifest_rnaseq_brca_20.txt (lista de los 20 ficheros seleccionados)
 - data/raw/rnaseq_brca/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/BRCA_rnaseq.tsv (19962 genes x 20 pacientes)
 - data/raw/BRCA_clinical.tsv (1098 pacientes, 6 columnas limpias)
@@ -48,7 +48,7 @@ Observaciones:
 - El fichero clinico real del GDC (BRCA_clinical_gdc.tsv) contiene mas de 150 columnas, la mayoria vacias por ser especificas de otros tipos de cancer (linfoma, prostata, etc.) no aplicables a mama. Se selecciono y limpio solo las 6 columnas necesarias para el pipeline.
 - El fichero gdc_manifest_full.txt (70.774 lineas) NO se sube a git por su tamano; queda documentado en docs/manifest-datos.tsv con la URL exacta de descarga para que pueda regenerarse.
 - Los ficheros .tsv reales (rnaseq_brca/, BRCA_clinical_gdc.tsv, BRCA_clinical.tsv, BRCA_rnaseq.tsv) tampoco se suben a git (datos pesados o sensibles del TCGA); se documentan en docs/manifest-datos.tsv.
-- CORRECCION (2026-07-22): la frase original de esta observacion decia que data/raw/manifest_rnaseq_20.txt "SI se sube a git, por ser pequeno y documentar exactamente que 20 ficheros se usaron (trazabilidad)". Eso era incorrecto: el fichero esta bloqueado por la regla "data/raw/*.txt" del .gitignore, igual que el resto de datos reales de BRCA, y nunca se subio a git. Es regenerable ejecutando el comando "python src/02_filtrar_manifest.py data/raw/gdc_manifest_full.txt data/raw/manifest_rnaseq_20.txt 20" documentado mas arriba en este mismo runlog.
+- CORRECCION (2026-07-22): la frase original de esta observacion decia que data/raw/manifest_rnaseq_20.txt (nombre original del fichero en ese momento) "SI se sube a git, por ser pequeno y documentar exactamente que 20 ficheros se usaron (trazabilidad)". Eso era incorrecto: el fichero esta bloqueado por la regla "data/raw/*.txt" del .gitignore, igual que el resto de datos reales de BRCA, y nunca se subio a git. Es regenerable ejecutando el comando "python src/02_filtrar_manifest.py data/raw/gdc_manifest_full.txt data/raw/manifest_rnaseq_brca_20.txt 20" documentado mas arriba en este mismo runlog. Ademas, el fichero se renombro de manifest_rnaseq_20.txt a manifest_rnaseq_brca_20.txt para no confundirlo con manifests equivalentes de otras cohortes (LUAD, LUSC, COAD, KIRC).
 
 Medicion basica de eficiencia:
 - Descarga de 20 ficheros RNA-seq: ~85 MB, completada en aproximadamente 1 minuto

@@ -8,12 +8,12 @@ Justificacion del patron de busqueda:
 El patron "methylation_array.sesame.level3betas.txt" se identifico inspeccionando el manifest completo del proyecto TCGA-BRCA (data/raw/gdc_manifest_full.txt). Corresponde al sufijo fijo de los ficheros generados por el pipeline SeSAMe de procesamiento de arrays Illumina HumanMethylation450 del GDC.
 
 Comando:
-  python src/02c_filtrar_manifest_metilacion.py data/raw/gdc_manifest_full.txt data/raw/manifest_metilacion_20.txt 20
-  tools/gdc-client.exe download -m data/raw/manifest_metilacion_20.txt -d data/raw/metilacion_brca
+  python src/02c_filtrar_manifest_metilacion.py data/raw/gdc_manifest_full.txt data/raw/manifest_metilacion_brca_20.txt 20
+  tools/gdc-client.exe download -m data/raw/manifest_metilacion_brca_20.txt -d data/raw/metilacion_brca
   python src/11_convertir_metilacion.py data/raw/metilacion_brca data/raw/BRCA_metilacion.tsv
 
 Salida:
-- data/raw/manifest_metilacion_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/manifest_metilacion_brca_20.txt (lista de los 20 ficheros seleccionados)
 - data/raw/metilacion_brca/ (20 subcarpetas con ficheros .txt reales descargados)
 - data/raw/BRCA_metilacion.tsv (27578 sitios CpG x 20 pacientes)
 
