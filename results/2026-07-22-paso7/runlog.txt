@@ -19,7 +19,7 @@ Salida:
 - data/raw/rnaseq_luad/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/LUAD_rnaseq.tsv (19962 genes x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento, igual que se hizo en los runlogs de los pasos 1 y 5)
+Commit: 86b02d6
 
 Resultado obtenido:
 19962 genes protein_coding x 20 pacientes reales de TCGA-LUAD, misma estructura exacta que data/raw/BRCA_rnaseq.tsv (19962 genes x 20 pacientes; 19963 lineas, 21 columnas en ambos ficheros).
