@@ -1,0 +1,38 @@
+ID de ejecucion: 2026-07-23-paso10
+Fecha: 23 de julio de 2026
+
+Objetivo: Convertir los ficheros de datos clinicos completos de TCGA-LUSC, TCGA-COAD y TCGA-KIRC (descargados manualmente del boton "Clinical" del portal GDC) a las 6 columnas necesarias del pipeline, reutilizando el script src/04_convertir_clinical.py ya adaptado en el Paso 9 para formatos comprimidos.
+
+Entrada:
+- data/raw/LUSC_clinical_gdc.tsv.tar.gz (descargado manualmente de https://portal.gdc.cancer.gov/projects/TCGA-LUSC)
+- data/raw/COAD_clinical_gdc.tsv.tar.gz (descargado manualmente de https://portal.gdc.cancer.gov/projects/TCGA-COAD)
+- data/raw/KIRC_clinical_gdc.tsv.tar.gz (descargado manualmente de https://portal.gdc.cancer.gov/projects/TCGA-KIRC)
+
+Verificacion previa: se confirmo con tarfile.is_tarfile() que los 3 ficheros son paquetes tar.gz validos, cada uno con el mismo contenido que LUAD (clinical.tsv, exposure.tsv, family_history.tsv, follow_up.tsv, pathology_detail.tsv), antes de convertirlos.
+
+Comando:
+  python src/04_convertir_clinical.py data/raw/LUSC_clinical_gdc.tsv.tar.gz data/raw/LUSC_clinical.tsv
+  python src/04_convertir_clinical.py data/raw/COAD_clinical_gdc.tsv.tar.gz data/raw/COAD_clinical.tsv
+  python src/04_convertir_clinical.py data/raw/KIRC_clinical_gdc.tsv.tar.gz data/raw/KIRC_clinical.tsv
+
+Ningun script se modifico: src/04_convertir_clinical.py se reutilizo tal cual, tal como se adapto en el Paso 9 (deteccion automatica de .tsv plano / .tsv.gz simple / tar.gz).
+
+Salida:
+- data/raw/LUSC_clinical.tsv (504 pacientes unicos, 6 columnas limpias)
+- data/raw/COAD_clinical.tsv (461 pacientes unicos, 6 columnas limpias)
+- data/raw/KIRC_clinical.tsv (537 pacientes unicos, 6 columnas limpias)
+
+Commit: (pendiente, se anadira en un commit de seguimiento, igual que en los runlogs de los pasos 1, 5, 7, 8 y 9)
+
+Resultado obtenido:
+- LUSC: 504 pacientes unicos
+- COAD: 461 pacientes unicos
+- KIRC: 537 pacientes unicos
+Los 3 conteos coinciden exactamente con el total de casos de cada proyecto ya confirmado por la API del GDC en el Paso 6 (LUSC 504, COAD 461, KIRC 537), y las 3 tablas tienen la misma estructura de 6 columnas que BRCA_clinical.tsv y LUAD_clinical.tsv (case_id, vital_status, days_to_death, days_to_last_follow_up, age_at_diagnosis, ajcc_pathologic_stage).
+
+Observaciones:
+- Ninguno de los ficheros de entrada (*_clinical_gdc.tsv.tar.gz) ni de salida (*_clinical.tsv) se sube a git: los .tar.gz estan cubiertos por la regla "data/raw/*.tar.gz" del .gitignore (anadida en el Paso 9) y los .tsv por "data/raw/*.tsv".
+- Con este paso, las 5 cohortes (BRCA, LUAD, LUSC, COAD, KIRC) tienen ya sus datos clinicos completos convertidos al formato de 6 columnas del pipeline.
+- Pendiente (fuera del alcance de este paso): RNA-seq, CNV y metilacion de LUSC, COAD y KIRC (solo LUAD tiene RNA-seq y CNV verificados, Pasos 7 y 8); y la validacion final conjunta con src/01_validate_data.py para cada cohorte, una vez esten las 3 capas omicas listas.
+
+Conclusion: Datos clinicos completos de las 5 cohortes de TCGA (BRCA, LUAD, LUSC, COAD, KIRC) verificados y convertidos con exito al mismo formato, usando un unico script generico y adaptado a los distintos formatos de descarga del portal GDC. Queda pendiente completar las capas omicas (RNA-seq, CNV, metilacion) de LUSC, COAD y KIRC, replicando el proceso ya seguido para LUAD.
