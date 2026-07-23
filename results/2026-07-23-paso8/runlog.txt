@@ -19,7 +19,7 @@ Salida:
 - data/raw/cnv_luad/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/LUAD_cnv.tsv (60624 genes x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento, igual que se hizo en los runlogs de los pasos 1, 5 y 7)
+Commit: f8e5ab8
 
 Resultado obtenido:
 60624 genes x 20 pacientes reales de TCGA-LUAD, misma estructura exacta que data/raw/BRCA_cnv.tsv (60624 genes x 20 pacientes; 60625 lineas, 21 columnas en ambos ficheros).
