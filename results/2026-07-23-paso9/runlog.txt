@@ -24,7 +24,7 @@ Comando:
 Salida:
 - data/raw/LUAD_clinical.tsv (585 pacientes unicos, 6 columnas limpias)
 
-Commit: (pendiente, se anadira en un commit de seguimiento, igual que en los runlogs de los pasos 1, 5, 7 y 8)
+Commit: 3d61e12
 
 Resultado obtenido:
 585 pacientes unicos de TCGA-LUAD, mismo formato de 6 columnas que data/raw/BRCA_clinical.tsv. El numero de pacientes (585) coincide exactamente con el total de casos de TCGA-LUAD confirmado por la API del GDC en el Paso 6.
