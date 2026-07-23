@@ -47,7 +47,7 @@ Salida:
 - data/raw/manifest_metilacion_luad_20.txt (20 ficheros del array 450K de TCGA-LUAD: 12 reutilizados del intento anterior + 8 nuevos)
 - data/raw/LUAD_metilacion.tsv (486427 sitios CpG x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento, igual que en los runlogs de los pasos 1, 5, 7, 8, 9 y 10)
+Commit: 731d5f8
 
 Resultado obtenido:
 BRCA y LUAD tienen ahora datos de metilacion homogeneos y cientificamente validos: 486.427 sitios CpG x 20 pacientes en ambos casos, todos del mismo array (450K), verificado fichero a fichero antes de la conversion.
