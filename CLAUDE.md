@@ -85,15 +85,17 @@ posicionales (`sys.argv`), sin librería de parsing de argumentos:
 - `12_prueba_pytorch_geometric.py` → primer script de Fase 2 (PyG)
 
 IMPORTANTE — convención de nombres de los manifests completos en
-`data/raw/`: el de BRCA se llama `gdc_manifest_full.txt`, **sin**
-prefijo de cohorte, porque fue el primero que se descargó (manualmente,
-desde el botón "Manifest" del portal). Los de las 4 cohortes
-siguientes, generadas vía API del GDC (ver
-`results/2026-07-17-paso6/runlog.txt`), sí llevan prefijo de cohorte en
-minúsculas: `luad_manifest_full.txt`, `lusc_manifest_full.txt`,
-`coad_manifest_full.txt`, `kirc_manifest_full.txt`. No asumir que
-`gdc_manifest_full.txt` es genérico o que existe un
-`brca_manifest_full.txt` — no existe.
+`data/raw/`: las 5 cohortes siguen el mismo patrón
+`<cohorte>_manifest_full.txt` en minúsculas: `brca_manifest_full.txt`,
+`luad_manifest_full.txt`, `lusc_manifest_full.txt`,
+`coad_manifest_full.txt`, `kirc_manifest_full.txt`. El de BRCA se
+llamó originalmente `gdc_manifest_full.txt` (sin prefijo de cohorte,
+por ser el primero descargado, antes de que existieran las otras 4
+cohortes) y se renombró despues a `brca_manifest_full.txt` para
+seguir el mismo patrón; todas las referencias en runlogs, README.md y
+`docs/manifest-datos.tsv` se actualizaron al renombrar, asi que el
+nombre `gdc_manifest_full.txt` ya no deberia aparecer en ningun sitio
+del repositorio.
 
 Flujo de datos: `data/raw/` (descargas GDC/STRING, muchas no
 versionadas por tamaño — ver `.gitignore`) → `data/processed/` (salida

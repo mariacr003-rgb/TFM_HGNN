@@ -2,13 +2,13 @@ ID de ejecucion: 2026-06-20-paso5
 Fecha: 20 de junio de 2026
 Objetivo: Descargar y convertir una muestra real de datos de metilacion de la cohorte TCGA-BRCA, completando la verificacion de las tres capas omicas principales descritas en la Seccion 3.2.1 del TFM (RNA-seq, CNV y metilacion)
 
-Entrada: data/raw/gdc_manifest_full.txt (manifest completo de TCGA-BRCA, descargado en el Paso 2)
+Entrada: data/raw/brca_manifest_full.txt (manifest completo de TCGA-BRCA, descargado en el Paso 2)
 
 Justificacion del patron de busqueda:
-El patron "methylation_array.sesame.level3betas.txt" se identifico inspeccionando el manifest completo del proyecto TCGA-BRCA (data/raw/gdc_manifest_full.txt). Corresponde al sufijo fijo de los ficheros generados por el pipeline SeSAMe de procesamiento de arrays Illumina HumanMethylation450 del GDC.
+El patron "methylation_array.sesame.level3betas.txt" se identifico inspeccionando el manifest completo del proyecto TCGA-BRCA (data/raw/brca_manifest_full.txt). Corresponde al sufijo fijo de los ficheros generados por el pipeline SeSAMe de procesamiento de arrays Illumina HumanMethylation450 del GDC.
 
 Comando:
-  python src/02c_filtrar_manifest_metilacion.py data/raw/gdc_manifest_full.txt data/raw/manifest_metilacion_brca_20.txt 20
+  python src/02c_filtrar_manifest_metilacion.py data/raw/brca_manifest_full.txt data/raw/manifest_metilacion_brca_20.txt 20
   tools/gdc-client.exe download -m data/raw/manifest_metilacion_brca_20.txt -d data/raw/metilacion_brca
   python src/11_convertir_metilacion.py data/raw/metilacion_brca data/raw/BRCA_metilacion.tsv
 

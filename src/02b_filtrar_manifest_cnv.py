@@ -2,7 +2,7 @@ import csv, sys
 from pathlib import Path
 
 # El patron "gene_level_copy_number.v36.tsv" corresponde al sufijo fijo  de los ficheros de CNV generados por el pipeline ASCAT2 del GDC
-#  Verificado directamente en el manifest completo del proyecto TCGA-BRCA (data/raw/gdc_manifest_full.txt),
+#  Verificado directamente en el manifest completo del proyecto TCGA-BRCA (data/raw/brca_manifest_full.txt),
 # descargado desde https://portal.gdc.cancer.gov/projects/TCGA-BRCA
 
 PATRON_BUSCADO = "gene_level_copy_number.v36.tsv"
