@@ -1,0 +1,34 @@
+ID de ejecucion: 2026-07-23-paso8
+Fecha: 23 de julio de 2026
+
+Objetivo: Descargar una muestra real de 20 ficheros de CNV (Copy Number Variation) de la cohorte TCGA-LUAD desde el portal GDC y convertirla a una tabla unica, replicando exactamente el mismo pipeline ya verificado con TCGA-BRCA (Paso 4) y con el RNA-seq de LUAD (Paso 7).
+
+Entrada:
+- data/raw/luad_manifest_full.txt (manifest completo de 36.224 ficheros del proyecto TCGA-LUAD, descargado via API REST del GDC en el Paso 6)
+
+Comando:
+  python src/02b_filtrar_manifest_cnv.py data/raw/luad_manifest_full.txt data/raw/manifest_cnv_luad_20.txt 20
+  mkdir -p data/raw/cnv_luad
+  tools/gdc-client.exe download -m data/raw/manifest_cnv_luad_20.txt -d data/raw/cnv_luad
+  python src/10_convertir_cnv.py data/raw/cnv_luad data/raw/LUAD_cnv.tsv
+
+Ningun script se modifico: src/02b_filtrar_manifest_cnv.py y src/10_convertir_cnv.py son genericos (reciben rutas por linea de comandos, sin nombre de cohorte hardcodeado) y se reutilizaron tal cual, ya usados en el Paso 4 para BRCA.
+
+Salida:
+- data/raw/manifest_cnv_luad_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/cnv_luad/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/LUAD_cnv.tsv (60624 genes x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento, igual que se hizo en los runlogs de los pasos 1, 5 y 7)
+
+Resultado obtenido:
+60624 genes x 20 pacientes reales de TCGA-LUAD, misma estructura exacta que data/raw/BRCA_cnv.tsv (60624 genes x 20 pacientes; 60625 lineas, 21 columnas en ambos ficheros).
+
+Observaciones:
+- Se creo el directorio de destino (mkdir -p data/raw/cnv_luad) antes de lanzar la descarga, aplicando la leccion aprendida en el Paso 7: tools/gdc-client.exe no crea automaticamente el directorio de destino.
+- El patron de busqueda "gene_level_copy_number.v36.tsv" usado por src/02b_filtrar_manifest_cnv.py es una coincidencia de subcadena, por lo que tambien puede casar con variantes del pipeline de CNV del GDC cuyo nombre de fichero termina igual pero incluye un sufijo adicional (por ejemplo "ascat3.gene_level_copy_number.v36.tsv" o "absolute_liftover.gene_level_copy_number.v36.tsv"), como se observa en varios de los 20 ficheros seleccionados para LUAD. Este comportamiento es identico al ya usado (sin cuestionar) en el Paso 4 para BRCA; no se ha modificado el criterio de seleccion en este paso, solo se ha replicado.
+- data/raw/manifest_cnv_luad_20.txt NO se sube a git: esta bloqueado por la regla "data/raw/*.txt" del .gitignore, igual que manifest_cnv_brca_20.txt de BRCA. Es regenerable con el comando documentado mas arriba en este mismo runlog.
+- data/raw/cnv_luad/ y data/raw/LUAD_cnv.tsv NO se suben a git (datos pesados/reales de TCGA), cubiertos respectivamente por la regla generalizada "data/raw/cnv_*/" y por "data/raw/*.tsv" del .gitignore.
+- Pendiente (fuera del alcance de este paso): datos clinicos completos de LUAD, metilacion de LUAD, y validacion final con src/01_validate_data.py.
+
+Conclusion: Verificada la replicabilidad del pipeline de CNV de BRCA sobre TCGA-LUAD con datos reales, usando los mismos scripts sin modificar. Segunda capa omica real verificada para LUAD (RNA-seq en el Paso 7, CNV en este paso). Queda pendiente la metilacion y los datos clinicos de LUAD, y repetir todo el proceso para LUSC, COAD y KIRC.
