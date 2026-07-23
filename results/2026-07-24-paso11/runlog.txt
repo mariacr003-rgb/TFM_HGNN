@@ -1,0 +1,61 @@
+ID de ejecucion: 2026-07-24-paso11
+Fecha: 24 de julio de 2026
+
+Objetivo: Corregir un problema de calidad de datos detectado al ejecutar por primera vez la metilacion de TCGA-LUAD: los ficheros descargados mezclaban 3 generaciones distintas del array de metilacion de Illumina (27K, 450K y EPIC/850K), y el mismo problema resulto estar tambien presente, sin detectar hasta ahora, en data/raw/BRCA_metilacion.tsv (Paso 5). Se regeneran ambos ficheros usando unicamente el array 450K.
+
+Hallazgo:
+Al filtrar data/raw/luad_manifest_full.txt con el patron "methylation_array.sesame.level3betas.txt" y tomar los primeros 20 resultados (mismo criterio que ya se habia usado para BRCA en el Paso 5), los 20 ficheros descargados resultaron heterogeneos:
+- 6 ficheros de 27.578 lineas (array Illumina HumanMethylation27, "27K")
+- 12 ficheros de 486.427 lineas (array Illumina HumanMethylation450, "450K")
+- 2 ficheros de 930.659 lineas (array Illumina EPIC/850K)
+
+El script src/11_convertir_metilacion.py no compara el identificador de sonda (cg_id) entre pacientes: toma como referencia la lista de sitios CpG del primer fichero leido (segun orden alfabetico de carpeta) y asume que la fila i de cualquier otro fichero corresponde al mismo sitio CpG, sin verificarlo. Al ejecutarlo sobre los 20 ficheros mixtos de LUAD, genero una tabla de "27578 sitios CpG x 20 pacientes" que en realidad combinaba, para los 14 pacientes de array distinto al de referencia, valores de sondas no comparables entre si (posicion i de un array de 486427/930659 sondas asignada al mismo cg_id que la posicion i de un array de 27578 sondas). Es un problema de integridad cientifica de los datos, no un simple error de formato.
+
+Verificacion retroactiva sobre BRCA: se comprobo que los 20 ficheros ya descargados en data/raw/metilacion_brca/ (usados en el Paso 5) tenian el mismo problema: 8 ficheros de 27.578 lineas (27K) y 12 de 486.427 lineas (450K), sin ningun fichero EPIC. El fichero data/raw/BRCA_metilacion.tsv existente (27578 sitios CpG x 20 pacientes, citado como resultado verificado en la Seccion 3.2.1 del TFM) tenia por tanto el mismo problema de fondo: para los 12 pacientes de array 450K, sus datos estaban mal alineados con la referencia de 27578 sitios del array 27K.
+
+Por que paso desapercibido: el numero de sitios CpG resultante (27578) coincidia, por casualidad, con el numero real de sondas de calidad del array 27K (documentado en el Paso 5 como "el numero de sitios CpG obtenido es menor que el total teorico del array Illumina 450K... porque el fichero ya incluye el filtrado de calidad de SeSAMe"), una explicacion que en su momento parecio razonable y no se cuestiono. No se detecto por no comparar el numero de lineas de cada fichero de entrada individualmente antes de la conversion, solo el resultado final agregado.
+
+Correccion aplicada - criterio de seleccion homogenea:
+Se confirmo que el campo "size" (tamano en bytes) del manifest del GDC coincide exactamente, byte a byte, con el tamano real del fichero descargado (verificado en 2 casos: 772570 y 13012108 bytes). Los 3 arrays ocupan rangos de tamano completamente disjuntos:
+- 27K: ~744.000-774.500 bytes
+- 450K: ~12.660.000-13.198.000 bytes
+- EPIC/850K: ~25.540.000-25.566.000 bytes
+Se adapto src/02c_filtrar_manifest_metilacion.py para aceptar dos argumentos opcionales adicionales, size_min y size_max, que filtran ademas por ese rango de tamano. Sin esos argumentos el script se comporta exactamente igual que antes (prueba de regresion: mismo comando de 3 argumentos usado en el Paso 5 sobre data/raw/brca_manifest_full.txt produce un resultado identico byte a byte al manifest ya existente).
+
+Se eligio el array 450K (486.427 sitios) como estandar para las 5 cohortes, por ser el mas numeroso de la muestra ya descargada en ambas cohortes (12/20 en BRCA y en LUAD) y el mas comun en estudios TCGA en general.
+
+Comando (BRCA):
+  python src/02c_filtrar_manifest_metilacion.py data/raw/brca_manifest_full.txt <candidatos_450k> 30 12000000 14000000
+  (de los candidatos, se reutilizaron los 12 IDs ya confirmados como 450K de la muestra original del Paso 5, y se tomaron 8 candidatos nuevos no incluidos en esa muestra, hasta completar manifest_metilacion_brca_20.txt con 20 filas)
+  rm -rf data/raw/metilacion_brca/<8 carpetas del array 27K>
+  tools/gdc-client.exe download -m data/raw/manifest_metilacion_brca_20.txt -d data/raw/metilacion_brca
+  python src/11_convertir_metilacion.py data/raw/metilacion_brca data/raw/BRCA_metilacion.tsv
+
+Comando (LUAD):
+  rm data/raw/LUAD_metilacion.tsv (resultado invalido de la primera ejecucion)
+  python src/02c_filtrar_manifest_metilacion.py data/raw/luad_manifest_full.txt <candidatos_450k> 30 12000000 14000000
+  (mismo criterio: se reutilizaron los 12 IDs ya confirmados como 450K de la descarga original, y se tomaron 8 candidatos nuevos, hasta completar manifest_metilacion_luad_20.txt con 20 filas)
+  rm -rf data/raw/metilacion_luad/<6 carpetas del array 27K + 2 carpetas EPIC>
+  tools/gdc-client.exe download -m data/raw/manifest_metilacion_luad_20.txt -d data/raw/metilacion_luad
+  python src/11_convertir_metilacion.py data/raw/metilacion_luad data/raw/LUAD_metilacion.tsv
+
+Verificacion previa a la conversion (ambas cohortes): se confirmo que las 20 carpetas resultantes en cada directorio (data/raw/metilacion_brca/ y data/raw/metilacion_luad/) tenian, sin excepcion, ficheros de exactamente 486.427 lineas.
+
+Salida:
+- data/raw/manifest_metilacion_brca_20.txt (20 ficheros del array 450K de TCGA-BRCA: 12 reutilizados del Paso 5 + 8 nuevos)
+- data/raw/BRCA_metilacion.tsv (486427 sitios CpG x 20 pacientes; sustituye la version anterior de 27578 sitios, cientificamente invalida)
+- data/raw/manifest_metilacion_luad_20.txt (20 ficheros del array 450K de TCGA-LUAD: 12 reutilizados del intento anterior + 8 nuevos)
+- data/raw/LUAD_metilacion.tsv (486427 sitios CpG x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento, igual que en los runlogs de los pasos 1, 5, 7, 8, 9 y 10)
+
+Resultado obtenido:
+BRCA y LUAD tienen ahora datos de metilacion homogeneos y cientificamente validos: 486.427 sitios CpG x 20 pacientes en ambos casos, todos del mismo array (450K), verificado fichero a fichero antes de la conversion.
+
+Observaciones:
+- Ninguno de los ficheros de entrada ni de salida se sube a git (datos reales/pesados de TCGA), cubiertos por las reglas ya existentes del .gitignore.
+- src/02c_filtrar_manifest_metilacion.py y src/11_convertir_metilacion.py: el primero se adapto (argumentos opcionales de tamano, retrocompatible); el segundo no se modifico, sigue sin comparar cg_id entre pacientes, por lo que es responsabilidad de quien lo use garantizar de antemano que los ficheros de entrada son homogeneos (como se hace ahora con el filtro de tamano). Queda como limitacion conocida del script, no corregida en el propio codigo de conversion.
+- Este mismo criterio (filtrar por tamano en el rango 12.000.000-14.000.000 bytes) debe aplicarse tambien a LUSC, COAD y KIRC cuando se descargue su metilacion, en vez de tomar los primeros 20 ficheros del manifest sin mas.
+- El runlog original del Paso 5 se actualiza por separado con una nota de correccion fechada, sin borrar su contenido original.
+
+Conclusion: Se corrige un problema de integridad cientifica de los datos de metilacion que afectaba tanto a BRCA (sin detectar desde el Paso 5) como al primer intento de LUAD, mezclando arrays de Illumina incompatibles entre si. Se establece el array 450K como estandar para las 5 cohortes y se adapta el script de filtrado para verificar el tamano de fichero antes de descargar, evitando que el problema se repita en LUSC, COAD y KIRC.
