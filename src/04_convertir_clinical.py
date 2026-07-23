@@ -1,9 +1,28 @@
-import csv, sys
+import csv, sys, gzip, tarfile, io
 from pathlib import Path
 
 HEADER_SALIDA = ["case_id", "vital_status", "days_to_death",
                   "days_to_last_follow_up", "age_at_diagnosis",
                   "ajcc_pathologic_stage"]
+
+# Nombre del fichero clinico dentro del paquete tar.gz que descarga el
+# boton "Clinical" del portal GDC cuando se guarda sin extraer a mano
+NOMBRE_MIEMBRO_TAR = "clinical.tsv"
+
+
+def abrir_clinical(in_path):
+    # El GDC puede entregar el fichero clinico de 3 formas: .tsv plano,
+    # .tsv.gz (gzip de un unico fichero), o un paquete tar.gz (aunque
+    # tenga extension .tsv.gz) con varias tablas dentro
+    # (clinical.tsv, exposure.tsv, family_history.tsv, follow_up.tsv,
+    # pathology_detail.tsv); en ese caso usamos solo clinical.tsv.
+    if tarfile.is_tarfile(in_path):
+        tar = tarfile.open(in_path, "r:*")
+        miembro = tar.extractfile(NOMBRE_MIEMBRO_TAR)
+        return io.TextIOWrapper(miembro, encoding="utf-8", newline="")
+    if in_path.suffix == ".gz":
+        return gzip.open(in_path, "rt", encoding="utf-8", newline="")
+    return in_path.open("r", encoding="utf-8", newline="")
 
 
 def main(in_path, out_path):
@@ -14,7 +33,7 @@ def main(in_path, out_path):
     filas_salida = []
     vistos = []
 
-    with in_path.open("r", encoding="utf-8", newline="") as f:
+    with abrir_clinical(in_path) as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             case_id = row["cases.submitter_id"].strip()

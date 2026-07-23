@@ -1,0 +1,38 @@
+ID de ejecucion: 2026-07-23-paso9
+Fecha: 23 de julio de 2026
+
+Objetivo: Convertir el fichero de datos clinicos completos de TCGA-LUAD (descargado manualmente del boton "Clinical" del portal GDC) a las 6 columnas necesarias del pipeline, adaptando src/04_convertir_clinical.py para que soporte ficheros comprimidos ademas del .tsv plano usado hasta ahora con BRCA.
+
+Entrada:
+- data/raw/LUAD_clinical_gdc.tsv.tar.gz (descargado manualmente mediante el boton "Clinical" de https://portal.gdc.cancer.gov/projects/TCGA-LUAD)
+
+Hallazgo antes de convertir:
+A diferencia de BRCA_clinical_gdc.tsv (fichero .tsv plano, sin comprimir), el fichero clinico descargado para LUAD resulto ser un paquete tar.gz (renombrado en el propio nombre de fichero de tsv.gz a tar.gz para reflejarlo correctamente), con 5 tablas separadas dentro: clinical.tsv, exposure.tsv, family_history.tsv, follow_up.tsv, pathology_detail.tsv. No es un simple gzip de un unico fichero (como data/raw/9606.protein.links.v12.0.txt.gz de STRING). El miembro "clinical.tsv" del tar SI contiene las columnas necesarias (cases.submitter_id, demographic.vital_status, demographic.days_to_death, diagnoses.days_to_last_follow_up, diagnoses.age_at_diagnosis, diagnoses.ajcc_pathologic_stage), con la misma estructura de una fila por caso-diagnostico que BRCA_clinical_gdc.tsv.
+
+Adaptacion realizada en src/04_convertir_clinical.py:
+Se anadio la funcion abrir_clinical(in_path), que detecta automaticamente 3 casos sin intervencion manual:
+1. Si tarfile.is_tarfile(in_path) es verdadero (paquete tar, comprimido o no): abre el tar y extrae en memoria el miembro "clinical.tsv" (io.TextIOWrapper sobre tar.extractfile), sin necesidad de descomprimir/extraer a mano en disco.
+2. Si el sufijo es ".gz" pero no es un tarfile (gzip de un unico fichero, como el caso hipotetico que se penso inicialmente): usa gzip.open en modo texto.
+3. En cualquier otro caso: abre el fichero como .tsv plano (comportamiento original, sin cambios).
+El resto del script (parseo con csv.DictReader, limpieza de valores "'--", deduplicacion por case_id) no se modifico.
+
+Prueba de regresion: se volvio a ejecutar el script sobre data/raw/BRCA_clinical_gdc.tsv (.tsv plano) y el resultado es identico byte a byte al fichero ya existente data/raw/BRCA_clinical.tsv (1098 pacientes unicos). El cambio es retrocompatible.
+
+Comando:
+  python src/04_convertir_clinical.py data/raw/LUAD_clinical_gdc.tsv.tar.gz data/raw/LUAD_clinical.tsv
+
+Salida:
+- data/raw/LUAD_clinical.tsv (585 pacientes unicos, 6 columnas limpias)
+
+Commit: (pendiente, se anadira en un commit de seguimiento, igual que en los runlogs de los pasos 1, 5, 7 y 8)
+
+Resultado obtenido:
+585 pacientes unicos de TCGA-LUAD, mismo formato de 6 columnas que data/raw/BRCA_clinical.tsv. El numero de pacientes (585) coincide exactamente con el total de casos de TCGA-LUAD confirmado por la API del GDC en el Paso 6.
+
+Observaciones:
+- src/04_convertir_clinical.py sigue siendo generico (sin nombre de cohorte hardcodeado); la adaptacion es sobre el formato de entrada, no sobre la cohorte.
+- data/raw/LUAD_clinical_gdc.tsv.tar.gz y data/raw/LUAD_clinical.tsv NO se suben a git (datos reales de pacientes / pesados de TCGA), cubiertos por las reglas "data/raw/*.txt.gz" y "data/raw/*.tsv" del .gitignore respectivamente.
+- src/04_convertir_clinical.py (el script adaptado) SI se sube a git, por ser codigo fuente.
+- Pendiente (fuera del alcance de este paso): metilacion de LUAD, y validacion final del conjunto completo con src/01_validate_data.py una vez esten las 3 capas omicas y los datos clinicos de LUAD listos.
+
+Conclusion: Datos clinicos completos de TCGA-LUAD verificados y convertidos con exito. El script de conversion clinica ahora soporta de forma generica los 3 formatos de entrada que puede entregar el portal GDC (tsv plano, gzip simple, o paquete tar.gz), preparandolo tambien para LUSC, COAD y KIRC sin necesidad de descomprimir manualmente cada vez.
