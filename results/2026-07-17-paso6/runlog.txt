@@ -47,12 +47,15 @@ Salida:
 - data/raw/kirc_manifest_full.txt (34535 ficheros de TCGA-KIRC)
 Ninguno de los 4 ficheros se sube a git (mismo criterio que gdc_manifest_full.txt de BRCA: excluidos por tamano en .gitignore).
 
+ACTUALIZACION (2026-07-24): metodo final usado para estos 4 manifests.
+Los 4 ficheros generados por la API se sustituyeron posteriormente en data/raw/ por las versiones descargadas manualmente desde el boton "Manifest" de la pagina de cada proyecto en el portal GDC (https://portal.gdc.cancer.gov/projects/TCGA-LUAD, -LUSC, -COAD, -KIRC), igual que ya se hizo con BRCA en el Paso 2, para que las 5 cohortes compartan el mismo metodo de origen del manifest completo. Se verifico que los ficheros descargados manualmente tienen la misma cabecera (id, filename, md5, size, state) y exactamente el mismo numero de filas de datos que los generados por la API en este paso (36224 LUAD, 32065 LUSC, 28900 COAD, 34535 KIRC), sin lineas vacias, filas con numero de campos incorrecto ni IDs duplicados. Ambos metodos producen un resultado equivalente; se conserva la investigacion de la API como constancia de que es una alternativa valida y automatizable, pero el metodo final usado para el contenido actual de estos 4 ficheros en data/raw/ es la descarga manual.
+
 Commit: c88a9c1
 
 Resultado obtenido:
-- Manifest: automatizable por API, formato identico al del portal, generalizable a las 4 cohortes cambiando solo el nombre del proyecto. Verificado y generado con exito para LUAD, LUSC, COAD y KIRC.
+- Manifest: automatizable por API, formato identico al del portal, generalizable a las 4 cohortes cambiando solo el nombre del proyecto. Verificado y generado con exito para LUAD, LUSC, COAD y KIRC. Metodo final usado para el contenido actual de data/raw/: descarga manual desde el boton "Manifest" del portal (ver actualizacion arriba), por consistencia con BRCA.
 - Datos clinicos: NO automatizable de forma fiable por API con el metodo probado (columnas incompletas y estructura de filas distinta a la del fichero de referencia de BRCA).
 
 Observaciones: Para los datos clinicos completos de LUAD, LUSC, COAD y KIRC se debe seguir usando la descarga manual del boton "Clinical" del portal GDC, igual que se hizo con BRCA en el Paso 2, en vez de la API.
 
-Conclusion: Se automatiza la obtencion del manifest completo de las 4 cohortes pendientes via API REST del GDC, quedando pendiente unicamente la descarga manual de los datos clinicos completos de cada cohorte (equivalente al Paso 2 de BRCA), antes de poder replicar el resto del pipeline (filtrado de manifest, descarga de muestras de RNA-seq/CNV/metilacion) en LUAD, LUSC, COAD y KIRC.
+Conclusion: Se investigo y automatizo la obtencion del manifest completo de las 4 cohortes pendientes via API REST del GDC, confirmando que es equivalente a la descarga manual; sin embargo, el metodo finalmente usado para el manifest completo de las 5 cohortes es la descarga manual del boton "Manifest" del portal, por consistencia metodologica. Los datos clinicos completos de cada cohorte tambien requieren descarga manual (equivalente al Paso 2 de BRCA), antes de poder replicar el resto del pipeline (filtrado de manifest, descarga de muestras de RNA-seq/CNV/metilacion) en LUAD, LUSC, COAD y KIRC.
