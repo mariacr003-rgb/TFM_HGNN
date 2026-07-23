@@ -22,7 +22,7 @@ Salida:
 - data/raw/COAD_clinical.tsv (461 pacientes unicos, 6 columnas limpias)
 - data/raw/KIRC_clinical.tsv (537 pacientes unicos, 6 columnas limpias)
 
-Commit: (pendiente, se anadira en un commit de seguimiento, igual que en los runlogs de los pasos 1, 5, 7, 8 y 9)
+Commit: 1698dc3
 
 Resultado obtenido:
 - LUSC: 504 pacientes unicos
