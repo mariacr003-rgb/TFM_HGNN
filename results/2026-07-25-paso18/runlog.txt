@@ -19,7 +19,7 @@ Salida:
 - data/raw/rnaseq_kirc/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/KIRC_rnaseq.tsv (19962 genes x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 52bfa21
 
 Resultado obtenido:
 19962 genes protein_coding x 20 pacientes reales de TCGA-KIRC, misma estructura exacta que BRCA/LUAD/LUSC/COAD_rnaseq.tsv.

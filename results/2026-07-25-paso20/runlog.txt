@@ -21,7 +21,7 @@ Salida:
 - data/raw/metilacion_kirc/ (20 subcarpetas con ficheros .txt reales descargados, todos de 486.427 lineas)
 - data/raw/KIRC_metilacion.tsv (486427 sitios CpG x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 52bfa21
 
 Resultado obtenido:
 486427 sitios CpG x 20 pacientes reales de TCGA-KIRC, misma estructura homogenea y valida que BRCA/LUAD/LUSC/COAD_metilacion.tsv.
