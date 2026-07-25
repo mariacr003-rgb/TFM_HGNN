@@ -21,7 +21,7 @@ Salida:
 - data/raw/metilacion_lusc/ (20 subcarpetas con ficheros .txt reales descargados, todos de 486.427 lineas)
 - data/raw/LUSC_metilacion.tsv (486427 sitios CpG x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: a254313
 
 Resultado obtenido:
 486427 sitios CpG x 20 pacientes reales de TCGA-LUSC, misma estructura homogenea y valida que BRCA_metilacion.tsv y LUAD_metilacion.tsv (Paso 11).

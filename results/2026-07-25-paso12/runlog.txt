@@ -19,7 +19,7 @@ Salida:
 - data/raw/rnaseq_lusc/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/LUSC_rnaseq.tsv (19962 genes x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: a254313
 
 Resultado obtenido:
 19962 genes protein_coding x 20 pacientes reales de TCGA-LUSC, misma estructura exacta que BRCA_rnaseq.tsv y LUAD_rnaseq.tsv.

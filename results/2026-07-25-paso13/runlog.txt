@@ -19,7 +19,7 @@ Salida:
 - data/raw/cnv_lusc/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/LUSC_cnv.tsv (60624 genes x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: a254313
 
 Resultado obtenido:
 60624 genes x 20 pacientes reales de TCGA-LUSC, misma estructura exacta que BRCA_cnv.tsv y LUAD_cnv.tsv.
