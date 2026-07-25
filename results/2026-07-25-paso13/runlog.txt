@@ -1,0 +1,34 @@
+ID de ejecucion: 2026-07-25-paso13
+Fecha: 25 de julio de 2026
+
+Objetivo: Descargar una muestra real de 20 ficheros de CNV de la cohorte TCGA-LUSC desde el portal GDC y convertirla a una tabla unica, replicando el mismo pipeline ya verificado con TCGA-BRCA (Paso 4) y TCGA-LUAD (Paso 8).
+
+Entrada:
+- data/raw/lusc_manifest_full.txt (manifest completo de 32.065 ficheros del proyecto TCGA-LUSC)
+
+Comando:
+  python src/02b_filtrar_manifest_cnv.py data/raw/lusc_manifest_full.txt data/raw/manifest_cnv_lusc_20.txt 20
+  mkdir -p data/raw/cnv_lusc
+  tools/gdc-client.exe download -m data/raw/manifest_cnv_lusc_20.txt -d data/raw/cnv_lusc
+  python src/10_convertir_cnv.py data/raw/cnv_lusc data/raw/LUSC_cnv.tsv
+
+Ningun script se modifico: src/02b_filtrar_manifest_cnv.py y src/10_convertir_cnv.py se reutilizaron tal cual, ya usados en los pasos 4 y 8.
+
+Salida:
+- data/raw/manifest_cnv_lusc_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/cnv_lusc/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/LUSC_cnv.tsv (60624 genes x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Resultado obtenido:
+60624 genes x 20 pacientes reales de TCGA-LUSC, misma estructura exacta que BRCA_cnv.tsv y LUAD_cnv.tsv.
+
+Observaciones:
+- Directorio de destino creado antes de la descarga (mkdir -p); sin errores.
+- data/raw/manifest_cnv_lusc_20.txt NO se sube a git (regla data/raw/*.txt), regenerable con el comando de arriba.
+- data/raw/cnv_lusc/ y data/raw/LUSC_cnv.tsv tampoco se suben a git (cubiertos por "data/raw/cnv_*/" y "data/raw/*.tsv").
+- Igual que en BRCA y LUAD, el patron "gene_level_copy_number.v36.tsv" puede casar con variantes del pipeline (ascat3, absolute_liftover); comportamiento identico y ya conocido, no cuestionado en este paso.
+- Pendiente (fuera del alcance de este paso): metilacion de LUSC (Paso 14).
+
+Conclusion: Verificada la replicabilidad del pipeline de CNV de BRCA/LUAD sobre TCGA-LUSC con datos reales, sin ningun problema nuevo.

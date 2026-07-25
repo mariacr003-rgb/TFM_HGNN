@@ -1,0 +1,36 @@
+ID de ejecucion: 2026-07-25-paso14
+Fecha: 25 de julio de 2026
+
+Objetivo: Descargar una muestra real y homogenea (array 450K) de 20 ficheros de metilacion de la cohorte TCGA-LUSC desde el portal GDC y convertirla a una tabla unica, aplicando desde el principio el filtro de tamano de fichero establecido en el Paso 11, para evitar el problema de arrays de Illumina mezclados que se detecto y corrigio en BRCA y LUAD.
+
+Entrada:
+- data/raw/lusc_manifest_full.txt (manifest completo de 32.065 ficheros del proyecto TCGA-LUSC)
+
+Comando:
+  python src/02c_filtrar_manifest_metilacion.py data/raw/lusc_manifest_full.txt data/raw/manifest_metilacion_lusc_20.txt 20 12000000 14000000
+  mkdir -p data/raw/metilacion_lusc
+  tools/gdc-client.exe download -m data/raw/manifest_metilacion_lusc_20.txt -d data/raw/metilacion_lusc
+  python src/11_convertir_metilacion.py data/raw/metilacion_lusc data/raw/LUSC_metilacion.tsv
+
+Ningun script se modifico en este paso: src/02c_filtrar_manifest_metilacion.py ya se adapto en el Paso 11 (argumentos opcionales size_min/size_max) y src/11_convertir_metilacion.py se reutilizo tal cual.
+
+Verificacion previa a la conversion: se confirmo que las 20 carpetas descargadas en data/raw/metilacion_lusc/ tenian, sin excepcion, ficheros de exactamente 486.427 lineas, antes de ejecutar la conversion. A diferencia del primer intento de LUAD (Paso 9/11), al aplicar el filtro de tamano desde el principio no aparecio ningun fichero de array distinto (27K o EPIC) entre los 20 seleccionados.
+
+Salida:
+- data/raw/manifest_metilacion_lusc_20.txt (20 ficheros del array 450K de TCGA-LUSC)
+- data/raw/metilacion_lusc/ (20 subcarpetas con ficheros .txt reales descargados, todos de 486.427 lineas)
+- data/raw/LUSC_metilacion.tsv (486427 sitios CpG x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Resultado obtenido:
+486427 sitios CpG x 20 pacientes reales de TCGA-LUSC, misma estructura homogenea y valida que BRCA_metilacion.tsv y LUAD_metilacion.tsv (Paso 11).
+
+Observaciones:
+- El filtro de tamano (12.000.000-14.000.000 bytes) establecido en el Paso 11 funciono correctamente desde el primer intento: no fue necesario descartar ni reemplazar ningun fichero, a diferencia de la correccion retroactiva que hizo falta en BRCA y LUAD.
+- data/raw/manifest_metilacion_lusc_20.txt NO se sube a git, regenerable con el comando de arriba.
+- data/raw/metilacion_lusc/ y data/raw/LUSC_metilacion.tsv tampoco se suben a git.
+- Con este paso, LUSC tiene ya sus 4 capas completas (clinico en el Paso 10, RNA-seq en el Paso 12, CNV en el Paso 13, metilacion en este paso).
+- Pendiente: repetir el mismo proceso (RNA-seq, CNV, metilacion con filtro de tamano desde el inicio) para COAD y KIRC.
+
+Conclusion: Verificada la eficacia del criterio de filtro por tamano establecido en el Paso 11: aplicado desde el principio, evita por completo el problema de arrays de metilacion mezclados detectado en BRCA y LUAD. LUSC completa asi sus 4 capas de datos reales.

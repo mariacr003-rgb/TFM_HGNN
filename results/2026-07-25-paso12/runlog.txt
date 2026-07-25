@@ -1,0 +1,33 @@
+ID de ejecucion: 2026-07-25-paso12
+Fecha: 25 de julio de 2026
+
+Objetivo: Descargar una muestra real de 20 ficheros de RNA-seq de la cohorte TCGA-LUSC desde el portal GDC y convertirla a una tabla unica, replicando exactamente el mismo pipeline ya verificado con TCGA-BRCA (Paso 2) y TCGA-LUAD (Paso 7).
+
+Entrada:
+- data/raw/lusc_manifest_full.txt (manifest completo de 32.065 ficheros del proyecto TCGA-LUSC, descargado manualmente del portal GDC)
+
+Comando:
+  python src/02_filtrar_manifest.py data/raw/lusc_manifest_full.txt data/raw/manifest_rnaseq_lusc_20.txt 20
+  mkdir -p data/raw/rnaseq_lusc
+  tools/gdc-client.exe download -m data/raw/manifest_rnaseq_lusc_20.txt -d data/raw/rnaseq_lusc
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_lusc data/raw/LUSC_rnaseq.tsv
+
+Ningun script se modifico: src/02_filtrar_manifest.py y src/03_convertir_rnaseq.py se reutilizaron tal cual, ya usados en los pasos 2 y 7.
+
+Salida:
+- data/raw/manifest_rnaseq_lusc_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/rnaseq_lusc/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/LUSC_rnaseq.tsv (19962 genes x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Resultado obtenido:
+19962 genes protein_coding x 20 pacientes reales de TCGA-LUSC, misma estructura exacta que BRCA_rnaseq.tsv y LUAD_rnaseq.tsv.
+
+Observaciones:
+- Se creo el directorio de destino (mkdir -p) antes de la descarga, aplicando la leccion del Paso 7; sin errores esta vez.
+- data/raw/manifest_rnaseq_lusc_20.txt NO se sube a git (regla data/raw/*.txt del .gitignore), igual que los equivalentes de BRCA y LUAD. Regenerable con el comando de arriba.
+- data/raw/rnaseq_lusc/ y data/raw/LUSC_rnaseq.tsv tampoco se suben a git (cubiertos por "data/raw/rnaseq_*/" y "data/raw/*.tsv").
+- Pendiente (fuera del alcance de este paso): CNV y metilacion de LUSC (Pasos 13 y 14).
+
+Conclusion: Verificada la replicabilidad del pipeline de RNA-seq de BRCA/LUAD sobre TCGA-LUSC con datos reales, sin ningun problema nuevo.
