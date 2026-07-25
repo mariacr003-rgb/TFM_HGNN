@@ -1,0 +1,34 @@
+ID de ejecucion: 2026-07-25-paso15
+Fecha: 25 de julio de 2026
+
+Objetivo: Descargar una muestra real de 20 ficheros de RNA-seq de la cohorte TCGA-COAD desde el portal GDC y convertirla a una tabla unica, replicando el mismo pipeline ya verificado con TCGA-BRCA (Paso 2), TCGA-LUAD (Paso 7) y TCGA-LUSC (Paso 12).
+
+Entrada:
+- data/raw/coad_manifest_full.txt (manifest completo de 28.900 ficheros del proyecto TCGA-COAD, descargado manualmente del portal GDC)
+
+Comando:
+  python src/02_filtrar_manifest.py data/raw/coad_manifest_full.txt data/raw/manifest_rnaseq_coad_20.txt 20
+  mkdir -p data/raw/rnaseq_coad
+  tools/gdc-client.exe download -m data/raw/manifest_rnaseq_coad_20.txt -d data/raw/rnaseq_coad
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_coad data/raw/COAD_rnaseq.tsv
+
+Ningun script se modifico: src/02_filtrar_manifest.py y src/03_convertir_rnaseq.py se reutilizaron tal cual.
+
+Salida:
+- data/raw/manifest_rnaseq_coad_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/rnaseq_coad/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/COAD_rnaseq.tsv (19962 genes x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Resultado obtenido:
+19962 genes protein_coding x 20 pacientes reales de TCGA-COAD, misma estructura exacta que BRCA/LUAD/LUSC_rnaseq.tsv.
+
+Observaciones:
+- Directorio de destino creado antes de la descarga (mkdir -p); sin errores.
+- data/raw/manifest_rnaseq_coad_20.txt NO se sube a git (regla data/raw/*.txt), regenerable con el comando de arriba.
+- data/raw/rnaseq_coad/ y data/raw/COAD_rnaseq.tsv tampoco se suben a git.
+- Sin ningun problema nuevo respecto a los pasos equivalentes anteriores.
+- Pendiente (fuera del alcance de este paso): CNV y metilacion de COAD (Pasos 16 y 17).
+
+Conclusion: Verificada la replicabilidad del pipeline de RNA-seq sobre TCGA-COAD con datos reales, sin ningun problema nuevo.
