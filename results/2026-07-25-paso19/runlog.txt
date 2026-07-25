@@ -1,0 +1,34 @@
+ID de ejecucion: 2026-07-25-paso19
+Fecha: 25 de julio de 2026
+
+Objetivo: Descargar una muestra real de 20 ficheros de CNV de la cohorte TCGA-KIRC desde el portal GDC y convertirla a una tabla unica, replicando el mismo pipeline ya verificado con TCGA-BRCA (Paso 4), TCGA-LUAD (Paso 8), TCGA-LUSC (Paso 13) y TCGA-COAD (Paso 16).
+
+Entrada:
+- data/raw/kirc_manifest_full.txt (manifest completo de 34.535 ficheros del proyecto TCGA-KIRC)
+
+Comando:
+  python src/02b_filtrar_manifest_cnv.py data/raw/kirc_manifest_full.txt data/raw/manifest_cnv_kirc_20.txt 20
+  mkdir -p data/raw/cnv_kirc
+  tools/gdc-client.exe download -m data/raw/manifest_cnv_kirc_20.txt -d data/raw/cnv_kirc
+  python src/10_convertir_cnv.py data/raw/cnv_kirc data/raw/KIRC_cnv.tsv
+
+Ningun script se modifico: src/02b_filtrar_manifest_cnv.py y src/10_convertir_cnv.py se reutilizaron tal cual.
+
+Salida:
+- data/raw/manifest_cnv_kirc_20.txt (lista de los 20 ficheros seleccionados)
+- data/raw/cnv_kirc/ (20 subcarpetas con ficheros .tsv reales descargados)
+- data/raw/KIRC_cnv.tsv (60624 genes x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Resultado obtenido:
+60624 genes x 20 pacientes reales de TCGA-KIRC, misma estructura exacta que BRCA/LUAD/LUSC/COAD_cnv.tsv.
+
+Observaciones:
+- Directorio de destino creado antes de la descarga (mkdir -p); sin errores.
+- data/raw/manifest_cnv_kirc_20.txt NO se sube a git (regla data/raw/*.txt), regenerable con el comando de arriba.
+- data/raw/cnv_kirc/ y data/raw/KIRC_cnv.tsv tampoco se suben a git.
+- Sin ningun problema nuevo respecto a los pasos equivalentes anteriores.
+- Pendiente (fuera del alcance de este paso): metilacion de KIRC (Paso 20).
+
+Conclusion: Verificada la replicabilidad del pipeline de CNV sobre TCGA-KIRC con datos reales, sin ningun problema nuevo.

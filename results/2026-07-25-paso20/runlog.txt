@@ -1,0 +1,36 @@
+ID de ejecucion: 2026-07-25-paso20
+Fecha: 25 de julio de 2026
+
+Objetivo: Descargar una muestra real y homogenea (array 450K) de 20 ficheros de metilacion de la cohorte TCGA-KIRC desde el portal GDC y convertirla a una tabla unica, aplicando desde el principio el filtro de tamano de fichero establecido en el Paso 11. Con este paso se completan las 4 capas de datos reales (clinico, RNA-seq, CNV, metilacion) en las 5 cohortes del proyecto (BRCA, LUAD, LUSC, COAD, KIRC).
+
+Entrada:
+- data/raw/kirc_manifest_full.txt (manifest completo de 34.535 ficheros del proyecto TCGA-KIRC)
+
+Comando:
+  python src/02c_filtrar_manifest_metilacion.py data/raw/kirc_manifest_full.txt data/raw/manifest_metilacion_kirc_20.txt 20 12000000 14000000
+  mkdir -p data/raw/metilacion_kirc
+  tools/gdc-client.exe download -m data/raw/manifest_metilacion_kirc_20.txt -d data/raw/metilacion_kirc
+  python src/11_convertir_metilacion.py data/raw/metilacion_kirc data/raw/KIRC_metilacion.tsv
+
+Ningun script se modifico en este paso.
+
+Verificacion previa a la conversion: se confirmo que las 20 carpetas descargadas en data/raw/metilacion_kirc/ tenian, sin excepcion, ficheros de exactamente 486.427 lineas, antes de ejecutar la conversion. Igual que en LUSC (Paso 14) y COAD (Paso 17), al aplicar el filtro de tamano desde el principio no aparecio ningun fichero de array distinto (27K o EPIC) entre los 20 seleccionados.
+
+Salida:
+- data/raw/manifest_metilacion_kirc_20.txt (20 ficheros del array 450K de TCGA-KIRC)
+- data/raw/metilacion_kirc/ (20 subcarpetas con ficheros .txt reales descargados, todos de 486.427 lineas)
+- data/raw/KIRC_metilacion.tsv (486427 sitios CpG x 20 pacientes)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Resultado obtenido:
+486427 sitios CpG x 20 pacientes reales de TCGA-KIRC, misma estructura homogenea y valida que BRCA/LUAD/LUSC/COAD_metilacion.tsv.
+
+Observaciones:
+- El filtro de tamano (12.000.000-14.000.000 bytes) establecido en el Paso 11 funciono correctamente desde el primer intento, tercera vez consecutiva (LUSC, COAD, KIRC) sin necesidad de correccion.
+- data/raw/manifest_metilacion_kirc_20.txt NO se sube a git, regenerable con el comando de arriba.
+- data/raw/metilacion_kirc/ y data/raw/KIRC_metilacion.tsv tampoco se suben a git.
+- Con este paso, las 5 cohortes del proyecto (BRCA, LUAD, LUSC, COAD, KIRC) tienen ya sus 4 capas completas: datos clinicos (Pasos 2, 9, 10), RNA-seq (Pasos 2, 7, 12, 15, 18), CNV (Pasos 4, 8, 13, 16, 19) y metilacion homogenea del array 450K (Pasos 5/11 con correccion, 11, 14, 17, 20).
+- docs/manifest-datos.tsv se actualiza para que ninguna de las 5 cohortes tenga ya una fila "pendiente"; solo quedan pendientes Reactome, KEGG y WSI (fuera del alcance de las capas omicas por cohorte).
+
+Conclusion: Completadas las 4 capas de datos reales en las 5 cohortes de TCGA previstas en el alcance del proyecto (Seccion 4 del TFM), sentando la base de datos necesaria para la construccion del grafo heterogeneo y el entrenamiento de GAT, GCN y VGAE de la Fase 2.

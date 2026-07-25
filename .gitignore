@@ -36,6 +36,9 @@ results/*
 !results/2026-07-25-paso15/
 !results/2026-07-25-paso16/
 !results/2026-07-25-paso17/
+!results/2026-07-25-paso18/
+!results/2026-07-25-paso19/
+!results/2026-07-25-paso20/
 
 # Entornos locales
 __pycache__/
