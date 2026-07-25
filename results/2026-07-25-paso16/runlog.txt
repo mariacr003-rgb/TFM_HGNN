@@ -19,7 +19,7 @@ Salida:
 - data/raw/cnv_coad/ (20 subcarpetas con ficheros .tsv reales descargados)
 - data/raw/COAD_cnv.tsv (60624 genes x 20 pacientes)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 3685982
 
 Resultado obtenido:
 60624 genes x 20 pacientes reales de TCGA-COAD, misma estructura exacta que BRCA/LUAD/LUSC_cnv.tsv.
