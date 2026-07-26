@@ -6,8 +6,8 @@ Master Universitario en Bioinformatica - UAX
 
 Este repositorio implementa el framework HGNN-OmicSurv sobre datos reales de TCGA, en dos fases, con el objetivo final de cubrir las 5 tecnicas de la Seccion 4 del TFM (GAT, GCN, VGAE, MIL, DEC) sobre las 5 cohortes de TCGA (BRCA, LUAD, LUSC, COAD, KIRC):
 
-**Fase 1 (completada para TCGA-BRCA; pendiente de replicar en LUAD, LUSC, COAD y KIRC):** pipeline de adquisicion, validacion y preprocesamiento de datos reales del TCGA. Verificado con datos reales de la cohorte TCGA-BRCA en sus cuatro capas omicas (datos clinicos completos, n=1.098; muestra representativa de RNA-seq,
-CNV y metilacion, n=20 cada una).
+**Fase 1 (completada para las 5 cohortes):** pipeline de adquisicion, validacion y preprocesamiento de datos reales del TCGA. Verificado con datos reales de las cohortes TCGA-BRCA, TCGA-LUAD, TCGA-LUSC, TCGA-COAD y TCGA-KIRC en sus cuatro capas omicas: datos clinicos completos (numero de pacientes distinto por cohorte, ver Tabla 2 del TFM
+y docs/manifest-datos.tsv), y muestra representativa de RNA-seq, CNV y metilacion (n=20 pacientes cada una, todas las cohortes con el mismo array de metilacion Illumina 450K, homogeneo entre cohortes).
 
 **Fase 2 (en curso):** implementacion y entrenamiento de las cinco arquitecturas del framework —GAT (Graph Attention Network), GCN (Graph Convolutional
 Network), VGAE (Variational Graph Autoencoder), MIL (Multiple Instance Learning con atencion) y DEC (Deep Embedded Clustering)— sobre PyTorch Geometric,
@@ -34,13 +34,19 @@ prueba, se debe usar la etiqueta de cohorte "PRUEBA", para no confundir
 los resultados de prueba con los resultados reales en data/processed/.
 
 ## Entrada real
-data/raw/BRCA_clinical.tsv, data/raw/BRCA_rnaseq.tsv, data/raw/BRCA_cnv.tsv,
-data/raw/BRCA_metilacion.tsv (descargados del portal GDC), y
+Las 5 cohortes (BRCA, LUAD, LUSC, COAD, KIRC) tienen ya descargadas y
+verificadas sus 4 capas de datos reales: data/raw/<COHORTE>_clinical.tsv,
+data/raw/<COHORTE>_rnaseq.tsv, data/raw/<COHORTE>_cnv.tsv,
+data/raw/<COHORTE>_metilacion.tsv (descargados del portal GDC), mas
 data/raw/9606.protein.links.v12.0.txt.gz (descargado de STRING v12).
-Por ahora solo esta descargada la cohorte TCGA-BRCA; LUAD, LUSC, COAD y
-KIRC estan pendientes de descargar siguiendo el mismo pipeline, y
-Reactome/KEGG estan pendientes de descargar para completar el grafo
-heterogeneo de vias.
+
+La metilacion de las 5 cohortes usa el mismo array Illumina 450K
+(486.427 sitios CpG), estandarizado tras detectar y corregir una
+mezcla de arrays incompatibles (27K/450K/EPIC) en la muestra inicial
+de BRCA y LUAD (ver results/2026-07-24-paso11/runlog.txt).
+
+Reactome y KEGG estan pendientes de descargar para completar el grafo
+heterogeneo de vias (Fase 3).
 Ver docs/manifest-datos.tsv para el origen exacto y la URL de cada fichero.
 
 ## Dependencias
