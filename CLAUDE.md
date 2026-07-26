@@ -27,12 +27,43 @@ sobre las 5 cohortes de TCGA:
 
 Cohortes: BRCA, LUAD, LUSC, COAD, KIRC.
 
-**Estado actual: solo BRCA está descargada y solo GAT+GCN+VGAE están en
-desarrollo** (Fase 2). LUAD/LUSC/COAD/KIRC, MIL y DEC son trabajo
-pendiente. El `README.md` y `docs/manifest-datos.tsv` reflejan todavía
-el alcance anterior (solo BRCA, solo 3 técnicas) y están pendientes de
-actualizar al alcance completo — no asumir que documentan el estado
-final.
+**Estado actual: las 5 cohortes tienen ya sus 4 capas de datos reales
+completas** (ver `docs/manifest-datos.tsv` para el detalle fichero a
+fichero, y `results/2026-07-25-paso20/runlog.txt` para el resumen de
+cierre de este bloque):
+
+- Clínico: cohorte completa por proyecto GDC, número de pacientes
+  distinto por cohorte según la Tabla 2 del TFM (BRCA 1.098, LUAD 585,
+  LUSC 504, COAD 461, KIRC 537)
+- RNA-seq: muestra real de 19.962 genes x 20 pacientes por cohorte
+- CNV: muestra real de 60.624 genes x 20 pacientes por cohorte
+- Metilación: muestra real de 486.427 sitios CpG x 20 pacientes por
+  cohorte, todas del mismo array Illumina 450K (ver hallazgo abajo)
+
+IMPORTANTE — hallazgo y corrección sobre la metilación: la primera
+descarga de metilación de BRCA (Paso 5) y el primer intento de LUAD
+mezclaban, sin que nadie se diera cuenta, 3 generaciones distintas del
+array de metilación de Illumina (27K/450K/EPIC) — el filtro solo
+miraba el nombre de fichero, y `src/11_convertir_metilacion.py` no
+compara el identificador de sonda (`cg_id`) entre pacientes, por lo
+que el error no producía ningún fallo visible, solo una tabla
+combinada científicamente invalida. Se detectó y corrigió en el
+Paso 11: se fijó el array 450K como estándar para las 5 cohortes,
+filtrando por tamaño de fichero (rango 12.000.000-14.000.000 bytes
+sobre el campo `size` del manifest del GDC, que coincide exacto con
+el tamaño real descargado) antes de lanzar la descarga. Verificado sin
+incidencias, aplicando el filtro desde el principio, en LUSC/COAD/KIRC
+(Pasos 14, 17, 20). Ver `results/2026-07-24-paso11/runlog.txt` para el
+analisis completo, incluida la transparencia sobre el origen de los
+valores de referencia de los arrays 27K/EPIC.
+
+Trabajo pendiente: MIL, DEC y el entrenamiento de GAT/GCN/VGAE sobre
+las 5 cohortes (de momento solo probado minimamente en BRCA con el
+script 12). STRING v12 ya está descargado; Reactome y KEGG siguen
+pendientes para completar el grafo heterogéneo de vías (Fase 3).
+`docs/manifest-datos.tsv` ya está al día con este estado; `README.md`
+NO — todavía dice "solo está descargada la cohorte TCGA-BRCA" y no
+refleja las 5 cohortes completas, pendiente de actualizar.
 
 ## Comandos
 
@@ -72,11 +103,21 @@ posicionales (`sys.argv`), sin librería de parsing de argumentos:
   pacientes sin seguimiento, filtra genes con >50% valores vacíos)
 - `02_filtrar_manifest.py` / `02b` (CNV) / `02c` (metilación) → filtran
   el manifest completo del GDC (no versionado) por patrón de nombre de
-  fichero, para elegir qué descargar con `gdc-client.exe`
-- `03_convertir_rnaseq.py`, `04_convertir_clinical.py`,
-  `10_convertir_cnv.py`, `11_convertir_metilacion.py` → convierten los
-  ficheros crudos descargados del GDC (uno por paciente, en
-  subcarpetas con UUID) a una tabla única por cohorte en `data/raw/`
+  fichero, para elegir qué descargar con `gdc-client.exe`. `02c` acepta
+  además dos argumentos posicionales opcionales, `size_min` y
+  `size_max` (bytes), para filtrar también por tamaño de fichero y así
+  elegir un array de metilación concreto — p. ej. `... 20 12000000
+  14000000` para quedarse solo con el array 450K; sin esos argumentos
+  se comporta igual que antes (uso normal en 02 y 02b: sin size_min/max)
+- `03_convertir_rnaseq.py`, `10_convertir_cnv.py`,
+  `11_convertir_metilacion.py` → convierten los ficheros crudos
+  descargados del GDC (uno por paciente, en subcarpetas con UUID) a
+  una tabla única por cohorte en `data/raw/`
+- `04_convertir_clinical.py` → convierte el fichero clínico completo
+  del GDC a las 6 columnas del pipeline; detecta automáticamente el
+  formato de entrada (`.tsv` plano, `.tsv.gz` gzip simple, o un
+  paquete `tar.gz` con varias tablas — usa solo el miembro
+  `clinical.tsv` del tar, sin necesidad de descomprimir a mano)
 - `05_estadisticas_descriptivas.py`, `06_grafico_supervivencia.py` →
   estadísticas y figuras reales sobre los datos validados
 - `07_figura4_cindex.py`, `08_figura6_subtipos_paad.py`,
@@ -104,8 +145,9 @@ de validación, por cohorte: `<COHORTE>_clinical_valid.tsv`,
 `results/<fecha>-pasoN/` (figuras, tablas, runlog).
 
 `docs/manifest-datos.tsv` documenta origen, rol y URL de cada fichero
-de datos (hoy solo cubre BRCA + STRING; Reactome/KEGG y las otras 4
-cohortes están pendientes de añadir ahí cuando se incorporen).
+de datos: cubre ya las 4 capas completas de las 5 cohortes (clínico,
+RNA-seq, CNV, metilación) más STRING; Reactome, KEGG y WSI siguen
+pendientes de añadir cuando se incorporen (Fase 3).
 
 Idempotencia: cada script relevante registra el hash SHA-256 de sus
 ficheros de entrada en `logs/manifest.json` para detectar si ya se
