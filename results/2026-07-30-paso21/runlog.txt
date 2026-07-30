@@ -30,7 +30,7 @@ Resultado obtenido (formato y contenido validado para los 6 ficheros):
 - data/raw/kegg_gene_pathway_hsa.txt: 39.573 lineas, sin cabecera, 2 columnas separadas por tab (id de gen "hsa:NNNNN", id de via "path:hsaNNNNN"). Ya filtrado a humano.
 - data/raw/trrust_rawdata.human.tsv: 9.396 lineas, sin cabecera, 4 columnas separadas por tab (factor de transcripcion, gen diana, modo de regulacion Activation/Repression/Unknown, PMID). Ya filtrado a humano.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: f70a3ed
 
 Observaciones:
 - Los 6 ficheros cubren los 3 tipos de relacion biologica del diseno del grafo: interaccion proteina-proteina (STRING), via metabolica/senalizacion (Reactome + KEGG) y regulacion transcripcional (TRRUST).
