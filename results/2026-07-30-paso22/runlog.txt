@@ -1,0 +1,28 @@
+ID de ejecucion: 2026-07-30-paso22
+Fecha: 30 de julio de 2026
+
+Objetivo: Verificar el fichero data/raw/kegg_genes_hsa.txt (puente Entrez ID -> simbolo de gen), descargado manualmente para completar la pieza de identificadores que faltaba en la fuente KEGG del grafo heterogeneo (junto con kegg_pathways_hsa.txt y kegg_gene_pathway_hsa.txt, ya verificados en el Paso 21).
+
+Entrada (descargada manualmente antes de este paso):
+- data/raw/kegg_genes_hsa.txt — listado completo de genes humanos de KEGG. URL oficial: https://rest.kegg.jp/list/hsa
+
+Comando de verificacion:
+  wc -l data/raw/kegg_genes_hsa.txt
+  head -10 data/raw/kegg_genes_hsa.txt
+  cut -f2 data/raw/kegg_genes_hsa.txt | sort | uniq -c | sort -rn
+  awk -F'\t' '$2=="CDS"' data/raw/kegg_genes_hsa.txt | wc -l
+
+Resultado obtenido:
+- 24.252 lineas, sin cabecera, 4 columnas separadas por tab: ID Entrez (hsa:NNNNN), tipo de gen (CDS/ncRNA/tRNA/rRNA), posicion genomica, descripcion (incluye simbolo(s) de gen antes de la primera coma/punto y coma, ej. "VN1R5, V1RL5; vomeronasal type-1 receptor 5").
+- Distribucion por tipo: CDS 20.091, ncRNA 3.641, tRNA 465, rRNA 55.
+- Filtrando a CDS (genes codificantes, segun lo acordado): 20.091 filas, coherente con el numero esperado de genes codificantes humanos y con los 19.962 genes protein_coding ya medidos en RNA-seq (Fase 1/2).
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Con este fichero se completan las 3 piezas de KEGG necesarias para el grafo: catalogo de vias (kegg_pathways_hsa.txt), relacion gen-via (kegg_gene_pathway_hsa.txt, por Entrez ID) y puente Entrez-simbolo (kegg_genes_hsa.txt, este fichero), que junto con el puente simbolo-ENSG (extraido de los ficheros crudos de RNA-seq ya descargados) permite mapear KEGG al identificador canonico ENSG del grafo.
+- El filtro a tipo "CDS" se aplicara en el script de construccion del grafo, no en este fichero (se mantiene el fichero original completo en disco).
+- data/raw/kegg_genes_hsa.txt NO se sube a git (regla data/raw/*.txt), regenerable desde la URL.
+- Con este paso, las 4 fuentes externas necesarias para el grafo heterogeneo (STRING, Reactome, KEGG completo, TRRUST) estan verificadas y documentadas.
+
+Conclusion: Verificado el ultimo fichero de KEGG necesario para el grafo heterogeneo. Quedan disponibles las 4 fuentes completas (STRING, Reactome, KEGG x3, TRRUST) para proceder con el diseno e implementacion del script de construccion del grafo.
