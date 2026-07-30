@@ -1,0 +1,40 @@
+ID de ejecucion: 2026-07-30-paso21
+Fecha: 30 de julio de 2026
+
+Objetivo: Verificar el contenido de las fuentes externas de conocimiento biologico necesarias para construir el grafo heterogeneo (interaccion proteina-proteina, vias metabolicas, regulacion transcripcional), descargadas manualmente, cubriendo los 3 tipos de relacion biologica exigidos en el diseno del grafo (Tabla 6 del TFM).
+
+Entrada (descargadas manualmente antes de este paso, no por este runlog):
+- data/raw/9606.protein.links.v12.0.txt.gz — STRING v12, interaccion proteina-proteina (PPI). Descargado del portal web de STRING (https://string-db.org/cgi/download), seleccionando organismo Homo sapiens (9606).
+- data/raw/ReactomePathways.txt — Reactome, listado de vias metabolicas/senalizacion. URL oficial de descarga: https://reactome.org/download/current/ReactomePathways.txt
+- data/raw/Ensembl2Reactome_All_Levels.txt — Reactome, mapeo gen-via (todos los niveles de la jerarquia). URL oficial de descarga: https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt
+- data/raw/kegg_pathways_hsa.txt — KEGG, listado de vias metabolicas humanas. Obtenido de la API REST de KEGG (https://rest.kegg.jp/list/pathway/hsa), ya filtrado a Homo sapiens (hsa) por la propia API.
+- data/raw/kegg_gene_pathway_hsa.txt — KEGG, mapeo gen-via humano. Obtenido de la API REST de KEGG (https://rest.kegg.jp/link/pathway/hsa), ya filtrado a Homo sapiens (hsa) por la propia API.
+- data/raw/trrust_rawdata.human.tsv — TRRUST v2, red de regulacion transcripcional factor de transcripcion-gen diana humana. URL oficial de descarga: https://www.grnpedia.org/trrust/data/trrust_rawdata.human.tsv
+
+NOTA: la URL exacta usada para cada descarga manual no se registro en el momento (no hay comando de curl/wget documentado); las URLs de arriba son las URLs oficiales de descarga de cada fuente en la fecha de este runlog, no una confirmacion literal de la URL que se uso. Los ficheros KEGG y TRRUST vienen ya filtrados a humano por la fuente; los dos ficheros de Reactome son multi-especie (Reactome no ofrece una version pre-filtrada a humano de estos ficheros) y requieren filtrar por la columna "species"/"Homo sapiens" al construir el grafo.
+
+Comando de verificacion:
+  gzip -t data/raw/9606.protein.links.v12.0.txt.gz
+  zcat data/raw/9606.protein.links.v12.0.txt.gz | head -3
+  zcat data/raw/9606.protein.links.v12.0.txt.gz | wc -l
+  wc -l data/raw/ReactomePathways.txt data/raw/Ensembl2Reactome_All_Levels.txt data/raw/kegg_pathways_hsa.txt data/raw/kegg_gene_pathway_hsa.txt data/raw/trrust_rawdata.human.tsv
+  head -5 <cada fichero>
+  cut -f3 data/raw/ReactomePathways.txt | sort -u | wc -l
+  grep -c "Homo sapiens" data/raw/ReactomePathways.txt data/raw/Ensembl2Reactome_All_Levels.txt
+
+Resultado obtenido (formato y contenido validado para los 6 ficheros):
+- data/raw/9606.protein.links.v12.0.txt.gz: gzip integro (gzip -t OK). 13.715.405 lineas (+cabecera "protein1 protein2 combined_score", separador espacio). Formato "9606.ENSP<id> 9606.ENSP<id> <score entero 0-999>".
+- data/raw/ReactomePathways.txt: 23.603 lineas, sin cabecera, 3 columnas separadas por tab (id de via R-XXX-NNNNNNN, nombre de via, especie). 16 especies distintas; 2.883 filas de Homo sapiens.
+- data/raw/Ensembl2Reactome_All_Levels.txt: 3.767.604 lineas, sin cabecera, 6 columnas separadas por tab (id fuente, id via Reactome, url, nombre de via, codigo de evidencia, especie). 1.126.408 filas de Homo sapiens.
+- data/raw/kegg_pathways_hsa.txt: 372 lineas, sin cabecera, 2 columnas separadas por tab (id de via "hsaNNNNN", nombre "... - Homo sapiens (human)"). Ya filtrado a humano.
+- data/raw/kegg_gene_pathway_hsa.txt: 39.573 lineas, sin cabecera, 2 columnas separadas por tab (id de gen "hsa:NNNNN", id de via "path:hsaNNNNN"). Ya filtrado a humano.
+- data/raw/trrust_rawdata.human.tsv: 9.396 lineas, sin cabecera, 4 columnas separadas por tab (factor de transcripcion, gen diana, modo de regulacion Activation/Repression/Unknown, PMID). Ya filtrado a humano.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Los 6 ficheros cubren los 3 tipos de relacion biologica del diseno del grafo: interaccion proteina-proteina (STRING), via metabolica/senalizacion (Reactome + KEGG) y regulacion transcripcional (TRRUST).
+- Ninguno de los 6 ficheros se sube a git (datos externos pesados), cubiertos por las reglas existentes del .gitignore ("data/raw/*.txt", "data/raw/*.txt.gz"); se documentan en docs/manifest-datos.tsv con la URL oficial de cada fuente para que puedan regenerarse.
+- Pendiente (fuera del alcance de este paso): filtrar los ficheros de Reactome a Homo sapiens, unificar los identificadores de gen entre fuentes (Ensembl/Entrez/HGNC segun la fuente) y disenar el script de construccion del grafo heterogeneo.
+
+Conclusion: Verificado el contenido y formato de las 6 fuentes externas necesarias para el grafo heterogeneo (STRING, Reactome x2, KEGG x2, TRRUST). Quedan disponibles y documentadas en docs/manifest-datos.tsv para el diseno del script de construccion del grafo.
