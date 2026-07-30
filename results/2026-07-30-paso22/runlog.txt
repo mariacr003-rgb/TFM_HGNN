@@ -17,7 +17,7 @@ Resultado obtenido:
 - Distribucion por tipo: CDS 20.091, ncRNA 3.641, tRNA 465, rRNA 55.
 - Filtrando a CDS (genes codificantes, segun lo acordado): 20.091 filas, coherente con el numero esperado de genes codificantes humanos y con los 19.962 genes protein_coding ya medidos en RNA-seq (Fase 1/2).
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 027d907
 
 Observaciones:
 - Con este fichero se completan las 3 piezas de KEGG necesarias para el grafo: catalogo de vias (kegg_pathways_hsa.txt), relacion gen-via (kegg_gene_pathway_hsa.txt, por Entrez ID) y puente Entrez-simbolo (kegg_genes_hsa.txt, este fichero), que junto con el puente simbolo-ENSG (extraido de los ficheros crudos de RNA-seq ya descargados) permite mapear KEGG al identificador canonico ENSG del grafo.
