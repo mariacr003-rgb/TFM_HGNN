@@ -70,7 +70,17 @@ file_id. Interseccion real con las 3 modalidades: 454 casos (de los
 que se tomaron los primeros 200 alfabeticamente). Ver
 results/2026-07-31-paso25/runlog.txt para el detalle completo.
 
-Pendiente: LUSC, COAD y KIRC siguen con 20 pacientes por modalidad sin
+NOTA (Paso 26, 2026-08-01): misma correccion replicada en LUSC
+(LUSC_rnaseq.tsv, LUSC_cnv.tsv, LUSC_metilacion.tsv ya con 200
+pacientes coordinados), aplicando esta vez desde el principio el
+criterio completo aprendido en LUAD (consulta a la API del GDC, filtro
+"Primary Tumor" y desempate final por file_id en las 3 modalidades, no
+solo en CNV). Interseccion real con las 3 modalidades: 368 casos (de
+los que se tomaron los primeros 200 alfabeticamente); confirmado con
+el usuario antes de proceder a la descarga. Ver
+results/2026-08-01-paso26/runlog.txt para el detalle completo.
+
+Pendiente: COAD y KIRC siguen con 20 pacientes por modalidad sin
 verificar si estan coordinados entre si.
 
 ### Scripts recuperados pero SIN adaptar al nuevo alcance (generaban figuras ilustrativas con datos de ejemplo, no datos reales):

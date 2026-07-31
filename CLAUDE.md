@@ -36,12 +36,14 @@ cierre de este bloque):
   distinto por cohorte según la Tabla 2 del TFM (BRCA 1.098, LUAD 585,
   LUSC 504, COAD 461, KIRC 537)
 - RNA-seq: muestra real de 19.962 genes x 20 pacientes por cohorte
-  (BRCA y LUAD ya ampliadas a 200, ver hallazgo de coordinación abajo)
+  (BRCA, LUAD y LUSC ya ampliadas a 200, ver hallazgo de coordinación
+  abajo)
 - CNV: muestra real de 60.624 genes x 20 pacientes por cohorte
-  (BRCA y LUAD ya ampliadas a 200, ver hallazgo de coordinación abajo)
+  (BRCA, LUAD y LUSC ya ampliadas a 200, ver hallazgo de coordinación
+  abajo)
 - Metilación: muestra real de 486.427 sitios CpG x 20 pacientes por
   cohorte, todas del mismo array Illumina 450K (ver hallazgo sobre el
-  array abajo; BRCA y LUAD ya ampliadas a 200, ver hallazgo de
+  array abajo; BRCA, LUAD y LUSC ya ampliadas a 200, ver hallazgo de
   coordinación abajo)
 
 IMPORTANTE — hallazgo y corrección sobre la coordinación de pacientes
@@ -70,9 +72,14 @@ resolver el case ID de cada fichero consultando la API del GDC; además
 RNA-seq y metilación también tenían varios ficheros candidatos por
 paciente (no solo CNV), resuelto filtrando a muestra "Primary Tumor" y,
 si aun así quedaba más de un fichero por caso, con un desempate
-determinista por file_id. Pendiente: replicar esta misma coordinación
-de pacientes entre modalidades en LUSC, COAD y KIRC (siguen con 20
-pacientes por modalidad, sin verificar si están coordinados entre sí).
+determinista por file_id. Replicado también en LUSC en el Paso 26
+(`results/2026-08-01-paso26/runlog.txt`), aplicando ya desde el
+principio el criterio completo (consulta a la API del GDC, filtro
+"Primary Tumor" y desempate por file_id en las 3 modalidades) sin
+necesidad de descubrirlo sobre la marcha. Pendiente: replicar esta
+misma coordinación de pacientes entre modalidades en COAD y KIRC
+(siguen con 20 pacientes por modalidad, sin verificar si están
+coordinados entre sí).
 
 IMPORTANTE — hallazgo y corrección sobre la metilación: la primera
 descarga de metilación de BRCA (Paso 5) y el primer intento de LUAD
