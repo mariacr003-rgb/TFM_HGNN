@@ -78,7 +78,7 @@ Salida:
 
 Confirmacion de guardado correcto: se releyo el fichero con torch.load() tras la ejecucion, la estructura HeteroData se recupera identica (mismos 4 tipos de nodo, 5 tipos de arista, mismos recuentos), confirmando que el guardado con torch.save() fue correcto.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: d2f8847
 
 Observaciones:
 - src/13_construir_grafo.py no toma argumentos por linea de comandos (rutas de entrada/salida fijas como constantes al inicio del fichero), siguiendo el mismo estilo que src/12_prueba_pytorch_geometric.py.
