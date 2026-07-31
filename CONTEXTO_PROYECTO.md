@@ -55,8 +55,23 @@ tambien obligo a reescribir src/11_convertir_metilacion.py a
 procesamiento en streaming porque la version anterior agotaba la
 memoria ("Killed") al procesar 486.427 sitios CpG x 200 pacientes.
 Ver results/2026-07-31-paso24/runlog.txt para el detalle completo.
-Pendiente: LUAD, LUSC, COAD y KIRC siguen con 20 pacientes por
-modalidad sin verificar si estan coordinados entre si.
+
+NOTA (Paso 25, 2026-07-31): misma correccion replicada en LUAD
+(LUAD_rnaseq.tsv, LUAD_cnv.tsv, LUAD_metilacion.tsv ya con 200
+pacientes coordinados). A diferencia de BRCA, el manifest de LUAD no
+trae el case ID del paciente en el nombre de fichero de RNA-seq ni
+metilacion, asi que se resolvio consultando la API del GDC
+(cases.submitter_id y cases.samples.sample_type por file_id); ademas
+se descubrio que RNA-seq y metilacion (no solo CNV) tambien pueden
+tener mas de un fichero candidato por paciente (tumor primario vs.
+tejido normal/recurrente), resuelto filtrando a "Primary Tumor" y, si
+aun asi quedaba empate, con desempate final deterministico por
+file_id. Interseccion real con las 3 modalidades: 454 casos (de los
+que se tomaron los primeros 200 alfabeticamente). Ver
+results/2026-07-31-paso25/runlog.txt para el detalle completo.
+
+Pendiente: LUSC, COAD y KIRC siguen con 20 pacientes por modalidad sin
+verificar si estan coordinados entre si.
 
 ### Scripts recuperados pero SIN adaptar al nuevo alcance (generaban figuras ilustrativas con datos de ejemplo, no datos reales):
 - src/07_figura4_cindex.py

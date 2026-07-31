@@ -44,6 +44,7 @@ results/*
 !results/2026-07-30-paso22/
 !results/2026-07-31-paso23/
 !results/2026-07-31-paso24/
+!results/2026-07-31-paso25/
 
 # Entornos locales
 __pycache__/

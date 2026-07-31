@@ -1,0 +1,82 @@
+ID de ejecucion: 2026-07-31-paso25
+Fecha: 31 de julio de 2026
+
+Objetivo: Replicar en TCGA-LUAD la correccion de coordinacion de pacientes entre las 3 capas omicas principales (RNA-seq, CNV, metilacion) ya aplicada a BRCA en el Paso 24: identificar los pacientes con las 3 modalidades disponibles, descargar 200 de ellos coordinados y regenerar las 3 tablas finales con el script de metilacion ya corregido (streaming).
+
+Diferencia importante respecto al proceso seguido en BRCA (Paso 24): el manifest completo del GDC (data/raw/luad_manifest_full.txt, columnas id/filename/md5/size/state) no incluye el case ID (paciente) en el nombre de fichero para RNA-seq ni metilacion (solo UUIDs de fichero sin relacion visible con el paciente); solo los ficheros de CNV incluyen un prefijo "TCGA-LUAD.<uuid>." que coincide entre variantes de pipeline del mismo caso. Por tanto, a diferencia de como se documento el proceso de BRCA (basado en el registro de una sesion anterior, sin script), aqui se resolvio el case ID de cada fichero candidato consultando la API REST del GDC (https://api.gdc.cancer.gov/files), en lotes de 500 file_id, pidiendo los campos "file_id,file_name,cases.submitter_id,cases.samples.sample_type".
+
+Proceso seguido (scripts ad-hoc en el directorio de trabajo temporal de la sesion, no incorporados a src/ por ser trabajo exploratorio de identificacion de pacientes, igual que en BRCA):
+
+1. Filtrado por patron de nombre sobre luad_manifest_full.txt (36.224 ficheros totales):
+   - RNA-seq (*rna_seq.augmented_star_gene_counts.tsv): 601 ficheros candidatos
+   - CNV (*gene_level_copy_number.v36.tsv, con o sin sufijo de pipeline): 1.554 ficheros candidatos
+   - Metilacion (*methylation_array.sesame.level3betas.txt), filtrado ademas por tamano 12.000.000-14.000.000 bytes para quedarse solo con el array 450K: 507 ficheros candidatos (de 710 totales que casan el patron de nombre, antes del filtro de tamano)
+
+2. Consulta a la API del GDC para resolver, por cada file_id candidato, el case submitter_id (paciente) y el/los sample_type asociados. Resultado: el 100% de los 2.662 ficheros candidatos (601+1554+507) resolvieron su case_id.
+
+3. Hallazgo: ademas de CNV (donde ya se sabia, desde el Paso 8, que un mismo caso puede tener varios ficheros por variante de pipeline: plana/ascat3/absolute_liftover), RNA-seq y metilacion TAMBIEN tenian varios ficheros candidatos para un mismo caso en algunos casos (66 casos en RNA-seq, 36 en metilacion, sobre el total de candidatos antes de filtrar), correspondientes a distintos tipos de muestra del mismo paciente (tumor primario, tejido normal, tumor recurrente). Distribucion observada de sample_type:
+   - RNA-seq: 540 Primary Tumor, 59 Solid Tissue Normal, 2 Recurrent Tumor
+   - CNV: 505 Primary Tumor (solo), 851 Blood Derived Normal+Primary Tumor combinados, 195 Primary Tumor+Solid Tissue Normal combinados, 1 Blood Derived Normal+Recurrent Tumor, 2 Recurrent Tumor
+   - Metilacion: 473 Primary Tumor, 32 Solid Tissue Normal, 2 Recurrent Tumor
+
+4. Criterio de seleccion aplicado (analogo en espiritu al de BRCA, pero mas explicito por la necesidad de resolver estos casos):
+   a. Se descartan los ficheros cuyo sample_type no incluya "Primary Tumor" (se excluyen los que son solo Solid Tissue Normal o solo Recurrent Tumor), quedandose solo con la muestra tumoral primaria de cada paciente, coherente con el objetivo de supervivencia oncologica del TFM.
+   b. Para CNV, cuando un caso aun tiene varios ficheros con "Primary Tumor" (variantes de pipeline), se aplica la prioridad ya usada en BRCA: plana > ascat3 > absolute_liftover.
+   c. Para los casos residuales que aun tenian mas de 1 fichero "Primary Tumor" tras (a) y (b) -esto es, mas de una muestra/alicuota primaria del mismo paciente-, se aplico un desempate final deterministico: el file_id (UUID) alfabeticamente menor. Numero de casos donde se aplico este desempate final: 12 en RNA-seq, 508 en CNV (la mayoria de los 518 casos CNV, porque casi todos tienen al menos 2 variantes de pipeline candidatas), 11 en metilacion.
+   Tras aplicar (a)+(b)+(c) queda exactamente 1 fichero por caso y modalidad.
+
+5. Interseccion resultante (casos con exactamente 1 fichero valido en las 3 modalidades tras el criterio anterior): 454 casos. (Nota: en la conversacion previa a este runlog se habia informado una cifra preliminar de 458, calculada antes de aplicar el filtro estricto a "Primary Tumor" y el desempate final descrito en el punto 4c; 454 es la cifra correcta y definitiva. Sigue habiendo margen mas que suficiente sobre los 200 pacientes requeridos, por lo que no fue necesario detener el proceso para pedir una nueva confirmacion.)
+
+6. Se tomaron los primeros 200 case ID en orden alfabetico de los 454 candidatos (mismo criterio que en BRCA).
+
+7. Se generaron los 3 manifests filtrados en formato GDC (id, filename, md5, size, state), extrayendo del manifest completo la fila correspondiente al file_id de RNA-seq/CNV/metilacion de cada uno de los 200 case_id seleccionados.
+
+Entrada:
+- data/raw/luad_manifest_full.txt (manifest completo de TCGA-LUAD, 36.224 ficheros)
+- API REST del GDC (https://api.gdc.cancer.gov/files) para resolver case_id y sample_type de los ficheros candidatos
+
+Comando (resolucion de case_id y generacion de manifests, scripts ad-hoc de la sesion, no en src/):
+  - Consulta a la API del GDC en lotes de 500 file_id (POST a https://api.gdc.cancer.gov/files con filtro "files.file_id in [...]", campos "file_id,file_name,cases.submitter_id,cases.samples.sample_type")
+  - Interseccion + seleccion de los primeros 200 case_id, aplicando el criterio del punto 4
+  - Generacion de los 3 manifests extrayendo las filas correspondientes de luad_manifest_full.txt
+
+Comando (vaciado de carpetas antiguas, 20 pacientes no coordinados del intento anterior):
+  rm -rf data/raw/rnaseq_luad/* data/raw/cnv_luad/* data/raw/metilacion_luad/*
+
+Comando (descarga de los 200 pacientes en las 3 modalidades, en background por el historial de desconexiones de WSL):
+  nohup tools/gdc-client.exe download -m data/raw/manifest_rnaseq_luad_200.txt -d data/raw/rnaseq_luad > logs/descarga_rnaseq_luad_200.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_cnv_luad_200.txt -d data/raw/cnv_luad > logs/descarga_cnv_luad_200.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_metilacion_luad_200.txt -d data/raw/metilacion_luad > logs/descarga_metilacion_luad_200.log 2>&1 &
+  (las 3 con disown)
+
+Comando (regeneracion de las 3 tablas finales):
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_luad data/raw/LUAD_rnaseq.tsv
+  python src/10_convertir_cnv.py data/raw/cnv_luad data/raw/LUAD_cnv.tsv
+  nohup python -u src/11_convertir_metilacion.py data/raw/metilacion_luad data/raw/LUAD_metilacion.tsv > logs/paso25_metilacion_luad_200.log 2>&1 &
+  disown
+
+Salida:
+- data/raw/manifest_rnaseq_luad_200.txt, data/raw/manifest_cnv_luad_200.txt, data/raw/manifest_metilacion_luad_200.txt (201 lineas cada uno: cabecera + 200 ficheros)
+- data/raw/rnaseq_luad/, data/raw/cnv_luad/, data/raw/metilacion_luad/ (200 subcarpetas cada una, sustituyendo a las 20 anteriores no coordinadas)
+- data/raw/LUAD_rnaseq.tsv (19.962 genes x 200 pacientes)
+- data/raw/LUAD_cnv.tsv (60.624 genes x 200 pacientes)
+- data/raw/LUAD_metilacion.tsv (486.427 sitios CpG x 200 pacientes, generado con src/11_convertir_metilacion.py ya corregido a streaming en el Paso 24)
+
+Resultado obtenido y verificado en esta sesion:
+- Las 3 descargas terminaron sin errores (verificado con grep -il "error|traceback|failed" sobre los 3 logs: sin coincidencias) y con exactamente 200 subcarpetas cada una.
+- data/raw/LUAD_rnaseq.tsv: 19.962 genes x 200 pacientes, confirmado por el propio script (mensaje final "19962 genes x 200 pacientes").
+- data/raw/LUAD_cnv.tsv: 60.624 genes x 200 pacientes, confirmado por el propio script.
+- data/raw/LUAD_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes; fichero de 1,5 GB, 486.428 lineas (486.427 + cabecera), 201 columnas.
+- Verificacion de coordinacion entre las 3 tablas: dado que las cabeceras de columna de cada tabla son UUID de fichero (distintos entre modalidades incluso para el mismo paciente, porque cada modalidad genera su propio fichero con su propio file_id), se tradujo cada columna de cada tabla a su case_id usando el mapeo file_id->case_id ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones (conjuntos identicos entre si, y coincidentes con la seleccion esperada).
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Los scripts usados para resolver case_id, calcular la interseccion y generar los manifests fueron ad-hoc (directorio temporal de la sesion, fuera de src/), igual que en BRCA; no se ha creado un script numerado nuevo en src/ para esto. Pendiente de valorar, antes de repetir el proceso en LUSC/COAD/KIRC, si merece la pena convertir este proceso en un script reutilizable dentro de src/ (por ejemplo "src/02d_coordinar_pacientes.py") en vez de repetir el trabajo ad-hoc en cada cohorte.
+- El criterio de "Primary Tumor unicamente" no se habia hecho explicito en el Paso 24 (BRCA) porque el registro de aquella sesion no detallaba si existia el mismo problema de duplicados en RNA-seq/metilacion; queda pendiente revisar si BRCA_rnaseq.tsv/BRCA_metilacion.tsv seleccionaron tambien muestra tumoral primaria de forma consistente o si el criterio realmente aplicado en su momento fue distinto (no verificable retroactivamente sin repetir la consulta a la API para los file_id ya usados en BRCA).
+- data/raw/manifest_rnaseq_luad_200.txt, manifest_cnv_luad_200.txt y manifest_metilacion_luad_200.txt no se suben a git (regla data/raw/*.txt del .gitignore).
+- data/raw/LUAD_rnaseq.tsv, LUAD_cnv.tsv y LUAD_metilacion.tsv tampoco se suben a git (regla data/raw/*.tsv), regenerables con los comandos de este runlog.
+- logs/descarga_rnaseq_luad_200.log, logs/descarga_cnv_luad_200.log y logs/paso25_metilacion_luad_200.log no se suben a git (regla *.log del .gitignore); el contenido relevante queda documentado en este runlog.
+- Este cambio afecta solo a LUAD. LUSC, COAD y KIRC siguen con 20 pacientes por modalidad sin verificar si estan coordinados entre si. Pendiente de decidir si se replica esta correccion en las 3 cohortes restantes.
+
+Conclusion: LUAD_rnaseq.tsv, LUAD_cnv.tsv y LUAD_metilacion.tsv quedan con los mismos 200 pacientes coordinados en las 3 modalidades (verificado explicitamente traduciendo cada columna a su case_id), replicando en LUAD la correccion aplicada a BRCA en el Paso 24. Se identifico y documento un matiz adicional no visible en BRCA: la necesidad de filtrar explicitamente por sample_type "Primary Tumor" y de un desempate final deterministico por file_id, porque RNA-seq y metilacion tambien pueden tener mas de un fichero candidato por paciente, no solo CNV. Pendiente: replicar en LUSC, COAD y KIRC.
