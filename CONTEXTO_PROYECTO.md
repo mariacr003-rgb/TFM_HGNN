@@ -40,11 +40,23 @@ Cohortes TCGA:
 
 Datos reales ya descargados en data/raw/ (SOLO cohorte BRCA):
 - BRCA_clinical.tsv (1098 pacientes reales completos)
-- BRCA_rnaseq.tsv (muestra de 20 pacientes reales)
-- BRCA_cnv.tsv (muestra de 20 pacientes reales)
-- BRCA_metilacion.tsv (muestra de 20 pacientes reales)
+- BRCA_rnaseq.tsv (muestra de 200 pacientes reales, coordinados con CNV y metilacion)
+- BRCA_cnv.tsv (muestra de 200 pacientes reales, coordinados con RNA-seq y metilacion)
+- BRCA_metilacion.tsv (muestra de 200 pacientes reales, coordinados con RNA-seq y CNV)
 - 9606.protein.links.v12.0.txt.gz (STRING v12 completo)
 - gen_proteina_conversion.txt (tabla ENSG->ENSP de BioMart)
+
+NOTA (Paso 24, 2026-07-31): los 20 pacientes originales de las 3 capas
+omicas de BRCA NO estaban coordinados entre si (cada modalidad se
+selecciono de forma independiente; al cruzarlas solo 1 paciente
+coincidia en las 3). Corregido ampliando a 200 pacientes tomados de la
+interseccion de 786 candidatos con las 3 modalidades disponibles. Esto
+tambien obligo a reescribir src/11_convertir_metilacion.py a
+procesamiento en streaming porque la version anterior agotaba la
+memoria ("Killed") al procesar 486.427 sitios CpG x 200 pacientes.
+Ver results/2026-07-31-paso24/runlog.txt para el detalle completo.
+Pendiente: LUAD, LUSC, COAD y KIRC siguen con 20 pacientes por
+modalidad sin verificar si estan coordinados entre si.
 
 ### Scripts recuperados pero SIN adaptar al nuevo alcance (generaban figuras ilustrativas con datos de ejemplo, no datos reales):
 - src/07_figura4_cindex.py

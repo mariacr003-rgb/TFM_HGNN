@@ -1,0 +1,52 @@
+ID de ejecucion: 2026-07-31-paso24
+Fecha: 31 de julio de 2026
+
+Objetivo: Corregir la falta de coordinacion entre pacientes de las 3 capas omicas principales de TCGA-BRCA (RNA-seq, CNV, metilacion), ampliando la muestra de 20 a 200 pacientes seleccionados especificamente por tener las 3 modalidades disponibles, y resolver el fallo de memoria ("Killed") que impedia regenerar la tabla de metilacion con el nuevo tamano de muestra.
+
+Problema detectado (sesion de trabajo previa a este runlog): los 20 pacientes de BRCA_rnaseq.tsv, BRCA_cnv.tsv y BRCA_metilacion.tsv (generados en Pasos 3/10/11 con el criterio "primeros N ficheros del manifest completo que casan con el patron de nombre de cada modalidad") no eran los mismos pacientes en las 3 tablas: cada modalidad se filtro de forma independiente sobre brca_manifest_full.txt sin exigir que el caso (paciente) tuviera tambien las otras 2 modalidades. Al cruzar los 3 conjuntos de 20 case ID, solo 1 paciente coincidia en las 3 tablas simultaneamente, lo que invalida cualquier analisis multi-omico por paciente (el objetivo central del framework HGNN de este TFM).
+
+Correccion aplicada (sesion de trabajo previa a este runlog):
+1. Se identificaron, sobre brca_manifest_full.txt, los case ID que tienen simultaneamente ficheros de RNA-seq (patron *rna_seq.augmented_star_gene_counts.tsv), CNV (patron *gene_level_copy_number.v36.tsv, con o sin sufijo de pipeline) y metilacion (patron *methylation_array.sesame.level3betas.txt, filtrado ademas por tamano de fichero 12.000.000-14.000.000 bytes para quedarse solo con el array 450K, criterio ya fijado en el Paso 11). Resultado: 786 case ID candidatos con las 3 modalidades disponibles.
+2. De los 786 candidatos, se seleccionaron los primeros 200 en orden alfabetico de case ID (mismo criterio de "primeros N" ya usado en los Pasos 3/10/11 para no introducir un sesgo de seleccion nuevo, aplicado ahora sobre el conjunto ya coordinado en vez de sobre cada modalidad por separado).
+3. Cuando un caso tenia mas de un fichero CNV candidato (variantes de pipeline dentro del mismo patron de nombre, ya observadas y documentadas en el Paso 8), se aplico el criterio de prioridad: fichero "plano" (gene_level_copy_number.v36.tsv sin sufijo adicional) > "ascat3" (ascat3.gene_level_copy_number.v36.tsv) > "absolute_liftover" (absolute_liftover.gene_level_copy_number.v36.tsv), quedandose con un unico fichero CNV por caso.
+4. Se descargaron con tools/gdc-client.exe los ficheros de los 200 case ID seleccionados para las 3 modalidades, quedando 200 subcarpetas (una por paciente, nombradas por UUID de fichero) en cada una de data/raw/rnaseq_brca/, data/raw/cnv_brca/ y data/raw/metilacion_brca/. Manifests filtrados correspondientes: data/raw/manifest_rnaseq_brca_200.txt, data/raw/manifest_cnv_brca_200.txt, data/raw/manifest_metilacion_brca_200.txt (201 lineas cada uno: cabecera + 200 ficheros).
+5. Se regeneraron data/raw/BRCA_rnaseq.tsv (src/03_convertir_rnaseq.py) y data/raw/BRCA_cnv.tsv (src/10_convertir_cnv.py) sobre las 200 carpetas nuevas: ambos terminaron correctamente, confirmados con 200 columnas de paciente (201 columnas totales con gene_id).
+
+Problema de memoria encontrado al regenerar metilacion (esta sesion): al ejecutar src/11_convertir_metilacion.py sobre las 200 carpetas de data/raw/metilacion_brca/, el proceso terminaba con "Killed" (el kernel de Linux mata el proceso por falta de memoria, OOM killer) antes de escribir ningun resultado. Causa: el script (version original, la misma usada sin problemas en los Pasos 5/11/14/17/20 para 20 pacientes) cargaba el fichero completo de cada paciente en listas de Python (sitios CpG + valores beta) y acumulaba las 200 listas completas en memoria antes de escribir una sola fila de salida. Con 486.427 sitios CpG x 200 pacientes esto supone del orden de 97 millones de strings retenidos simultaneamente en RAM, inviable en el entorno WSL de este equipo (2 procesadores logicos, memoria limitada).
+
+Correccion aplicada (esta sesion): se reescribio src/11_convertir_metilacion.py para procesar los 200 ficheros en streaming en vez de cargarlos enteros en memoria:
+- Los 200 ficheros de paciente se abren simultaneamente con contextlib.ExitStack (gestion segura de 200 file handles, cierre garantizado incluso ante error).
+- Se itera con itertools.zip_longest(*ficheros_abiertos, fillvalue=centinela): cada vuelta del bucle obtiene una linea (un sitio CpG) de los 200 ficheros a la vez, se escribe esa fila al fichero de salida y se descarta de memoria antes de pasar a la siguiente. En ningun momento hay mas de 200 lineas (una por paciente) retenidas en RAM, frente a los 486.427 x 200 de la version anterior.
+- Validacion estricta anadida (no existia en la version anterior): si algun fichero se queda sin lineas antes que los demas (zip_longest devuelve el centinela), se lanza un ValueError explicito en vez de truncar en silencio al fichero mas corto; y en cada fila se comprueba que el cg_id coincide en los 200 pacientes antes de escribirla, lanzando ValueError si hay desalineacion. Este segundo chequeo no existia en el script original (ver hallazgo del Paso 11 sobre mezcla de arrays 27K/450K/EPIC, que paso desapercibido precisamente por falta de esta validacion).
+- sorted(carpetas) en vez del orden de iterdir(): la lista de carpetas de paciente se ordena explicitamente para que la salida sea reproducible entre ejecuciones (el original dependia del orden de iteracion del sistema de ficheros, no garantizado).
+
+Verificacion antes de lanzar sobre los 200 reales: se ejecuto primero el script nuevo sobre un subconjunto de prueba de 5 pacientes (symlinks a las primeras 5 carpetas de data/raw/metilacion_brca/ en orden alfabetico, en una carpeta temporal fuera del repositorio). Resultado correcto: 486.427 sitios CpG x 5 pacientes, sin errores de desalineacion, 6 columnas constantes en todas las filas verificado con awk.
+
+Comando (ejecucion real sobre los 200 pacientes, tras la prueba con 5):
+  nohup python -u src/11_convertir_metilacion.py data/raw/metilacion_brca data/raw/BRCA_metilacion.tsv > logs/paso11_metilacion_200.log 2>&1 &
+  disown
+
+Se uso nohup+disown (en vez de ejecucion en primer plano) por el historial de desconexiones de la terminal WSL en esta sesion de trabajo, para que el proceso sobreviviera a una posible caida de la conexion; y "python -u" (salida sin buffer) para que los mensajes de progreso ("N sitios procesados...", impresos cada 50.000 sitios) se escribieran en el log en tiempo real y no quedaran retenidos en el buffer de Python hasta el final del proceso.
+
+Salida:
+- data/raw/BRCA_rnaseq.tsv (200 pacientes, ya generado antes de este runlog)
+- data/raw/BRCA_cnv.tsv (200 pacientes, ya generado antes de este runlog)
+- data/raw/BRCA_metilacion.tsv (486.427 sitios CpG x 200 pacientes, regenerado en esta sesion con el script corregido)
+- data/raw/manifest_rnaseq_brca_200.txt, data/raw/manifest_cnv_brca_200.txt, data/raw/manifest_metilacion_brca_200.txt
+- src/11_convertir_metilacion.py (reescrito a procesamiento en streaming)
+
+Resultado obtenido y verificado en esta sesion (metilacion):
+- Log completo sin errores ni "Killed": "200 pacientes encontrados. Procesando en streaming (sin cargar todo en memoria)" -> progreso cada 50.000 sitios -> "Guardado: data/raw/BRCA_metilacion.tsv" / "486427 sitios CpG x 200 pacientes"
+- Fichero de salida: 1,5 GB, 486.428 lineas (486.427 sitios + cabecera), 201 columnas constantes en todas las filas (cg_id + 200 pacientes), verificado con wc -l y awk -F'\t' '{print NF}' | sort -u
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- La identificacion de los 786 candidatos y la seleccion/descarga de los 200 pacientes coordinados (RNA-seq y CNV incluidos) se realizo en una sesion de trabajo anterior a este runlog, de forma manual/ad-hoc (no se creo un script numerado nuevo para ello); este runlog documenta ese proceso de forma retrospectiva a partir del registro de dicha sesion, ademas de documentar en detalle el trabajo verificado directamente en esta sesion (la correccion del script de metilacion y su ejecucion completa).
+- El criterio de prioridad de CNV (plana > ascat3 > absolute_liftover) no esta codificado en src/02b_filtrar_manifest_cnv.py (que sigue tomando los N primeros ficheros que casan con el patron sin desambiguar variantes de pipeline por caso); se aplico manualmente al construir el conjunto de 200 casos coordinados. Pendiente de valorar si merece la pena incorporarlo como opcion al script si se repite este proceso para las otras 4 cohortes.
+- data/raw/manifest_rnaseq_brca_200.txt, manifest_cnv_brca_200.txt y manifest_metilacion_brca_200.txt no se suben a git (regla data/raw/*.txt del .gitignore), igual que los manifests de 20 que sustituyen como version vigente para BRCA.
+- data/raw/BRCA_rnaseq.tsv, BRCA_cnv.tsv y BRCA_metilacion.tsv tampoco se suben a git (regla data/raw/*.tsv), regenerables con los comandos de este runlog y de los Pasos 3/10/11 sobre los manifests _200.
+- logs/paso11_metilacion_200.log no se sube a git (regla *.log del .gitignore); el contenido relevante (progreso y resultado final) queda documentado en este runlog.
+- Este cambio afecta solo a BRCA; LUAD, LUSC, COAD y KIRC siguen con 20 pacientes por modalidad sin coordinar entre si (mismo problema, no corregido todavia en las otras 4 cohortes). Pendiente de decidir si se replica esta correccion (786->200 coordinados) en las 4 cohortes restantes antes de avanzar a la fase de entrenamiento.
+
+Conclusion: BRCA_rnaseq.tsv, BRCA_cnv.tsv y BRCA_metilacion.tsv quedan con los mismos 200 pacientes coordinados en las 3 modalidades (frente a los 20 pacientes por modalidad, casi sin solape entre si, de la version anterior), y src/11_convertir_metilacion.py queda reescrito para procesar cualquier numero de pacientes en streaming sin agotar la memoria disponible, con validacion estricta de alineacion entre pacientes. Pendiente: replicar la coordinacion de las 3 modalidades en LUAD, LUSC, COAD y KIRC.

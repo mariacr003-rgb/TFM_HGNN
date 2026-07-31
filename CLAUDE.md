@@ -36,9 +36,35 @@ cierre de este bloque):
   distinto por cohorte según la Tabla 2 del TFM (BRCA 1.098, LUAD 585,
   LUSC 504, COAD 461, KIRC 537)
 - RNA-seq: muestra real de 19.962 genes x 20 pacientes por cohorte
+  (BRCA ya ampliada a 200, ver hallazgo de coordinación abajo)
 - CNV: muestra real de 60.624 genes x 20 pacientes por cohorte
+  (BRCA ya ampliada a 200, ver hallazgo de coordinación abajo)
 - Metilación: muestra real de 486.427 sitios CpG x 20 pacientes por
-  cohorte, todas del mismo array Illumina 450K (ver hallazgo abajo)
+  cohorte, todas del mismo array Illumina 450K (ver hallazgo sobre el
+  array abajo; BRCA ya ampliada a 200, ver hallazgo de coordinación
+  abajo)
+
+IMPORTANTE — hallazgo y corrección sobre la coordinación de pacientes
+entre modalidades (BRCA): los 20 pacientes de RNA-seq, CNV y
+metilación de BRCA se habían seleccionado de forma independiente
+(primeros N ficheros de cada modalidad que casan con su patrón de
+nombre en el manifest completo), sin exigir que fueran el mismo
+paciente en las 3 tablas — al cruzarlas, solo 1 paciente coincidía en
+las 3 simultáneamente, lo que invalida cualquier análisis multi-ómico
+por paciente. Corregido en el Paso 24: se identificaron 786 case ID de
+BRCA con las 3 modalidades disponibles y se seleccionaron los primeros
+200 en orden alfabético (con prioridad plana > ascat3 >
+absolute_liftover para desambiguar CNV cuando había más de un fichero
+por caso), ampliando también el tamaño de muestra de 20 a 200. Esto
+además forzó una reescritura de `src/11_convertir_metilacion.py` a
+procesamiento en streaming (200 ficheros abiertos a la vez con
+`zip_longest`, fila a fila, sin cargar las tablas completas en
+memoria), porque la versión anterior moría por falta de RAM
+("Killed") al intentar cargar 486.427 sitios CpG x 200 pacientes de
+golpe. Ver `results/2026-07-31-paso24/runlog.txt` para el detalle
+completo. Pendiente: replicar esta misma coordinación de pacientes
+entre modalidades en LUAD, LUSC, COAD y KIRC (siguen con 20 pacientes
+por modalidad, sin verificar si están coordinados entre sí).
 
 IMPORTANTE — hallazgo y corrección sobre la metilación: la primera
 descarga de metilación de BRCA (Paso 5) y el primer intento de LUAD
