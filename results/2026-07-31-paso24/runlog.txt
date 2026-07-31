@@ -39,7 +39,7 @@ Resultado obtenido y verificado en esta sesion (metilacion):
 - Log completo sin errores ni "Killed": "200 pacientes encontrados. Procesando en streaming (sin cargar todo en memoria)" -> progreso cada 50.000 sitios -> "Guardado: data/raw/BRCA_metilacion.tsv" / "486427 sitios CpG x 200 pacientes"
 - Fichero de salida: 1,5 GB, 486.428 lineas (486.427 sitios + cabecera), 201 columnas constantes en todas las filas (cg_id + 200 pacientes), verificado con wc -l y awk -F'\t' '{print NF}' | sort -u
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 0351e63
 
 Observaciones:
 - La identificacion de los 786 candidatos y la seleccion/descarga de los 200 pacientes coordinados (RNA-seq y CNV incluidos) se realizo en una sesion de trabajo anterior a este runlog, de forma manual/ad-hoc (no se creo un script numerado nuevo para ello); este runlog documenta ese proceso de forma retrospectiva a partir del registro de dicha sesion, ademas de documentar en detalle el trabajo verificado directamente en esta sesion (la correccion del script de metilacion y su ejecucion completa).
