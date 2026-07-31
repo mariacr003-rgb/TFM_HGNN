@@ -9,6 +9,7 @@ data/raw/rnaseq_*/
 data/raw/cnv_*/
 data/processed/*.tsv
 data/processed/*.txt
+data/processed/*.pt
 data/raw/metilacion_*/
 
 
@@ -41,6 +42,7 @@ results/*
 !results/2026-07-25-paso20/
 !results/2026-07-30-paso21/
 !results/2026-07-30-paso22/
+!results/2026-07-31-paso23/
 
 # Entornos locales
 __pycache__/

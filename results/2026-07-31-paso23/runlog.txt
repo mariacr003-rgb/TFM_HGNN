@@ -1,0 +1,89 @@
+ID de ejecucion: 2026-07-31-paso23
+Fecha: 31 de julio de 2026
+
+Objetivo: Construir el grafo heterogeneo real (genes, proteinas, vias como nodos; interaccion proteina-proteina, via metabolica y regulacion transcripcional como aristas) a partir de las 4 fuentes externas verificadas en los Pasos 21 y 22 (STRING, Reactome, KEGG, TRRUST) y el universo de genes ya medidos en RNA-seq (Fase 1/2). Con 2 correcciones aplicadas tras la revision de codigo previa: contadores de descarte por motivo en cada fuente, y exclusion explicita de simbolos de gen ambiguos.
+
+Entrada:
+- data/raw/rnaseq_brca/<uuid>/*.rna_seq.augmented_star_gene_counts.tsv (uno cualquiera, como referencia del universo de genes protein_coding y del mapa ENSG->simbolo)
+- data/raw/gen_proteina_conversion.txt (BioMart, ENSG->ENSP)
+- data/raw/9606.protein.links.v12.0.txt.gz (STRING v12, interaccion proteina-proteina)
+- data/raw/ReactomePathways.txt y data/raw/Ensembl2Reactome_All_Levels.txt (Reactome, catalogo de vias y relacion gen-via)
+- data/raw/kegg_pathways_hsa.txt, data/raw/kegg_gene_pathway_hsa.txt, data/raw/kegg_genes_hsa.txt (KEGG, catalogo de vias, relacion gen-via, puente Entrez-simbolo)
+- data/raw/trrust_rawdata.human.tsv (TRRUST, regulacion transcripcional)
+
+Comando:
+  python src/13_construir_grafo.py
+
+Hallazgo importante detectado antes de aceptar el resultado como definitivo: genes de la region pseudoautosomal (PAR) duplicados.
+GENCODE anota 18 genes de la region pseudoautosomal (PAR, presentes tanto en el cromosoma X como en el Y) DOS VECES en los ficheros de RNA-seq: una vez con su ENSG normal (ej. ENSG00000002586.20) y otra con el mismo ENSG y sufijo "_PAR_Y" (ENSG00000002586.20_PAR_Y). Al quitar el sufijo de version con split(".")[0] para obtener el identificador canonico, ambas filas colapsan al mismo ENSG sin version.
+Se confirmo que esta duplicacion YA EXISTIA en las tablas de RNA-seq de las 5 cohortes desde la Fase 1/2 (verificado con "grep -c PAR_Y data/raw/BRCA_rnaseq.tsv" = 18 filas), no es un problema introducido por este script ni por la construccion del grafo.
+Efecto en el grafo: la lista ordenada de genes (usada para fijar num_nodes del tipo "gen") tiene 19962 entradas (igual que las filas de *_rnaseq.tsv/*_cnv.tsv/*_metilacion.tsv ya generadas), pero solo 19944 son ENSG unicos; el diccionario de indice usado para resolver todas las aristas (BioMart, Reactome, KEGG, TRRUST) colapsa automaticamente a esos 19944 unicos, por lo que 18 de los 19962 indices de nodo "gen" quedan sin ninguna arista biologica (huerfanos en la estructura, aunque conservan su propio vector de atributos por paciente cuando se construya esa capa, por tener su propia fila en las tablas ya generadas).
+Decision tomada: mantener 19962 nodos "gen" (Opcion 1, confirmada explicitamente), por coherencia posicional con las tablas de RNA-seq/CNV/metilacion ya generadas y documentadas en las 5 cohortes, aceptando que 18 de esos nodos no tendran aristas de proteina/via/regulacion en la estructura del grafo.
+
+Resultado obtenido - nodos por tipo:
+- gen: 19962 (19944 ENSG unicos + 18 duplicados PAR sin aristas biologicas, ver hallazgo arriba)
+- proteina: 369403
+- via_reactome: 2883
+- via_kegg: 372
+
+Resultado obtenido - aristas por tipo:
+- (gen, codifica, proteina): 369458
+- (proteina, interactua, proteina): 457342, con edge_attr = combined_score (float)
+- (gen, participa_en, via_reactome): 155790
+- (gen, participa_en, via_kegg): 37997
+- (gen, regula, gen): 9293, con edge_attr = modo de regulacion codificado (0=Unknown, 1=Activation, 2=Repression), dirigida TF->diana
+
+Contadores de descarte por motivo (recogidos en la revision de codigo previa a este paso):
+
+1) Mapa simbolo->ENSG (ambiguedad, sobre los 19962/19944 genes de referencia):
+   - simbolos_ambiguos_excluidos: 6 (MATR3, PDE11A, TMSB15B, POLR2J3, ACTL10, SMIM40 — genes de la region pseudoautosomal con simbolo compartido entre su copia X e Y)
+   - genes_afectados_por_ambiguedad: 12 (los 2 ENSG de cada uno de los 6 simbolos)
+   Nota: esta ambiguedad de simbolo (6 casos) es un problema distinto al de los 18 ENSG duplicados por sufijo _PAR_Y (arriba); coinciden parcialmente en origen biologico (region PAR) pero se detectan y gestionan en pasos distintos del script.
+
+2) BioMart (gen-proteina), 670.726 filas totales en el fichero:
+   - ensp_vacio: 288.242 (genes sin proteina codificante segun BioMart, ej. genes de ARN no codificante)
+   - ensg_fuera_del_universo: 13.025 (genes de BioMart que no estan en el universo de 19.944/19.962 genes protein_coding de referencia)
+   - retenidas: 369.458 filas -> 369.403 proteinas unicas
+
+3) STRING (proteina-proteina), 13.715.404 filas totales (sin cabecera):
+   - score_bajo_umbral (combined_score < 700): 13.241.544
+   - proteina_no_mapeada (alguna de las 2 proteinas no esta en el mapa ENSG->ENSP): 16.518
+   - retenidas: 457.342 interacciones
+
+4) Reactome (gen-via), 3.767.604 filas totales:
+   - especie_no_humana: 2.641.196
+   - id_origen_no_ensg (fila humana pero el id de origen es ENST o ENSP, no ENSG; ver Paso 21/plan previo): 947.913
+   - ensg_fuera_del_universo: 22.705
+   - via_fuera_del_catalogo: 0
+   - retenidas: 155.790 aristas
+
+5) KEGG - puente Entrez-simbolo, 24.252 filas totales:
+   - no_es_cds (ncRNA/tRNA/rRNA descartados segun lo acordado): 4.161
+   - sin_simbolo_en_descripcion: 642
+   - retenidas: 19.449 genes CDS con simbolo
+
+6) KEGG - gen-via, 39.573 filas totales:
+   - via_fuera_del_catalogo: 0
+   - entrez_sin_simbolo (Entrez no encontrado en el puente CDS-simbolo): 1.017
+   - simbolo_no_mapeado_a_ensg (simbolo sin ENSG correspondiente en el universo, incluye los excluidos por ambiguedad): 559
+   - retenidas: 37.997 aristas
+
+7) TRRUST (regulacion), 9.396 filas totales:
+   - tf_simbolo_no_mapeado: 23
+   - diana_simbolo_no_mapeado: 80
+   - retenidas: 9.293 aristas
+
+Salida:
+- data/processed/grafo_heterogeneo.pt (18.385.747 bytes = 18,4 MB)
+
+Confirmacion de guardado correcto: se releyo el fichero con torch.load() tras la ejecucion, la estructura HeteroData se recupera identica (mismos 4 tipos de nodo, 5 tipos de arista, mismos recuentos), confirmando que el guardado con torch.save() fue correcto.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- src/13_construir_grafo.py no toma argumentos por linea de comandos (rutas de entrada/salida fijas como constantes al inicio del fichero), siguiendo el mismo estilo que src/12_prueba_pytorch_geometric.py.
+- El script no adjunta atributos de paciente (expresion/CNV/metilacion) a los nodos "gen": construye unicamente la estructura (nodos + aristas), comun a las 5 cohortes. La capa de atributos por paciente es un paso posterior, pendiente de disenar.
+- data/processed/grafo_heterogeneo.pt no se sube a git por convencion de datos procesados pesados (ver .gitignore, "data/processed/*.tsv" ya existente; se anade regla equivalente para .pt en este mismo commit si hace falta).
+- La cobertura de Reactome (155.790 aristas) esta limitada por usar solo las filas con id de origen ENSG directo (178.495 de 1.126.408 filas humanas totales, ver Paso 21); las basadas en ENST/ENSP (947.913 filas) quedan fuera en esta primera version, tal como se acordo.
+
+Conclusion: Grafo heterogeneo real construido y guardado con exito: 4 tipos de nodo (19.962 gen, 369.403 proteina, 2.883 via_reactome, 372 via_kegg) y 5 tipos de arista (369.458 codifica, 457.342 interactua, 155.790 participa_en-reactome, 37.997 participa_en-kegg, 9.293 regula), con todos los descartes de cada fuente contabilizados por motivo. Detectado y documentado un hallazgo de datos preexistente (18 genes PAR duplicados desde la Fase 1/2), resuelto manteniendo la coherencia con las tablas ya generadas. Pendiente: disenar el script que adjunte los atributos de paciente por cohorte a los nodos "gen" de este grafo.
