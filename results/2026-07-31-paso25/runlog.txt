@@ -69,7 +69,7 @@ Resultado obtenido y verificado en esta sesion:
 - data/raw/LUAD_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes; fichero de 1,5 GB, 486.428 lineas (486.427 + cabecera), 201 columnas.
 - Verificacion de coordinacion entre las 3 tablas: dado que las cabeceras de columna de cada tabla son UUID de fichero (distintos entre modalidades incluso para el mismo paciente, porque cada modalidad genera su propio fichero con su propio file_id), se tradujo cada columna de cada tabla a su case_id usando el mapeo file_id->case_id ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones (conjuntos identicos entre si, y coincidentes con la seleccion esperada).
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: a46ead9
 
 Observaciones:
 - Los scripts usados para resolver case_id, calcular la interseccion y generar los manifests fueron ad-hoc (directorio temporal de la sesion, fuera de src/), igual que en BRCA; no se ha creado un script numerado nuevo en src/ para esto. Pendiente de valorar, antes de repetir el proceso en LUSC/COAD/KIRC, si merece la pena convertir este proceso en un script reutilizable dentro de src/ (por ejemplo "src/02d_coordinar_pacientes.py") en vez de repetir el trabajo ad-hoc en cada cohorte.
