@@ -58,7 +58,7 @@ Resultado obtenido y verificado en esta sesion:
 - data/raw/LUSC_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes; fichero de 1,5 GB, 486.428 lineas (486.427 + cabecera), 201 columnas.
 - Verificacion de coordinacion entre las 3 tablas: se tradujo cada columna (UUID de fichero, distinto entre modalidades incluso para el mismo paciente) a su case_id usando el mapeo ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: ba68657
 
 Observaciones:
 - A diferencia de LUAD (Paso 25), donde el filtro "Primary Tumor" y el desempate por file_id se descubrieron y aplicaron sobre la marcha, en LUSC se aplicaron desde el primer calculo de la interseccion, tal como se planteo con el usuario antes de empezar. El numero de casos con mas de 1 fichero candidato resulto ser bastante mas bajo en metilacion (0 en LUSC frente a 11 en LUAD) y similar en RNA-seq (10 en LUSC frente a 12 en LUAD) y CNV (499 en LUSC frente a 508 en LUAD); no hay una razon biologica evidente para la diferencia en metilacion, simplemente el patron de muestras disponibles en el GDC varia por cohorte.
