@@ -35,7 +35,7 @@ Resultado obtenido y verificado en esta sesion:
 - Las 5 tablas CNV regeneradas sin la fila fantasma, 60.623 genes reales cada una.
 - src/17_verificar_coordinacion.py: True en las 5 cohortes (BRCA, LUAD, LUSC, COAD, KIRC), coordinacion de pacientes intacta tras la correccion.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: c528c24
 
 Observaciones:
 - Este bug estaba presente desde el Paso 4 (primera conversion de CNV de BRCA, con 20 pacientes) y paso desapercibido en todas las verificaciones anteriores (Pasos 4, 8, 13, 16, 19, 24-29) porque ninguna de ellas inspecciono el CONTENIDO de las filas de la tabla CNV, solo el numero de filas/columnas y la estructura de cabecera de paciente; el recuento "60.624 genes" parecia razonable y consistente entre cohortes (siempre el mismo numero), lo que reforzaba la falsa sensacion de correccion.
