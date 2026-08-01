@@ -47,7 +47,7 @@ Salida:
 - src/17_verificar_coordinacion.py (modificado: verificacion de array anadida)
 - src/16_generar_manifests_coordinados.py (sin cambios)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: b3b474a
 
 Observaciones:
 - Este hallazgo NO afecta a los datos ya generados en ninguna de las 5 cohortes: la auditoria de los 1.000 ficheros de metilacion confirma 100% de coincidencia con el array 450K. El hueco era exclusivamente de robustez del proceso hacia el futuro (riesgo de que alguien repitiera el proceso sin el filtro de tamano y reintrodujera el bug del Paso 11 en silencio).
