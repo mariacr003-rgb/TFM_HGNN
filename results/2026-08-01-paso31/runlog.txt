@@ -1,0 +1,57 @@
+ID de ejecucion: 2026-08-01-paso31
+Fecha: 1 de agosto de 2026
+
+Objetivo: Cerrar un hueco de robustez detectado en los scripts consolidados del Paso 30: ninguno de los 4 scripts (14-17) aplicaba el filtro de array de metilacion (450K); el filtro vivia solo como comando awk manual, ejecutado antes de invocar 14_mapear_case_id.py, sin quedar capturado en ningun script reutilizable. Investigar si la API del GDC expone un campo real de plataforma/array (mas fiable que el proxy heuristico de tamano de fichero en bytes usado hasta ahora) y, si existe, implementarlo directamente en los scripts.
+
+Pregunta de partida (planteada por el usuario tras revisar 16_generar_manifests_coordinados.py): ¿aplica algun script de los 4 el filtro de tamano 12.000.000-14.000.000 bytes para el array 450K, o quedo aplicado solo en un momento anterior del proceso?
+
+Respuesta confirmada revisando el codigo: NINGUNO de los 4 scripts (14, 15, 16, 17) aplicaba el filtro de tamano. Las unicas apariciones de "size" en el codigo son la columna del manifest (comentario) y el parametro de paginacion de la consulta a la API, sin relacion con el filtrado de ficheros. El filtro se aplicaba en un comando awk manual, ejecutado ANTES de invocar 14_mapear_case_id.py para construir la lista de entrada de metilacion (documentado en cada runlog de los Pasos 25-28, ej.: "awk -F'\t' '$2 ~ /methylation_array.sesame.level3betas.txt/ && $4+0 >= 12000000 && $4+0 <= 14000000 {print $1"\t"$2}' <cohorte>_manifest_full.txt > meth_files.tsv"). El comentario de cabecera de 14_mapear_case_id.py (Paso 30) solo mostraba el ejemplo de filtrado por patron de nombre, sin mencionar el filtro de tamano adicional necesario para metilacion — riesgo real de reintroducir en silencio el bug de mezcla de arrays (27K/450K/EPIC) del Paso 11 si se repetia este proceso en el futuro sin recordar el paso manual.
+
+Investigacion de la Opcion 2 (campo real de plataforma via API), realizada antes de decidir:
+1. Se consulto el endpoint de mapping de la API (https://api.gdc.cancer.gov/files/_mapping) y se confirmo la existencia de un campo top-level "platform" en los ficheros.
+2. Se probo el campo "platform" contra ficheros de metilacion ya conocidos:
+   - 5 ficheros de KIRC dentro del rango 12M-14M bytes (ya usados en la muestra de prueba del Paso 30): los 5 devolvieron platform="Illumina Human Methylation 450".
+   - 6 ficheros de BRCA con tamano ~774 KB (fuera del rango por abajo): los 6 devolvieron platform="Illumina Human Methylation 27".
+   - 3 ficheros de LUAD con tamano ~25,5 MB (fuera del rango por arriba): los 3 devolvieron platform="Illumina Methylation Epic v2".
+   - Un fichero de RNA-seq de control devolvio platform="Illumina" (valor generico de plataforma de secuenciacion, sin conflicto con los valores de array de metilacion).
+3. Auditoria retroactiva de los 1.000 ficheros de metilacion ya descargados (200 x 5 cohortes, Pasos 24-29): se consulto el campo "platform" de los 1.000 file_id reales. Resultado: 1.000/1.000 con platform="Illumina Human Methylation 450", sin ninguna excepcion. Esto confirma que el filtro por tamano, tal como se aplico en la practica en las 5 cohortes, no tuvo NINGUN falso positivo — los datos ya generados son correctos. El hueco detectado era de robustez del proceso hacia el futuro, no un error retroactivo en los datos ya producidos.
+
+Decision (confirmada por el usuario tras ver los resultados de la investigacion): el campo "platform" es fiable, real y distingue correctamente los 3 arrays (27K/450K/EPIC). Se implementa la Opcion 2 (verificacion por platform) en vez de la Opcion 1 (parametros size_min/size_max), por ser una comprobacion semantica directa en vez de un proxy heuristico de bytes.
+
+Correccion aplicada:
+1. src/14_mapear_case_id.py: se anade "platform" a los campos solicitados a la API, y se anade como 5a columna en el fichero de salida (file_id, filename, case_id, sample_type, platform). Se amplia el comentario de cabecera explicando por que se pide este campo y advirtiendo que el filtro de array correcto para metilacion se aplica DESPUES, en el script 15 (no en el propio 14, que es generico para las 3 modalidades).
+2. src/15_interseccion_pacientes.py: se anade la constante ARRAY_METILACION_ESTANDAR = "Illumina Human Methylation 450" y la funcion filtrar_array_metilacion(), aplicada especificamente a los candidatos de metilacion (antes del filtro Primary Tumor), que descarta cualquier fichero cuyo campo platform no sea el array estandar del proyecto e imprime que plataformas se han descartado. rnaseq y cnv no se ven afectados (el filtro es especifico de metilacion).
+3. src/16_generar_manifests_coordinados.py: SIN CAMBIOS — no necesita conocer platform, trabaja solo con la seleccion de case_id/file_id ya filtrada.
+4. src/17_verificar_coordinacion.py: se anade "platform" a la consulta de verificacion, y una comprobacion adicional (independiente de las anteriores, mismo principio de no fiarse de pasos previos) de que los 200 ficheros de metilacion de la tabla final tienen platform="Illumina Human Methylation 450". Se incorpora al resultado agregado "todo_ok" junto a la coincidencia de case_id y la consistencia de Primary Tumor.
+
+Validacion (regresion contra datos reales conocidos, cohorte KIRC, y pruebas negativas sinteticas):
+- 14_mapear_case_id.py: probado sobre las 3 listas completas de candidatos de KIRC (rnaseq 614, cnv 1615, meth 485); reproduce los mismos case_id/sample_type que las ejecuciones anteriores (Paso 28), ahora con el campo platform anadido.
+- Auditoria de los 485 candidatos de metilacion de KIRC (antes del filtro Primary Tumor): 485/485 con platform="Illumina Human Methylation 450" — el filtro por tamano ya usado no habia dejado pasar ningun candidato de array incorrecto en esta cohorte.
+- 15_interseccion_pacientes.py, ejecutado con los ficheros de KIRC regenerados (con platform): mismos resultados exactos que el Paso 30 (541/533/4 RNA-seq, 1614/532/520 CNV, 324/319/3 metilacion, interseccion 316); la seleccion de los primeros 200 es byte a byte identica (diff vacio) a la usada realmente para la descarga de KIRC.
+- Prueba negativa sintetica: se inyecto manualmente 1 fila falsa con platform="Illumina Human Methylation 27" en los candidatos de metilacion de KIRC. El script la descarto correctamente ("descartados 1 ficheros de metilacion por array distinto de 'Illumina Human Methylation 450': ['Illumina Human Methylation 27']"), sin afectar al resultado final (sigue en 316, y el case_id falso no aparece en la seleccion de 200).
+- 17_verificar_coordinacion.py, ejecutado sobre las tablas finales reales de KIRC y de BRCA: ambas devuelven "case_id identicos: True", "200/200 Primary Tumor consistente" y "200/200 con array 450K", con el resultado agregado True y codigo de salida 0 en los 2 casos.
+
+Entrada:
+- API REST del GDC (https://api.gdc.cancer.gov/files y https://api.gdc.cancer.gov/files/_mapping)
+- data/raw/kirc_manifest_full.txt, data/raw/brca_manifest_full.txt, data/raw/luad_manifest_full.txt (para localizar ficheros de metilacion de tamano fuera del rango 450K, usados solo para la investigacion del campo platform)
+- data/raw/KIRC_rnaseq.tsv, KIRC_cnv.tsv, KIRC_metilacion.tsv, BRCA_rnaseq.tsv, BRCA_cnv.tsv, BRCA_metilacion.tsv (tablas finales ya generadas, usadas solo para probar el script 17 ampliado)
+- 1.000 file_id de metilacion de las 5 cohortes ya descargadas (Pasos 24-29), usados para la auditoria retroactiva
+
+Comando (auditoria retroactiva de los 1.000 ficheros de metilacion ya descargados, resumen):
+  Consulta por lotes de 500 file_id a https://api.gdc.cancer.gov/files pidiendo el campo "platform"
+  Resultado: {"Illumina Human Methylation 450": 1000}
+
+Salida:
+- src/14_mapear_case_id.py (modificado: platform anadido a la consulta y a la salida)
+- src/15_interseccion_pacientes.py (modificado: filtro de array de metilacion anadido)
+- src/17_verificar_coordinacion.py (modificado: verificacion de array anadida)
+- src/16_generar_manifests_coordinados.py (sin cambios)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Este hallazgo NO afecta a los datos ya generados en ninguna de las 5 cohortes: la auditoria de los 1.000 ficheros de metilacion confirma 100% de coincidencia con el array 450K. El hueco era exclusivamente de robustez del proceso hacia el futuro (riesgo de que alguien repitiera el proceso sin el filtro de tamano y reintrodujera el bug del Paso 11 en silencio).
+- El formato de salida de 14_mapear_case_id.py cambia de 4 a 5 columnas (se anade platform); cualquier fichero _con_caso.tsv generado con la version anterior del script (Paso 30) ya no es compatible con la nueva version de 15_interseccion_pacientes.py (que ahora exige 5 columnas). No afecta a ningun dato ya procesado, porque las 5 cohortes ya estan coordinadas y no dependen de estos ficheros intermedios para nada mas.
+- Se decidio NO anadir tambien size_min/size_max como parametros opcionales (Opcion 1): al confirmarse que "platform" es un campo real, fiable y ya disponible sin coste adicional (se pedia igualmente el resto de campos en la misma consulta), no aporta valor mantener ademas un filtro heuristico de tamano en paralelo.
+
+Conclusion: El filtro de array de metilacion (450K) queda ahora capturado explicitamente en los scripts reutilizables (15_interseccion_pacientes.py al construir la seleccion, 17_verificar_coordinacion.py al verificar el resultado final), usando el campo real "platform" del GDC en vez de un proxy heuristico de tamano de fichero. Verificado que no cambia ningun resultado ya obtenido en las 5 cohortes (auditoria retroactiva: 1.000/1.000 ficheros de metilacion ya correctos) y que el filtro nuevo detecta correctamente un caso sintetico de array incorrecto. Con esto, los 4 scripts consolidados en el Paso 30 combinan correctamente los 3 criterios de coordinacion: mismo paciente, tipo de muestra tumoral primaria, y array de metilacion correcto.

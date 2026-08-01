@@ -7,6 +7,19 @@ import sys, json, urllib.request
 # falta resolverlo consultando la API REST del GDC (endpoint /files), por
 # lotes de file_id, pidiendo tambien el tipo de muestra (sample_type) para
 # poder distinguir despues tumor primario de tejido normal/metastasico.
+#
+# Se pide ademas el campo "platform": para metilacion es el identificador
+# REAL y fiable del array (ej. "Illumina Human Methylation 450", "Illumina
+# Human Methylation 27", "Illumina Methylation Epic v2"), verificado contra
+# la API en el Paso 31. Es preferible a filtrar por tamano de fichero en
+# bytes (proxy heuristico usado en los Pasos 2c/11 y en los Pasos 24-29):
+# el tamano coincidia con el array en los casos comprobados, pero el campo
+# "platform" lo dice de forma directa y explicita, sin depender de rangos
+# de bytes que podrian variar. IMPORTANTE: quien genere la lista de entrada
+# de metilacion (ver leer_lista mas abajo) debe seguir filtrando por nombre
+# de fichero (patron *methylation_array.sesame.level3betas.txt); el filtro
+# de array correcto (450K) se aplica despues, en
+# 15_interseccion_pacientes.py, usando este campo "platform".
 
 GDC_FILES_URL = "https://api.gdc.cancer.gov/files"
 TAMANO_LOTE = 500
@@ -34,7 +47,7 @@ def consultar_lote(file_ids):
     }
     body = {
         "filters": filtro,
-        "fields": "file_id,file_name,cases.submitter_id,cases.samples.sample_type",
+        "fields": "file_id,file_name,cases.submitter_id,cases.samples.sample_type,platform",
         "size": str(len(file_ids)),
         "format": "JSON",
     }
@@ -62,7 +75,8 @@ def mapear(ruta_lista):
             case_submitter_id = casos[0]["submitter_id"]
             muestras = casos[0].get("samples", [])
             tipos_muestra = sorted(set(m["sample_type"] for m in muestras)) if muestras else []
-            mapa[fid] = (case_submitter_id, ";".join(tipos_muestra))
+            plataforma = hit.get("platform", "")
+            mapa[fid] = (case_submitter_id, ";".join(tipos_muestra), plataforma)
         print(f"  lote {i}-{i + len(lote)}: {len(hits)} ficheros resueltos", file=sys.stderr)
     return filas, mapa
 
@@ -71,8 +85,8 @@ def main(ruta_lista, ruta_salida):
     filas, mapa = mapear(ruta_lista)
     with open(ruta_salida, "w", encoding="utf-8") as f:
         for fid, filename in filas:
-            case_id, tipo_muestra = mapa.get(fid, ("", ""))
-            f.write(f"{fid}\t{filename}\t{case_id}\t{tipo_muestra}\n")
+            case_id, tipo_muestra, plataforma = mapa.get(fid, ("", "", ""))
+            f.write(f"{fid}\t{filename}\t{case_id}\t{tipo_muestra}\t{plataforma}\n")
     resueltos = sum(1 for v in mapa.values() if v[0])
     print(f"Guardado: {ruta_salida} ({len(filas)} ficheros, {resueltos} con case_id resuelto)")
     return 0

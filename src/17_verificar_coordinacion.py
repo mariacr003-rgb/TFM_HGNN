@@ -1,8 +1,9 @@
 import sys, json, urllib.request
 
 # Verifica que las 3 tablas finales de una cohorte (rnaseq, cnv, metilacion)
-# comparten exactamente los mismos pacientes (case_id) Y que los 3 comparten
-# muestra tumoral primaria ("Primary Tumor") consistente.
+# comparten exactamente los mismos pacientes (case_id), que los 3 comparten
+# muestra tumoral primaria ("Primary Tumor") consistente, y que la metilacion
+# es del array estandar del proyecto (Illumina 450K, ver Paso 11).
 #
 # No se fia de ningun fichero de seleccion previo: vuelve a consultar la API
 # del GDC directamente sobre las cabeceras de las 3 tablas finales, porque un
@@ -10,10 +11,14 @@ import sys, json, urllib.request
 # paso desapercibido en BRCA (Paso 24) que 10 de los 200 pacientes tenian
 # tipo de muestra inconsistente entre modalidades: la comprobacion de
 # entonces solo verificaba que el case_id coincidiera entre tablas, no que
-# el tipo de muestra fuera "Primary Tumor" en las 3 (ver Paso 29).
+# el tipo de muestra fuera "Primary Tumor" en las 3 (ver Paso 29). La misma
+# logica se aplica aqui al array de metilacion (Paso 31): no basta con haber
+# filtrado por tamano de fichero al construir la lista de candidatos: se
+# vuelve a comprobar el campo real "platform" sobre la tabla final.
 
 GDC_FILES_URL = "https://api.gdc.cancer.gov/files"
 TAMANO_LOTE = 500
+ARRAY_METILACION_ESTANDAR = "Illumina Human Methylation 450"
 
 
 def leer_cabecera(ruta):
@@ -29,7 +34,7 @@ def consultar_lote(file_ids):
     }
     body = {
         "filters": filtro,
-        "fields": "file_id,cases.submitter_id,cases.samples.sample_type",
+        "fields": "file_id,cases.submitter_id,cases.samples.sample_type,platform",
         "size": str(len(file_ids)),
         "format": "JSON",
     }
@@ -54,7 +59,8 @@ def resolver(file_ids):
             case_id = casos[0]["submitter_id"]
             muestras = casos[0].get("samples", [])
             tipos = sorted(set(m["sample_type"] for m in muestras)) if muestras else []
-            mapa[fid] = (case_id, tipos)
+            plataforma = hit.get("platform", "")
+            mapa[fid] = (case_id, tipos, plataforma)
     return mapa
 
 
@@ -101,8 +107,17 @@ def main(ruta_rnaseq, ruta_cnv, ruta_meth):
         for fila in inconsistentes:
             print(f"  {fila}")
 
-    todo_ok = mismo_case_id and not inconsistentes
-    print(f"\nVerificacion completa (case_id identicos Y Primary Tumor consistente): {todo_ok}")
+    plataformas_meth = {mapa_meth[c][0]: mapa_meth[c][2] for c in cab_meth}
+    array_distinto = [c for c in cab_meth if mapa_meth[c][2] != ARRAY_METILACION_ESTANDAR]
+    array_correcto = not array_distinto
+    print(f"Ficheros de metilacion con array '{ARRAY_METILACION_ESTANDAR}': {len(cab_meth) - len(array_distinto)}/{len(cab_meth)}")
+    if array_distinto:
+        print(f"ATENCION: {len(array_distinto)} ficheros de metilacion con array distinto del estandar:")
+        for fid in array_distinto:
+            print(f"  {fid}: {mapa_meth[fid][2]}")
+
+    todo_ok = mismo_case_id and not inconsistentes and array_correcto
+    print(f"\nVerificacion completa (case_id identicos, Primary Tumor consistente, array 450K): {todo_ok}")
     return 0 if todo_ok else 1
 
 

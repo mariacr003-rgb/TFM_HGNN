@@ -9,20 +9,40 @@ from collections import defaultdict
 # primero por prioridad de pipeline (solo CNV: fichero plano > ascat3 >
 # absolute_liftover) y despues por file_id (UUID) alfabeticamente menor.
 # Calcula despues la interseccion de casos con las 3 modalidades disponibles.
+#
+# Para metilacion se exige ademas que el campo "platform" sea el array
+# estandar del proyecto (Illumina 450K, ver Paso 11): esto evita repetir el
+# bug de mezclar arrays 27K/450K/EPIC (paso desapercibido en la muestra
+# inicial de BRCA/LUAD porque el filtro solo miraba el nombre de fichero).
+# El filtro por "platform" (campo real del GDC, verificado en el Paso 31)
+# sustituye al proxy heuristico de tamano de fichero en bytes usado hasta
+# ahora para construir la lista de entrada de metilacion.
+
+ARRAY_METILACION_ESTANDAR = "Illumina Human Methylation 450"
 
 
 def leer(ruta):
-    # Formato esperado: salida de 14_mapear_case_id.py
-    # (file_id, filename, case_id, sample_type separados por tab, sin cabecera)
+    # Formato esperado: salida de 14_mapear_case_id.py (5 columnas
+    # separadas por tab, sin cabecera): file_id, filename, case_id,
+    # sample_type, platform
     filas = []
     with open(ruta, "r", encoding="utf-8") as f:
         for linea in f:
             partes = linea.rstrip("\n").split("\t")
-            if len(partes) < 4 or not partes[2]:
+            if len(partes) < 5 or not partes[2]:
                 continue
-            fid, filename, case_id, tipo_muestra = partes
-            filas.append((fid, filename, case_id, tipo_muestra))
+            fid, filename, case_id, tipo_muestra, plataforma = partes
+            filas.append((fid, filename, case_id, tipo_muestra, plataforma))
     return filas
+
+
+def filtrar_array_metilacion(filas):
+    descartados = [f for f in filas if f[4] != ARRAY_METILACION_ESTANDAR]
+    validos = [f for f in filas if f[4] == ARRAY_METILACION_ESTANDAR]
+    if descartados:
+        plataformas_descartadas = sorted(set(f[4] for f in descartados))
+        print(f"  descartados {len(descartados)} ficheros de metilacion por array distinto de '{ARRAY_METILACION_ESTANDAR}': {plataformas_descartadas}")
+    return validos
 
 
 def prioridad_cnv(filename):
@@ -39,7 +59,7 @@ def filtrar_tumor_primario(filas):
 
 def elegir_unico_por_caso(filas, con_prioridad_cnv=False):
     candidatos = defaultdict(list)
-    for fid, filename, case_id, tipo in filas:
+    for fid, filename, case_id, tipo, plataforma in filas:
         p = prioridad_cnv(filename) if con_prioridad_cnv else 0
         candidatos[case_id].append((p, fid, filename))
 
@@ -57,7 +77,9 @@ def elegir_unico_por_caso(filas, con_prioridad_cnv=False):
 def main(ruta_rnaseq, ruta_cnv, ruta_meth, out_path, n_max=None):
     rnaseq = filtrar_tumor_primario(leer(ruta_rnaseq))
     cnv = filtrar_tumor_primario(leer(ruta_cnv))
-    meth = filtrar_tumor_primario(leer(ruta_meth))
+    meth_candidatos = leer(ruta_meth)
+    print(f"Metilacion: {len(meth_candidatos)} ficheros candidatos antes de filtrar por array")
+    meth = filtrar_tumor_primario(filtrar_array_metilacion(meth_candidatos))
 
     mejor_rnaseq, empates_rnaseq = elegir_unico_por_caso(rnaseq)
     mejor_cnv, empates_cnv = elegir_unico_por_caso(cnv, con_prioridad_cnv=True)
