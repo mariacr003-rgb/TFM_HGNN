@@ -1,0 +1,71 @@
+ID de ejecucion: 2026-08-01-paso27
+Fecha: 1 de agosto de 2026
+
+Objetivo: Replicar en TCGA-COAD la correccion de coordinacion de pacientes entre las 3 capas omicas principales (RNA-seq, CNV, metilacion) ya aplicada a BRCA (Paso 24), LUAD (Paso 25) y LUSC (Paso 26), aplicando desde el principio el criterio completo (consulta a la API del GDC, filtro a muestra "Primary Tumor" en las 3 modalidades y desempate final deterministico por file_id).
+
+Proceso seguido (mismos scripts ad-hoc de la sesion, reutilizados sin cambios de logica desde LUAD/LUSC, fuera de src/):
+
+1. Filtrado por patron de nombre sobre coad_manifest_full.txt (28.901 ficheros totales):
+   - RNA-seq (*rna_seq.augmented_star_gene_counts.tsv): 524 ficheros candidatos
+   - CNV (*gene_level_copy_number.v36.tsv, con o sin sufijo de pipeline): 1.378 ficheros candidatos
+   - Metilacion (*methylation_array.sesame.level3betas.txt, filtrado ademas por tamano 12.000.000-14.000.000 bytes para el array 450K): 352 ficheros candidatos (de 555 totales que casan el patron de nombre)
+
+2. Consulta a la API del GDC (https://api.gdc.cancer.gov/files, lotes de 500 file_id, campos "file_id,file_name,cases.submitter_id,cases.samples.sample_type") para resolver el case_id y el/los sample_type de cada fichero candidato. Resultado: 100% de los 2.254 ficheros candidatos (524+1378+352) resueltos.
+
+3. Filtro a "Primary Tumor" (desde el principio):
+   - RNA-seq: 481 ficheros Primary Tumor -> 458 casos unicos
+   - CNV: 1.374 ficheros Primary Tumor -> 459 casos unicos
+   - Metilacion: 312 ficheros Primary Tumor -> 295 casos unicos
+
+4. Desempate final deterministico (file_id alfabeticamente menor; para CNV, primero prioridad de pipeline plana>ascat3>absolute_liftover y despues file_id menor si seguia empatado): aplicado en 13 casos de RNA-seq, 452 de CNV y 11 de metilacion.
+
+5. Interseccion resultante (casos con exactamente 1 fichero valido "Primary Tumor" en las 3 modalidades): 295 casos. Numero confirmado con el usuario antes de proceder a la descarga (ver turno anterior de la conversacion). Margen mas ajustado que en BRCA/LUAD/LUSC (95 casos de margen sobre los 200 requeridos, frente a >250 en las cohortes anteriores), pero suficiente.
+
+6. Se tomaron los primeros 200 case ID en orden alfabetico de los 295 candidatos (mismo criterio que en las 3 cohortes anteriores).
+
+7. Se generaron los 3 manifests filtrados en formato GDC (id, filename, md5, size, state) extrayendo del manifest completo la fila correspondiente al file_id de RNA-seq/CNV/metilacion de cada uno de los 200 case_id seleccionados.
+
+Entrada:
+- data/raw/coad_manifest_full.txt (manifest completo de TCGA-COAD, 28.901 ficheros)
+- API REST del GDC (https://api.gdc.cancer.gov/files) para resolver case_id y sample_type
+
+Comando (vaciado de carpetas antiguas, 20 pacientes no coordinados del intento anterior):
+  rm -rf data/raw/rnaseq_coad/* data/raw/cnv_coad/* data/raw/metilacion_coad/*
+
+Comando (descarga de los 200 pacientes en las 3 modalidades, en background por el historial de desconexiones de WSL):
+  nohup tools/gdc-client.exe download -m data/raw/manifest_rnaseq_coad_200.txt -d data/raw/rnaseq_coad > logs/descarga_rnaseq_coad_200.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_cnv_coad_200.txt -d data/raw/cnv_coad > logs/descarga_cnv_coad_200.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_metilacion_coad_200.txt -d data/raw/metilacion_coad > logs/descarga_metilacion_coad_200.log 2>&1 &
+  (las 3 con disown)
+
+Comando (regeneracion de las 3 tablas finales):
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_coad data/raw/COAD_rnaseq.tsv
+  python src/10_convertir_cnv.py data/raw/cnv_coad data/raw/COAD_cnv.tsv
+  nohup python -u src/11_convertir_metilacion.py data/raw/metilacion_coad data/raw/COAD_metilacion.tsv > logs/paso27_metilacion_coad_200.log 2>&1 &
+  disown
+
+Salida:
+- data/raw/manifest_rnaseq_coad_200.txt, data/raw/manifest_cnv_coad_200.txt, data/raw/manifest_metilacion_coad_200.txt (201 lineas cada uno: cabecera + 200 ficheros)
+- data/raw/rnaseq_coad/, data/raw/cnv_coad/, data/raw/metilacion_coad/ (200 subcarpetas cada una, sustituyendo a las 20 anteriores no coordinadas)
+- data/raw/COAD_rnaseq.tsv (19.962 genes x 200 pacientes)
+- data/raw/COAD_cnv.tsv (60.624 genes x 200 pacientes)
+- data/raw/COAD_metilacion.tsv (486.427 sitios CpG x 200 pacientes)
+
+Resultado obtenido y verificado en esta sesion:
+- Las 3 descargas terminaron sin errores (grep -il "error|traceback|failed" sobre los 3 logs: sin coincidencias) y con exactamente 200 subcarpetas cada una.
+- data/raw/COAD_rnaseq.tsv: 19.962 genes x 200 pacientes, confirmado por el propio script.
+- data/raw/COAD_cnv.tsv: 60.624 genes x 200 pacientes, confirmado por el propio script.
+- data/raw/COAD_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes.
+- Verificacion de coordinacion entre las 3 tablas: se tradujo cada columna (UUID de fichero, distinto entre modalidades incluso para el mismo paciente) a su case_id usando el mapeo ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- COAD tiene un universo de candidatos con las 3 modalidades notablemente mas ajustado (295) que BRCA/LUAD/LUSC (786/454/368), por tener menos ficheros totales en el proyecto y una tasa de coincidencia de las 3 modalidades algo menor; sigue habiendo margen suficiente sobre los 200 requeridos, pero es la cohorte con menos margen hasta ahora. Relevante para KIRC (siguiente cohorte pendiente): no dar por hecho que el margen sera igual de holgado, hay que confirmar el numero antes de proceder igual que se ha hecho en todas las cohortes.
+- Los scripts usados (resolucion de case_id via API del GDC, calculo de interseccion, generacion de manifests) siguen siendo ad-hoc (directorio temporal de la sesion, reutilizados sin cambios de logica desde LUAD/LUSC), no incorporados a src/. Sigue pendiente la valoracion, ya apuntada en los Pasos 25 y 26, de convertir este proceso en un script reutilizable dentro de src/ antes de repetirlo en KIRC (ultima cohorte pendiente).
+- data/raw/manifest_rnaseq_coad_200.txt, manifest_cnv_coad_200.txt y manifest_metilacion_coad_200.txt no se suben a git (regla data/raw/*.txt del .gitignore).
+- data/raw/COAD_rnaseq.tsv, COAD_cnv.tsv y COAD_metilacion.tsv tampoco se suben a git (regla data/raw/*.tsv), regenerables con los comandos de este runlog.
+- logs/descarga_rnaseq_coad_200.log, logs/descarga_cnv_coad_200.log y logs/paso27_metilacion_coad_200.log no se suben a git (regla *.log del .gitignore); el contenido relevante queda documentado en este runlog.
+- Este cambio afecta solo a COAD. KIRC sigue con 20 pacientes por modalidad sin verificar si esta coordinada entre si.
+
+Conclusion: COAD_rnaseq.tsv, COAD_cnv.tsv y COAD_metilacion.tsv quedan con los mismos 200 pacientes coordinados en las 3 modalidades (verificado explicitamente traduciendo cada columna a su case_id), replicando en COAD la correccion aplicada a BRCA, LUAD y LUSC, aplicando el criterio completo desde el inicio. Pendiente: replicar en KIRC (ultima cohorte).
