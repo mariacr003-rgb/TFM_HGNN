@@ -49,7 +49,7 @@ Salida:
 - README.md actualizado (seccion nueva "Coordinacion de pacientes entre modalidades", y correccion de "n=20 pacientes" a "n=200 pacientes coordinados" en la descripcion de la Fase 1)
 - Eliminados del directorio temporal de la sesion: mapear_case_id.py (v1) e interseccion.py (v1), superados por las versiones v2 ya consolidadas
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 9a636e2
 
 Observaciones:
 - Los 4 scripts nuevos no se han ejecutado todavia sobre ninguna cohorte "en produccion" en este paso (todas las cohortes ya estan coordinadas desde los Pasos 24-29); su uso real sera la proxima vez que haga falta repetir este proceso (p. ej. si se amplia la muestra mas alla de 200 pacientes, o al aplicar el mismo criterio a una sexta cohorte en el futuro).
