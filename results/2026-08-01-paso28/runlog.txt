@@ -1,0 +1,71 @@
+ID de ejecucion: 2026-08-01-paso28
+Fecha: 1 de agosto de 2026
+
+Objetivo: Replicar en TCGA-KIRC (ultima de las 5 cohortes) la correccion de coordinacion de pacientes entre las 3 capas omicas principales (RNA-seq, CNV, metilacion) ya aplicada a BRCA (Paso 24), LUAD (Paso 25), LUSC (Paso 26) y COAD (Paso 27), aplicando desde el principio el criterio completo (consulta a la API del GDC, filtro a muestra "Primary Tumor" en las 3 modalidades y desempate final deterministico por file_id).
+
+Proceso seguido (mismos scripts ad-hoc de la sesion, reutilizados sin cambios de logica desde LUAD/LUSC/COAD, fuera de src/):
+
+1. Filtrado por patron de nombre sobre kirc_manifest_full.txt (34.536 ficheros totales):
+   - RNA-seq (*rna_seq.augmented_star_gene_counts.tsv): 614 ficheros candidatos
+   - CNV (*gene_level_copy_number.v36.tsv, con o sin sufijo de pipeline): 1.615 ficheros candidatos
+   - Metilacion (*methylation_array.sesame.level3betas.txt, filtrado ademas por tamano 12.000.000-14.000.000 bytes para el array 450K): 485 ficheros candidatos (de 903 totales que casan el patron de nombre)
+
+2. Consulta a la API del GDC (https://api.gdc.cancer.gov/files, lotes de 500 file_id, campos "file_id,file_name,cases.submitter_id,cases.samples.sample_type") para resolver el case_id y el/los sample_type de cada fichero candidato. Resultado: 100% de los 2.714 ficheros candidatos (614+1615+485) resueltos.
+
+3. Filtro a "Primary Tumor" (desde el principio):
+   - RNA-seq: 541 ficheros Primary Tumor -> 533 casos unicos
+   - CNV: 1.614 ficheros Primary Tumor -> 532 casos unicos
+   - Metilacion: 324 ficheros Primary Tumor -> 319 casos unicos
+
+4. Desempate final deterministico (file_id alfabeticamente menor; para CNV, primero prioridad de pipeline plana>ascat3>absolute_liftover y despues file_id menor si seguia empatado): aplicado en 4 casos de RNA-seq, 520 de CNV y 3 de metilacion.
+
+5. Interseccion resultante (casos con exactamente 1 fichero valido "Primary Tumor" en las 3 modalidades): 316 casos. Numero confirmado con el usuario antes de proceder a la descarga (ver turno anterior de la conversacion); margen de 116 pacientes sobre los 200 requeridos, mas holgado que COAD (295->200) aunque no tanto como BRCA/LUAD/LUSC. No hizo falta reducir el tamano de muestra de esta cohorte.
+
+6. Se tomaron los primeros 200 case ID en orden alfabetico de los 316 candidatos (mismo criterio que en las 4 cohortes anteriores).
+
+7. Se generaron los 3 manifests filtrados en formato GDC (id, filename, md5, size, state) extrayendo del manifest completo la fila correspondiente al file_id de RNA-seq/CNV/metilacion de cada uno de los 200 case_id seleccionados.
+
+Entrada:
+- data/raw/kirc_manifest_full.txt (manifest completo de TCGA-KIRC, 34.536 ficheros)
+- API REST del GDC (https://api.gdc.cancer.gov/files) para resolver case_id y sample_type
+
+Comando (vaciado de carpetas antiguas, 20 pacientes no coordinados del intento anterior):
+  rm -rf data/raw/rnaseq_kirc/* data/raw/cnv_kirc/* data/raw/metilacion_kirc/*
+
+Comando (descarga de los 200 pacientes en las 3 modalidades, en background por el historial de desconexiones de WSL):
+  nohup tools/gdc-client.exe download -m data/raw/manifest_rnaseq_kirc_200.txt -d data/raw/rnaseq_kirc > logs/descarga_rnaseq_kirc_200.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_cnv_kirc_200.txt -d data/raw/cnv_kirc > logs/descarga_cnv_kirc_200.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_metilacion_kirc_200.txt -d data/raw/metilacion_kirc > logs/descarga_metilacion_kirc_200.log 2>&1 &
+  (las 3 con disown)
+
+Comando (regeneracion de las 3 tablas finales):
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_kirc data/raw/KIRC_rnaseq.tsv
+  python src/10_convertir_cnv.py data/raw/cnv_kirc data/raw/KIRC_cnv.tsv
+  nohup python -u src/11_convertir_metilacion.py data/raw/metilacion_kirc data/raw/KIRC_metilacion.tsv > logs/paso28_metilacion_kirc_200.log 2>&1 &
+  disown
+
+Salida:
+- data/raw/manifest_rnaseq_kirc_200.txt, data/raw/manifest_cnv_kirc_200.txt, data/raw/manifest_metilacion_kirc_200.txt (201 lineas cada uno: cabecera + 200 ficheros)
+- data/raw/rnaseq_kirc/, data/raw/cnv_kirc/, data/raw/metilacion_kirc/ (200 subcarpetas cada una, sustituyendo a las 20 anteriores no coordinadas)
+- data/raw/KIRC_rnaseq.tsv (19.962 genes x 200 pacientes)
+- data/raw/KIRC_cnv.tsv (60.624 genes x 200 pacientes)
+- data/raw/KIRC_metilacion.tsv (486.427 sitios CpG x 200 pacientes)
+
+Resultado obtenido y verificado en esta sesion:
+- Las 3 descargas terminaron sin errores (grep -il "error|traceback|failed" sobre los 3 logs: sin coincidencias) y con exactamente 200 subcarpetas cada una.
+- data/raw/KIRC_rnaseq.tsv: 19.962 genes x 200 pacientes, confirmado por el propio script.
+- data/raw/KIRC_cnv.tsv: 60.624 genes x 200 pacientes, confirmado por el propio script.
+- data/raw/KIRC_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes.
+- Verificacion de coordinacion entre las 3 tablas: se tradujo cada columna (UUID de fichero, distinto entre modalidades incluso para el mismo paciente) a su case_id usando el mapeo ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Con este paso quedan las 5 cohortes del TFM (BRCA, LUAD, LUSC, COAD, KIRC) con sus 3 capas omicas principales (RNA-seq, CNV, metilacion) coordinadas a 200 pacientes cada una, compartiendo exactamente el mismo conjunto de case_id dentro de cada cohorte. Ver el resumen general de las 5 cohortes en la conversacion de esta sesion (no duplicado aqui para evitar desincronizacion; los numeros definitivos de cada cohorte estan en su propio runlog: Paso 24 BRCA, Paso 25 LUAD, Paso 26 LUSC, Paso 27 COAD, Paso 28 KIRC).
+- Los scripts usados (resolucion de case_id via API del GDC, calculo de interseccion, generacion de manifests) siguen siendo ad-hoc (directorio temporal de la sesion), no incorporados a src/. Con las 5 cohortes ya completadas, queda pendiente decidir si merece la pena consolidar este proceso en un script reutilizable dentro de src/ (por ejemplo "src/02d_coordinar_pacientes.py") por si hace falta repetirlo (p. ej. si se decide ampliar el tamano de muestra mas alla de 200 en el futuro).
+- data/raw/manifest_rnaseq_kirc_200.txt, manifest_cnv_kirc_200.txt y manifest_metilacion_kirc_200.txt no se suben a git (regla data/raw/*.txt del .gitignore).
+- data/raw/KIRC_rnaseq.tsv, KIRC_cnv.tsv y KIRC_metilacion.tsv tampoco se suben a git (regla data/raw/*.tsv), regenerables con los comandos de este runlog.
+- logs/descarga_rnaseq_kirc_200.log, logs/descarga_cnv_kirc_200.log y logs/paso28_metilacion_kirc_200.log no se suben a git (regla *.log del .gitignore); el contenido relevante queda documentado en este runlog.
+- Los 316 candidatos de KIRC frente a los 200 requeridos dejan un margen razonable (116 pacientes), la segunda cohorte con menos margen relativo despues de COAD (295->200, margen de 95); no se ha necesitado reducir el tamano de muestra por debajo de 200 en ninguna de las 5 cohortes.
+
+Conclusion: KIRC_rnaseq.tsv, KIRC_cnv.tsv y KIRC_metilacion.tsv quedan con los mismos 200 pacientes coordinados en las 3 modalidades (verificado explicitamente traduciendo cada columna a su case_id), completando la correccion de coordinacion de pacientes en las 5 cohortes del TFM (BRCA, LUAD, LUSC, COAD, KIRC). Con este paso se cierra el bloque de trabajo iniciado en el Paso 24 (deteccion y correccion del problema de descoordinacion entre modalidades, mas la reescritura de src/11_convertir_metilacion.py a streaming).

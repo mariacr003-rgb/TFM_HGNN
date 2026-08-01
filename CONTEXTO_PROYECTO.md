@@ -86,12 +86,36 @@ pacientes coordinados), aplicando el criterio completo (API del GDC,
 filtro "Primary Tumor", desempate por file_id en las 3 modalidades)
 desde el principio. Interseccion real con las 3 modalidades: 295
 casos (de los que se tomaron los primeros 200 alfabeticamente);
-margen mas ajustado que en BRCA/LUAD/LUSC, a tener en cuenta para
-KIRC. Ver results/2026-08-01-paso27/runlog.txt para el detalle
-completo.
+margen mas ajustado que en BRCA/LUAD/LUSC. Ver
+results/2026-08-01-paso27/runlog.txt para el detalle completo.
 
-Pendiente: KIRC (ultima cohorte) sigue con 20 pacientes por modalidad
-sin verificar si estan coordinados entre si.
+NOTA (Paso 28, 2026-08-01): misma correccion replicada en KIRC
+(ultima de las 5 cohortes), con el mismo criterio completo desde el
+principio. Interseccion real con las 3 modalidades: 316 casos (de los
+que se tomaron los primeros 200 alfabeticamente); margen de 116
+pacientes, mas holgado que COAD. Ver results/2026-08-01-paso28/runlog.txt
+para el detalle completo.
+
+RESUMEN: con el Paso 28 se completa la coordinacion de pacientes entre
+las 3 capas omicas principales (RNA-seq, CNV, metilacion) en las 5
+cohortes del TFM. Cada cohorte tiene 200 pacientes que comparten
+exactamente el mismo case_id en las 3 tablas (verificado
+explicitamente en cada paso, traduciendo cada columna/UUID de fichero
+a su case_id y comprobando que los 3 conjuntos son identicos):
+
+  Cohorte | Candidatos con 3 modalidades | Runlog
+  BRCA    | 786                          | results/2026-07-31-paso24/runlog.txt
+  LUAD    | 454                          | results/2026-07-31-paso25/runlog.txt
+  LUSC    | 368                          | results/2026-08-01-paso26/runlog.txt
+  COAD    | 295                          | results/2026-08-01-paso27/runlog.txt
+  KIRC    | 316                          | results/2026-08-01-paso28/runlog.txt
+
+Pendiente (fuera del alcance de este bloque de trabajo): valorar si
+conviene consolidar en un script de src/ el proceso ad-hoc usado para
+identificar y descargar los pacientes coordinados (consulta a la API
+del GDC + filtro Primary Tumor + desempate por file_id), por si hace
+falta repetirlo (p. ej. ampliar la muestra mas alla de 200 pacientes
+en el futuro).
 
 ### Scripts recuperados pero SIN adaptar al nuevo alcance (generaban figuras ilustrativas con datos de ejemplo, no datos reales):
 - src/07_figura4_cindex.py

@@ -35,16 +35,13 @@ cierre de este bloque):
 - Clínico: cohorte completa por proyecto GDC, número de pacientes
   distinto por cohorte según la Tabla 2 del TFM (BRCA 1.098, LUAD 585,
   LUSC 504, COAD 461, KIRC 537)
-- RNA-seq: muestra real de 19.962 genes x 20 pacientes por cohorte
-  (BRCA, LUAD, LUSC y COAD ya ampliadas a 200, ver hallazgo de
-  coordinación abajo)
-- CNV: muestra real de 60.624 genes x 20 pacientes por cohorte
-  (BRCA, LUAD, LUSC y COAD ya ampliadas a 200, ver hallazgo de
-  coordinación abajo)
-- Metilación: muestra real de 486.427 sitios CpG x 20 pacientes por
-  cohorte, todas del mismo array Illumina 450K (ver hallazgo sobre el
-  array abajo; BRCA, LUAD, LUSC y COAD ya ampliadas a 200, ver
-  hallazgo de coordinación abajo)
+- RNA-seq: 19.962 genes x 200 pacientes coordinados, en las 5
+  cohortes (ver hallazgo de coordinación abajo)
+- CNV: 60.624 genes x 200 pacientes coordinados, en las 5 cohortes
+  (ver hallazgo de coordinación abajo)
+- Metilación: 486.427 sitios CpG (array Illumina 450K) x 200
+  pacientes coordinados, en las 5 cohortes (ver hallazgo sobre el
+  array y hallazgo de coordinación abajo)
 
 IMPORTANTE — hallazgo y corrección sobre la coordinación de pacientes
 entre modalidades (BRCA): los 20 pacientes de RNA-seq, CNV y
@@ -73,18 +70,23 @@ RNA-seq y metilación también tenían varios ficheros candidatos por
 paciente (no solo CNV), resuelto filtrando a muestra "Primary Tumor" y,
 si aun así quedaba más de un fichero por caso, con un desempate
 determinista por file_id. Replicado también en LUSC en el Paso 26
-(`results/2026-08-01-paso26/runlog.txt`) y en COAD en el Paso 27
-(`results/2026-08-01-paso27/runlog.txt`), aplicando ya desde el
-principio el criterio completo (consulta a la API del GDC, filtro
-"Primary Tumor" y desempate por file_id en las 3 modalidades) sin
-necesidad de descubrirlo sobre la marcha. COAD tiene un universo de
-candidatos con las 3 modalidades notablemente más ajustado (295) que
-BRCA/LUAD/LUSC (786/454/368) — sigue habiendo margen sobre los 200
-requeridos, pero es la cohorte con menos margen hasta ahora; no dar
-por hecho que KIRC tendrá el mismo margen holgado. Pendiente: replicar
-esta misma coordinación de pacientes entre modalidades en KIRC (última
-cohorte, sigue con 20 pacientes por modalidad, sin verificar si están
-coordinados entre sí).
+(`results/2026-08-01-paso26/runlog.txt`), en COAD en el Paso 27
+(`results/2026-08-01-paso27/runlog.txt`) y en KIRC en el Paso 28
+(`results/2026-08-01-paso28/runlog.txt`), aplicando desde el
+principio (a partir de LUSC) el criterio completo: consulta a la API
+del GDC para resolver case_id y sample_type, filtro a muestra "Primary
+Tumor" en las 3 modalidades (no solo CNV) y desempate final
+determinista por file_id cuando aun así queda más de un fichero por
+caso. Número de candidatos con las 3 modalidades disponibles por
+cohorte: BRCA 786, LUAD 454, LUSC 368, COAD 295, KIRC 316 — en las 5
+cohortes se tomaron los primeros 200 en orden alfabético de case_id.
+
+**Con esto, las 5 cohortes (BRCA, LUAD, LUSC, COAD, KIRC) tienen ya
+RNA-seq, CNV y metilación coordinadas a 200 pacientes cada una,
+compartiendo exactamente el mismo conjunto de 200 case_id dentro de
+cada cohorte** (verificado explícitamente en cada paso, no solo
+asumido por construcción). Se cierra así el bloque de trabajo iniciado
+en el Paso 24.
 
 IMPORTANTE — hallazgo y corrección sobre la metilación: la primera
 descarga de metilación de BRCA (Paso 5) y el primer intento de LUAD
