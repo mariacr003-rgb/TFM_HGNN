@@ -58,7 +58,7 @@ Resultado obtenido y verificado en esta sesion:
 - data/raw/KIRC_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes.
 - Verificacion de coordinacion entre las 3 tablas: se tradujo cada columna (UUID de fichero, distinto entre modalidades incluso para el mismo paciente) a su case_id usando el mapeo ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 0552fdb
 
 Observaciones:
 - Con este paso quedan las 5 cohortes del TFM (BRCA, LUAD, LUSC, COAD, KIRC) con sus 3 capas omicas principales (RNA-seq, CNV, metilacion) coordinadas a 200 pacientes cada una, compartiendo exactamente el mismo conjunto de case_id dentro de cada cohorte. Ver el resumen general de las 5 cohortes en la conversacion de esta sesion (no duplicado aqui para evitar desincronizacion; los numeros definitivos de cada cohorte estan en su propio runlog: Paso 24 BRCA, Paso 25 LUAD, Paso 26 LUSC, Paso 27 COAD, Paso 28 KIRC).
