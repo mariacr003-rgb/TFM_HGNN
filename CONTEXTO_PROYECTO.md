@@ -96,19 +96,37 @@ que se tomaron los primeros 200 alfabeticamente); margen de 116
 pacientes, mas holgado que COAD. Ver results/2026-08-01-paso28/runlog.txt
 para el detalle completo.
 
-RESUMEN: con el Paso 28 se completa la coordinacion de pacientes entre
-las 3 capas omicas principales (RNA-seq, CNV, metilacion) en las 5
-cohortes del TFM. Cada cohorte tiene 200 pacientes que comparten
-exactamente el mismo case_id en las 3 tablas (verificado
-explicitamente en cada paso, traduciendo cada columna/UUID de fichero
-a su case_id y comprobando que los 3 conjuntos son identicos):
+NOTA (Paso 29, 2026-08-01): al cerrar el bloque de las 5 cohortes, se
+verifico BRCA con el mismo metodo riguroso usado en LUAD-KIRC
+(traducir cada UUID de columna a case_id y sample_type via la API del
+GDC), no aplicado hasta ahora sobre BRCA porque esa cohorte se
+corrigio (Paso 24) ANTES de introducir el filtro "Primary Tumor"
+(introducido despues, en LUAD, Paso 25). Resultado: 10 de los 200
+pacientes de BRCA (5%) tenian tipo de muestra inconsistente entre
+modalidades (ej. metilacion de tejido normal en vez de tumoral; 3
+casos con DOS de las 3 modalidades siendo tejido normal). Corregido
+sustituyendo esos 10 pacientes por los siguientes 10 candidatos
+validos (Primary Tumor consistente) de los 779 candidatos rigurosos de
+BRCA (cifra que sustituye a los "786" citados mas abajo, calculados
+sin el filtro Primary Tumor), sin tocar a los otros 190 pacientes ya
+correctos. Ver results/2026-08-01-paso29/runlog.txt para la tabla
+completa de los 10 casos y el detalle de la correccion.
 
-  Cohorte | Candidatos con 3 modalidades | Runlog
-  BRCA    | 786                          | results/2026-07-31-paso24/runlog.txt
-  LUAD    | 454                          | results/2026-07-31-paso25/runlog.txt
-  LUSC    | 368                          | results/2026-08-01-paso26/runlog.txt
-  COAD    | 295                          | results/2026-08-01-paso27/runlog.txt
-  KIRC    | 316                          | results/2026-08-01-paso28/runlog.txt
+RESUMEN: con el Paso 29 se completa, en las 5 cohortes del TFM, la
+coordinacion de pacientes entre las 3 capas omicas principales
+(RNA-seq, CNV, metilacion) CON muestra tumoral primaria consistente.
+Cada cohorte tiene 200 pacientes que comparten exactamente el mismo
+case_id en las 3 tablas, y los 200 tienen "Primary Tumor" en las 3
+modalidades simultaneamente (verificado explicitamente en cada
+cohorte, traduciendo cada columna/UUID de fichero a su case_id y
+sample_type real, no solo asumido):
+
+  Cohorte | Candidatos (3 modalidades, Primary Tumor) | Runlog
+  BRCA    | 779 (corregido en Paso 29)                | results/2026-07-31-paso24/runlog.txt, results/2026-08-01-paso29/runlog.txt
+  LUAD    | 454                                        | results/2026-07-31-paso25/runlog.txt
+  LUSC    | 368                                        | results/2026-08-01-paso26/runlog.txt
+  COAD    | 295                                        | results/2026-08-01-paso27/runlog.txt
+  KIRC    | 316                                        | results/2026-08-01-paso28/runlog.txt
 
 Pendiente (fuera del alcance de este bloque de trabajo): valorar si
 conviene consolidar en un script de src/ el proceso ad-hoc usado para

@@ -1,0 +1,80 @@
+ID de ejecucion: 2026-08-01-paso29
+Fecha: 1 de agosto de 2026
+
+Objetivo: Corregir un problema de consistencia de tipo de muestra ("Primary Tumor") en 10 de los 200 pacientes coordinados de BRCA (Paso 24), detectado en esta sesion al verificar BRCA con el mismo metodo riguroso aplicado a LUAD/LUSC/COAD/KIRC (Pasos 25-28).
+
+Hallazgo (detectado en esta sesion, tras cerrar el bloque de trabajo del Paso 28 con las 5 cohortes "completas"):
+
+BRCA fue la primera cohorte corregida (Paso 24), en una sesion de trabajo anterior a esta, con un proceso ad-hoc que garantizaba que los 200 pacientes tuvieran las 3 modalidades disponibles, pero SIN aplicar el filtro a muestra "Primary Tumor" — ese filtro se introdujo por primera vez en LUAD (Paso 25), al descubrir alli que RNA-seq y metilacion (no solo CNV) podian tener varios ficheros candidatos por paciente correspondientes a distintos tipos de tejido (tumor primario, tejido normal, tumor metastasico). Al pedir el usuario un resumen general de cierre de las 5 cohortes, se decidio verificar BRCA con el mismo metodo riguroso (traducir cada UUID de columna de BRCA_rnaseq.tsv/BRCA_cnv.tsv/BRCA_metilacion.tsv a su case_id y sample_type via la API del GDC) usado para descubrir y resolver este problema en LUAD. Resultado: los 200 case_id SI coinciden exactamente en las 3 tablas (la coordinacion de paciente en si era correcta), pero 10 de los 200 pacientes (5%) tenian un tipo de muestra inconsistente entre modalidades:
+
+  case_id        | RNA-seq              | CNV                                  | Metilacion
+  TCGA-A7-A0CE    | Primary Tumor        | Blood Derived Normal;Primary Tumor   | Solid Tissue Normal
+  TCGA-A7-A0CH    | Primary Tumor        | Blood Derived Normal;Primary Tumor   | Solid Tissue Normal
+  TCGA-A7-A0D9    | Primary Tumor        | Blood Derived Normal;Primary Tumor   | Solid Tissue Normal
+  TCGA-A7-A0DB    | Primary Tumor        | Blood Derived Normal;Primary Tumor   | Solid Tissue Normal
+  TCGA-A7-A0DC    | Primary Tumor        | Blood Derived Normal;Primary Tumor   | Solid Tissue Normal
+  TCGA-A7-A13F    | Solid Tissue Normal  | Blood Derived Normal;Primary Tumor   | Solid Tissue Normal
+  TCGA-A7-A13G    | Solid Tissue Normal  | Primary Tumor;Solid Tissue Normal    | Primary Tumor
+  TCGA-AC-A2FB    | Solid Tissue Normal  | Primary Tumor;Solid Tissue Normal    | Solid Tissue Normal
+  TCGA-AC-A2FM    | Solid Tissue Normal  | Primary Tumor;Solid Tissue Normal    | Solid Tissue Normal
+  TCGA-AC-A6IX    | Metastatic           | Blood Derived Normal;Metastatic      | Primary Tumor
+
+De estos 10 casos: en 5 (A0CE-A0DC) solo fallaba metilacion (tejido normal en vez de tumoral); en 3 (A13F, AC-A2FB, AC-A2FM) fallaban DOS de las tres modalidades (RNA-seq y metilacion, ambas de tejido normal, dejando solo el CNV con señal tumoral real); en 1 (A13G) fallaba solo RNA-seq; en 1 (A6IX) se mezclaba tumor metastasico (RNA-seq) con tumor primario (metilacion), dos estadios de enfermedad distintos del mismo paciente. El CNV en si nunca fallaba porque su pipeline combina siempre el tejido de interes con una muestra de sangre de referencia germinal (ej. "Blood Derived Normal;Primary Tumor"), por lo que su señal de variacion en numero de copias era tumoral en los 10 casos.
+
+Causa raiz: BRCA se selecciono (Paso 24) antes de que se introdujera el filtro "Primary Tumor" (introducido en LUAD, Paso 25); el proceso original de BRCA garantizaba coordinacion de paciente entre modalidades pero no coordinacion de TIPO DE MUESTRA dentro de cada paciente, por lo que en unos pocos casos el fichero seleccionado para RNA-seq y/o metilacion resulto ser, sin que nadie se diera cuenta, de tejido sano o de un estadio distinto de la enfermedad en vez de tumor primario.
+
+Correccion aplicada (confirmada con el usuario tras mostrarle la tabla completa de los 10 casos):
+1. Se recalculo desde cero, con el metodo riguroso (consulta a la API del GDC + filtro "Primary Tumor" + desempate final deterministico por file_id, identico al usado en LUAD-KIRC), el universo completo de candidatos de BRCA con las 3 modalidades disponibles y muestra "Primary Tumor" consistente: 779 casos (cifra definitiva, distinta de los "786 candidatos" del Paso 24 porque aquella cifra no aplicaba el mismo criterio).
+2. Se identificaron los 190 pacientes de los 200 actuales que SI cumplian "Primary Tumor" en las 3 modalidades (los 200 actuales menos los 10 de la tabla anterior) — estos 190 NO se han tocado, se han mantenido con sus ficheros ya descargados.
+3. De los 779 candidatos rigurosos, se excluyeron los 200 case_id ya usados (190 buenos + 10 malos, para no duplicar ningun paciente) y se tomaron los siguientes 10 case_id en orden alfabetico como reemplazo: TCGA-AO-A0JM, TCGA-AO-A124, TCGA-AO-A125, TCGA-AO-A126, TCGA-AO-A128, TCGA-AO-A129, TCGA-AO-A12B, TCGA-AO-A12C, TCGA-AO-A12E, TCGA-AO-A12G.
+4. Se eliminaron las 30 subcarpetas (10 pacientes x 3 modalidades) de los casos malos en data/raw/rnaseq_brca/, data/raw/cnv_brca/, data/raw/metilacion_brca/ (verificada su existencia antes de borrar).
+5. Se generaron 3 manifests de reemplazo (10 ficheros cada uno) y se descargaron con gdc-client.exe, quedando de nuevo 200 subcarpetas en cada una de las 3 carpetas.
+6. Se regeneraron las 3 tablas finales de BRCA con los scripts habituales (los mismos 190 pacientes conservan su fichero, los 10 nuevos sustituyen a los descartados).
+
+Entrada:
+- data/raw/brca_manifest_full.txt (manifest completo de TCGA-BRCA, 70.775 ficheros)
+- API REST del GDC (https://api.gdc.cancer.gov/files) para resolver case_id y sample_type de los candidatos (5.327 ficheros: 1.231 RNA-seq + 3.201 CNV + 895 metilacion) y para re-verificar los 200 finales (600 ficheros: 200 x 3 modalidades)
+- data/raw/rnaseq_brca/, data/raw/cnv_brca/, data/raw/metilacion_brca/ (190 subcarpetas conservadas de las 200 previas del Paso 24)
+
+Comando (eliminacion de las 30 subcarpetas de los 10 casos malos, tras verificar su existencia con test -d):
+  rm -rf data/raw/rnaseq_brca/<10 UUID de fichero>
+  rm -rf data/raw/cnv_brca/<10 UUID de fichero>
+  rm -rf data/raw/metilacion_brca/<10 UUID de fichero>
+
+Comando (descarga de los 10 pacientes de reemplazo en las 3 modalidades, en background):
+  nohup tools/gdc-client.exe download -m data/raw/manifest_rnaseq_brca_reemplazo10.txt -d data/raw/rnaseq_brca > logs/descarga_rnaseq_brca_reemplazo10.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_cnv_brca_reemplazo10.txt -d data/raw/cnv_brca > logs/descarga_cnv_brca_reemplazo10.log 2>&1 &
+  nohup tools/gdc-client.exe download -m data/raw/manifest_metilacion_brca_reemplazo10.txt -d data/raw/metilacion_brca > logs/descarga_metilacion_brca_reemplazo10.log 2>&1 &
+  (las 3 con disown)
+
+Comando (regeneracion de las 3 tablas finales):
+  python src/03_convertir_rnaseq.py data/raw/rnaseq_brca data/raw/BRCA_rnaseq.tsv
+  python src/10_convertir_cnv.py data/raw/cnv_brca data/raw/BRCA_cnv.tsv
+  nohup python -u src/11_convertir_metilacion.py data/raw/metilacion_brca data/raw/BRCA_metilacion.tsv > logs/paso29_metilacion_brca_200.log 2>&1 &
+  disown
+
+Salida:
+- data/raw/manifest_rnaseq_brca_reemplazo10.txt, data/raw/manifest_cnv_brca_reemplazo10.txt, data/raw/manifest_metilacion_brca_reemplazo10.txt (10 ficheros cada uno)
+- data/raw/rnaseq_brca/, data/raw/cnv_brca/, data/raw/metilacion_brca/ (200 subcarpetas cada una: 190 conservadas + 10 nuevas)
+- data/raw/BRCA_rnaseq.tsv (19.962 genes x 200 pacientes, regenerado)
+- data/raw/BRCA_cnv.tsv (60.624 genes x 200 pacientes, regenerado)
+- data/raw/BRCA_metilacion.tsv (486.427 sitios CpG x 200 pacientes, regenerado)
+
+Resultado obtenido y verificado en esta sesion (verificacion RIGUROSA: no solo coincidencia de case_id, tambien consistencia "Primary Tumor" en las 3 modalidades para los 200 pacientes, el mismo metodo que descubrio el problema):
+- Las 10 descargas de reemplazo terminaron sin errores (grep -il "error|traceback|failed" sobre los 3 logs: sin coincidencias) y con exactamente 200 subcarpetas en cada una de las 3 carpetas.
+- data/raw/BRCA_rnaseq.tsv: 19.962 genes x 200 pacientes.
+- data/raw/BRCA_cnv.tsv: 60.624 genes x 200 pacientes.
+- data/raw/BRCA_metilacion.tsv: 486.427 sitios CpG x 200 pacientes; 1,5 GB, 486.428 lineas, 201 columnas.
+- Se tradujo cada uno de los 200 UUID de columna de las 3 tablas a su case_id y sample_type via la API del GDC. Resultado: los 3 conjuntos de 200 case_id son identicos entre si (True), y los 200 casos tienen "Primary Tumor" en las 3 modalidades simultaneamente (0 casos inconsistentes, frente a los 10 detectados antes de la correccion).
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Este hallazgo NO afecta a LUAD, LUSC, COAD ni KIRC, que ya aplicaron el filtro "Primary Tumor" desde su propia seleccion inicial (Pasos 25-28).
+- La cifra rigurosa de candidatos de BRCA (779) sustituye a la cifra "786" citada en el Paso 24 y en el resumen de cierre de esta sesion; la diferencia se debe a que 786 se calculo sin el filtro "Primary Tumor" ni el desempate por file_id, mientras que 779 aplica el mismo criterio completo usado en LUAD-KIRC. docs/manifest-datos.tsv, CLAUDE.md y CONTEXTO_PROYECTO.md se actualizan en este paso para reflejar 779 en vez de 786.
+- data/raw/manifest_rnaseq_brca_reemplazo10.txt, manifest_cnv_brca_reemplazo10.txt y manifest_metilacion_brca_reemplazo10.txt no se suben a git (regla data/raw/*.txt del .gitignore).
+- data/raw/BRCA_rnaseq.tsv, BRCA_cnv.tsv y BRCA_metilacion.tsv tampoco se suben a git (regla data/raw/*.tsv), regenerables con los comandos de este runlog combinados con los del Paso 24 (para los 190 pacientes que no han cambiado).
+- logs/descarga_*_brca_reemplazo10.log y logs/paso29_metilacion_brca_200.log no se suben a git (regla *.log del .gitignore); el contenido relevante queda documentado en este runlog.
+- Leccion para el proyecto: la verificacion rigurosa (traducir cada columna a su case_id y sample_type reales, no solo comprobar que los nombres de columna coinciden entre tablas) debe aplicarse siempre que se genere una tabla coordinada multi-modalidad, incluso cuando el proceso de seleccion "parece" correcto; este hallazgo se detecto precisamente al aplicar, por primera vez sobre BRCA, el mismo nivel de rigor ya usado de forma rutinaria en LUAD-KIRC.
+
+Conclusion: BRCA_rnaseq.tsv, BRCA_cnv.tsv y BRCA_metilacion.tsv quedan con los mismos 200 pacientes coordinados en las 3 modalidades Y con muestra "Primary Tumor" consistente en las 3 modalidades para los 200 (verificado explicitamente, no solo asumido), corrigiendo el unico caso entre las 5 cohortes donde este criterio no se habia aplicado desde el principio. Con esto, las 5 cohortes del TFM (BRCA, LUAD, LUSC, COAD, KIRC) quedan en el mismo estado de calidad: 200 pacientes por cohorte, RNA-seq/CNV/metilacion coordinadas por case_id, y muestra tumoral primaria consistente en las 3 modalidades.

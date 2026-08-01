@@ -77,16 +77,36 @@ principio (a partir de LUSC) el criterio completo: consulta a la API
 del GDC para resolver case_id y sample_type, filtro a muestra "Primary
 Tumor" en las 3 modalidades (no solo CNV) y desempate final
 determinista por file_id cuando aun así queda más de un fichero por
-caso. Número de candidatos con las 3 modalidades disponibles por
-cohorte: BRCA 786, LUAD 454, LUSC 368, COAD 295, KIRC 316 — en las 5
-cohortes se tomaron los primeros 200 en orden alfabético de case_id.
+caso. Número de candidatos con las 3 modalidades disponibles y muestra
+"Primary Tumor" consistente, por cohorte: BRCA 779, LUAD 454, LUSC
+368, COAD 295, KIRC 316 — en las 5 cohortes se tomaron los primeros
+200 en orden alfabético de case_id.
+
+IMPORTANTE — hallazgo y corrección adicional en BRCA (Paso 29): al
+cerrar el bloque de trabajo de las 5 cohortes, se verificó BRCA con el
+mismo método riguroso usado en LUAD-KIRC (traducir cada columna a su
+case_id y sample_type vía la API del GDC), algo que no se había hecho
+porque BRCA (Paso 24) se corrigió ANTES de introducir el filtro
+"Primary Tumor" (introducido después, en LUAD). Resultado: los 200
+case_id sí coincidían en las 3 tablas, pero 10 de los 200 pacientes
+(5%) tenían tipo de muestra inconsistente entre modalidades — 5 casos
+con metilación de tejido normal en vez de tumoral, 3 casos con RNA-seq
+Y metilación de tejido normal (solo el CNV tenía señal tumoral), 1
+caso con RNA-seq de tejido normal, y 1 caso mezclando tumor
+metastásico (RNA-seq) con tumor primario (metilación). Corregido
+sustituyendo esos 10 pacientes por los siguientes 10 candidatos
+válidos (Primary Tumor consistente) de los 779 candidatos rigurosos de
+BRCA, manteniendo sin tocar a los otros 190 pacientes ya correctos.
+Ver `results/2026-08-01-paso29/runlog.txt` para el detalle completo,
+incluida la tabla de los 10 casos originales.
 
 **Con esto, las 5 cohortes (BRCA, LUAD, LUSC, COAD, KIRC) tienen ya
 RNA-seq, CNV y metilación coordinadas a 200 pacientes cada una,
 compartiendo exactamente el mismo conjunto de 200 case_id dentro de
-cada cohorte** (verificado explícitamente en cada paso, no solo
-asumido por construcción). Se cierra así el bloque de trabajo iniciado
-en el Paso 24.
+cada cohorte y con muestra tumoral primaria consistente en las 3
+modalidades** (verificado explícitamente con el método riguroso en
+las 5 cohortes, no solo asumido por construcción). Se cierra así el
+bloque de trabajo iniciado en el Paso 24.
 
 IMPORTANTE — hallazgo y corrección sobre la metilación: la primera
 descarga de metilación de BRCA (Paso 5) y el primer intento de LUAD
