@@ -1,0 +1,59 @@
+ID de ejecucion: 2026-08-01-paso30
+Fecha: 1 de agosto de 2026
+
+Objetivo: Consolidar en src/, como scripts numerados y reutilizables (argumentos por linea de comandos, sin rutas fijas), los 4 mecanismos ad-hoc usados durante los Pasos 24-29 para coordinar pacientes entre RNA-seq, CNV y metilacion (consulta a la API del GDC, calculo de interseccion, generacion de manifests, verificacion). Hasta ahora vivian solo en el directorio temporal de la sesion, sin versionar, y se reutilizaban copiando ficheros (cp) de una cohorte a otra. Se aprovecha ademas para corregir una limitacion real de la herramienta de verificacion: la version ad-hoc usada en los Pasos 25-28 solo comprobaba que el case_id coincidiera entre las 3 tablas, no que el tipo de muestra fuera "Primary Tumor" consistente — por eso no detecto por si sola el problema de BRCA (Paso 29), que se descubrio con una comprobacion mas profunda hecha aparte, por heredoc de Python, sin guardar como script.
+
+Scripts creados en src/:
+
+1. src/14_mapear_case_id.py (a partir de mapear_case_id_v2.py, sesion ad-hoc)
+   Consulta la API REST del GDC (POST /files, lotes de 500 file_id) para resolver, a partir de una lista de ficheros candidatos (file_id + filename, 2 columnas sin cabecera), su case_id (cases.submitter_id) y tipo de muestra (cases.samples.sample_type). Uso:
+     python src/14_mapear_case_id.py <lista_file_id_filename.tsv> <salida.tsv>
+   La version v1 (mapear_case_id.py, sin el campo sample_type) quedo obsoleta nada mas crearse en el Paso 25 al descubrir que hacia falta tambien el tipo de muestra; se ha descartado, no se ha guardado en el repositorio.
+
+2. src/15_interseccion_pacientes.py (a partir de interseccion_v2.py, sesion ad-hoc)
+   A partir de la salida de 3 ejecuciones del script anterior (RNA-seq, CNV, metilacion), filtra a muestra "Primary Tumor", desempata los casos con mas de 1 fichero candidato (prioridad de pipeline plana>ascat3>absolute_liftover solo en CNV, despues file_id alfabeticamente menor) y calcula la interseccion de pacientes con las 3 modalidades disponibles. Uso:
+     python src/15_interseccion_pacientes.py <rnaseq_con_caso.tsv> <cnv_con_caso.tsv> <meth_con_caso.tsv> <salida.tsv> [n_max]
+   Sin el argumento opcional n_max, guarda la lista COMPLETA de candidatos (ordenada alfabeticamente); con n_max, guarda solo los primeros n_max casos. Este comportamiento opcional (parametro final que cambia el resultado, comportamiento por defecto documentado) sigue el mismo patron ya usado en src/02c_filtrar_manifest_metilacion.py.
+   La version v1 (interseccion.py, sin el filtro Primary Tumor ni el desempate) quedo obsoleta en el Paso 25 (daba una cifra preliminar de 458 candidatos en LUAD, incorrecta); se ha descartado.
+
+3. src/16_generar_manifests_coordinados.py (a partir de generar_manifests.py, sesion ad-hoc, sin cambios de logica)
+   A partir de una seleccion de pacientes (salida de 15_interseccion_pacientes.py) y el manifest completo de una cohorte, genera los 3 manifests filtrados en formato GDC (id, filename, md5, size, state) listos para descargar con tools/gdc-client.exe. Uso:
+     python src/16_generar_manifests_coordinados.py <manifest_full.txt> <seleccion.tsv> <out_rnaseq.txt> <out_cnv.txt> <out_meth.txt>
+
+4. src/17_verificar_coordinacion.py (AMPLIADO respecto a la version ad-hoc verificar_coordinacion.py de los Pasos 25-28)
+   Verifica, sobre las 3 tablas finales ya generadas de una cohorte, que comparten exactamente los mismos pacientes Y que los 200 tienen muestra "Primary Tumor" consistente en las 3 modalidades. A diferencia de la version anterior (que solo comparaba los case_id de las cabeceras contra un fichero de seleccion previo, confiando en que ese fichero reflejara lo realmente descargado), esta version vuelve a consultar la API del GDC directamente sobre las cabeceras de las 3 tablas finales, sin depender de ningun fichero de seleccion. Esto es exactamente lo que se necesitaba para detectar el problema de BRCA por si solo, cosa que la version anterior no hacia. Uso:
+     python src/17_verificar_coordinacion.py <rnaseq.tsv> <cnv.tsv> <meth.tsv>
+   Devuelve codigo de salida 0 si case_id identicos Y Primary Tumor consistente en los 3; 1 en caso contrario (util para automatizar la comprobacion en el futuro).
+
+Validacion de los 4 scripts antes de darlos por buenos (regresion contra resultados ya conocidos de esta sesion, cohorte KIRC):
+- 15_interseccion_pacientes.py sin n_max sobre los ficheros _con_caso_v2.tsv de KIRC: reproduce exactamente los mismos conteos que la version ad-hoc (541/533/4, 1614/532/520, 324/319/3, interseccion 316).
+- 15_interseccion_pacientes.py con n_max=200 sobre los mismos ficheros: la salida es byte a byte identica (diff vacio) a la seleccion de 200 pacientes de KIRC ya usada para la descarga real (Paso 28).
+- 16_generar_manifests_coordinados.py, ejecutado con esa misma seleccion y kirc_manifest_full.txt: genera los 3 manifests byte a byte identicos (diff vacio) a los manifests realmente usados para descargar los 200 pacientes de KIRC.
+- 14_mapear_case_id.py, probado con una muestra real de 5 ficheros de metilacion: resuelve correctamente case_id y sample_type consultando la API en vivo.
+- 17_verificar_coordinacion.py, ejecutado sobre las tablas finales reales de KIRC (data/raw/KIRC_*.tsv): devuelve "case_id identicos: True" y "200/200 con Primary Tumor consistente", codigo de salida 0 — coincide con lo ya verificado manualmente en el Paso 28.
+- 17_verificar_coordinacion.py, ejecutado sobre las tablas finales YA CORREGIDAS de BRCA (data/raw/BRCA_*.tsv, tras el Paso 29): devuelve tambien "True" y "200/200", codigo de salida 0 — confirma que la correccion del Paso 29 sigue siendo valida bajo esta herramienta consolidada.
+
+Entrada:
+- Versiones ad-hoc de los 4 scripts, en el directorio temporal de la sesion (Pasos 25-29)
+- data/raw/kirc_manifest_full.txt y ficheros intermedios ya generados de KIRC (Paso 28), usados solo para la validacion por regresion, no modificados
+- data/raw/KIRC_rnaseq.tsv, KIRC_cnv.tsv, KIRC_metilacion.tsv, BRCA_rnaseq.tsv, BRCA_cnv.tsv, BRCA_metilacion.tsv (tablas finales ya generadas, usadas solo para probar 17_verificar_coordinacion.py)
+
+Comando:
+  (creacion de los 4 ficheros nuevos en src/, sin comando de ejecucion asociado a este paso mas alla de las pruebas de regresion documentadas arriba)
+
+Salida:
+- src/14_mapear_case_id.py
+- src/15_interseccion_pacientes.py
+- src/16_generar_manifests_coordinados.py
+- src/17_verificar_coordinacion.py
+- README.md actualizado (seccion nueva "Coordinacion de pacientes entre modalidades", y correccion de "n=20 pacientes" a "n=200 pacientes coordinados" en la descripcion de la Fase 1)
+- Eliminados del directorio temporal de la sesion: mapear_case_id.py (v1) e interseccion.py (v1), superados por las versiones v2 ya consolidadas
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Los 4 scripts nuevos no se han ejecutado todavia sobre ninguna cohorte "en produccion" en este paso (todas las cohortes ya estan coordinadas desde los Pasos 24-29); su uso real sera la proxima vez que haga falta repetir este proceso (p. ej. si se amplia la muestra mas alla de 200 pacientes, o al aplicar el mismo criterio a una sexta cohorte en el futuro).
+- Se recomienda, a partir de ahora, ejecutar siempre 17_verificar_coordinacion.py (version ampliada) tras generar o modificar cualquier tabla coordinada multi-modalidad, precisamente porque la version anterior (solo case_id) no fue suficiente para detectar el problema de BRCA.
+- Estos 4 scripts dependen de acceso a Internet (API del GDC) para funcionar, a diferencia del resto del pipeline de Fase 1 (00-13), que trabaja solo con ficheros locales ya descargados.
+
+Conclusion: Los 4 mecanismos ad-hoc usados en los Pasos 25-29 para coordinar pacientes entre modalidades quedan consolidados como scripts numerados, reutilizables y versionados en src/ (14 a 17), validados por regresion contra resultados reales ya conocidos de esta sesion (KIRC, BRCA), con la herramienta de verificacion (17) ampliada para detectar por si sola el tipo de problema que paso desapercibido en BRCA. Quedan descartadas las 2 versiones v1 obsoletas.
