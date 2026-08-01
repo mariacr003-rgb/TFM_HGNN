@@ -67,7 +67,7 @@ Resultado obtenido y verificado en esta sesion (verificacion RIGUROSA: no solo c
 - data/raw/BRCA_metilacion.tsv: 486.427 sitios CpG x 200 pacientes; 1,5 GB, 486.428 lineas, 201 columnas.
 - Se tradujo cada uno de los 200 UUID de columna de las 3 tablas a su case_id y sample_type via la API del GDC. Resultado: los 3 conjuntos de 200 case_id son identicos entre si (True), y los 200 casos tienen "Primary Tumor" en las 3 modalidades simultaneamente (0 casos inconsistentes, frente a los 10 detectados antes de la correccion).
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: c953096
 
 Observaciones:
 - Este hallazgo NO afecta a LUAD, LUSC, COAD ni KIRC, que ya aplicaron el filtro "Primary Tumor" desde su propia seleccion inicial (Pasos 25-28).
