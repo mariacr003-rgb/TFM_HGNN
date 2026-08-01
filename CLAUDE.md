@@ -37,8 +37,11 @@ cierre de este bloque):
   LUSC 504, COAD 461, KIRC 537)
 - RNA-seq: 19.962 genes x 200 pacientes coordinados, en las 5
   cohortes (ver hallazgo de coordinación abajo)
-- CNV: 60.624 genes x 200 pacientes coordinados, en las 5 cohortes
-  (ver hallazgo de coordinación abajo)
+- CNV: 60.623 genes x 200 pacientes coordinados, en las 5 cohortes
+  (ver hallazgo de coordinación abajo; cifra corregida en el Paso 32
+  de 60.624 a 60.623 — la anterior incluía una fila fantasma por un
+  fallo en `src/10_convertir_cnv.py` que no saltaba la cabecera del
+  fichero crudo, ver `results/2026-08-01-paso32/runlog.txt`)
 - Metilación: 486.427 sitios CpG (array Illumina 450K) x 200
   pacientes coordinados, en las 5 cohortes (ver hallazgo sobre el
   array y hallazgo de coordinación abajo)

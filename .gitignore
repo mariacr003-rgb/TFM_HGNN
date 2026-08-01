@@ -1,5 +1,6 @@
 # Datos grandes y sensibles (TCGA, STRING, Reactome, KEGG)
 data/raw/*.tsv
+data/raw/*.tsv.gz
 data/raw/*.txt.gz
 data/raw/*.tar.gz
 data/raw/*.txt
@@ -51,6 +52,7 @@ results/*
 !results/2026-08-01-paso29/
 !results/2026-08-01-paso30/
 !results/2026-08-01-paso31/
+!results/2026-08-01-paso32/
 
 # Entornos locales
 __pycache__/

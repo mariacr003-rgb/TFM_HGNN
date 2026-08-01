@@ -3,10 +3,18 @@ from pathlib import Path
 
 
 def leer_fichero_paciente(ruta):
+    # La cabecera del fichero crudo (gene_id, gene_name, chromosome,
+    # start, end, copy_number, min_copy_number, max_copy_number) tiene
+    # las mismas 8 columnas que las filas de datos, asi que el filtro
+    # "len(fila) < 8" no la distinguia: se colaba como una fila de gen
+    # fantasma (gene_id="gene_id", copy_number="copy_number"). Se salta
+    # explicitamente con next(reader) (hallazgo y correccion del Paso 32,
+    # ver results/2026-08-01-paso32/runlog.txt).
     genes = []
     valores = []
     with ruta.open("r", encoding="utf-8") as f:
         reader = csv.reader(f, delimiter="\t")
+        next(reader)
         for fila in reader:
             if len(fila) < 8:
                 continue

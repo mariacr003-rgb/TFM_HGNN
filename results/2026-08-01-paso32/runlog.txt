@@ -1,0 +1,46 @@
+ID de ejecucion: 2026-08-01-paso32
+Fecha: 1 de agosto de 2026
+
+Objetivo: Corregir un bug en src/10_convertir_cnv.py, detectado al preparar el script de construccion de atributos por paciente (src/18_construir_atributos_gen.py): una fila fantasma ("gene_id"/"copy_number") contaminaba las 5 tablas CNV (BRCA, LUAD, LUSC, COAD, KIRC), inflando en 1 el recuento de genes citado en toda la documentacion desde el Paso 4 (60.624 en vez de 60.623 genes reales).
+
+Hallazgo: al probar los componentes de src/18_construir_atributos_gen.py contra data/raw/BRCA_cnv.tsv real, la carga numerica fallo con "could not convert string to float: 'copy_number'". Investigado el fichero crudo de un paciente (data/raw/cnv_brca/<uuid>/*.gene_level_copy_number.v36.tsv):
+
+  gene_id	gene_name	chromosome	start	end	copy_number	min_copy_number	max_copy_number   <- cabecera, 8 columnas
+  ENSG00000223972.5	DDX11L1	chr1	11869	14409			                            <- primer gen real
+
+La funcion leer_fichero_paciente() de src/10_convertir_cnv.py filtraba filas con "if len(fila) < 8: continue", pensado para descartar filas incompletas/corruptas, pero la cabecera del fichero crudo TAMBIEN tiene exactamente 8 columnas, asi que no se distinguia del resto y se colaba como un "gen" mas: gene_id="gene_id", copy_number="copy_number" (repetido en las 200 columnas de paciente). Confirmado que el bug afecta a las 5 cohortes por igual (mismo patron exacto en la fila 2 de BRCA_cnv.tsv, LUAD_cnv.tsv y KIRC_cnv.tsv antes de la correccion), porque las 5 usan el mismo script sin modificar desde el Paso 4 (BRCA) y sus regeneraciones posteriores (Pasos 24, 29 para BRCA; 25-28 para el resto).
+
+Hallazgo secundario (no es un bug, es dato real del GDC, verificado para no confundirlo con el anterior): 350-406 genes por paciente (segun cohorte, sobre 60.623 genes reales) tienen el campo copy_number VACIO en el fichero crudo (cadena vacia, no "NA"), probablemente genes en regiones no cubiertas por la segmentacion de copy number de ASCAT2. src/10_convertir_cnv.py nunca convierte estos valores a numero (los escribe tal cual, como cadena, incluida la cadena vacia), asi que no hay riesgo de fallo ni de corrupcion en el propio script; queda documentado aqui porque el proximo script (18_construir_atributos_gen.py) si necesita convertir a float y debe tratar la cadena vacia como dato no disponible, no como un error.
+
+Correccion aplicada:
+1. src/10_convertir_cnv.py: se anade next(reader) al principio de leer_fichero_paciente() para saltar explicitamente la cabecera del fichero crudo, en vez de depender del filtro de numero de columnas (que no la distinguia). Comentario anadido explicando la causa.
+2. Regeneradas las 5 tablas CNV a partir de las carpetas ya descargadas en sesiones anteriores (data/raw/cnv_brca/, cnv_luad/, cnv_lusc/, cnv_coad/, cnv_kirc/, 200 pacientes cada una, sin necesidad de descargar nada de nuevo):
+     python src/10_convertir_cnv.py data/raw/cnv_brca data/raw/BRCA_cnv.tsv
+     python src/10_convertir_cnv.py data/raw/cnv_luad data/raw/LUAD_cnv.tsv
+     python src/10_convertir_cnv.py data/raw/cnv_lusc data/raw/LUSC_cnv.tsv
+     python src/10_convertir_cnv.py data/raw/cnv_coad data/raw/COAD_cnv.tsv
+     python src/10_convertir_cnv.py data/raw/cnv_kirc data/raw/KIRC_cnv.tsv
+3. Verificado que las 5 tablas regeneradas tienen 60.623 genes (no 60.624): la fila 2 de cada tabla es ahora ENSG00000223972.5 (DDX11L1, primer gen real del fichero crudo), no la fila fantasma "gene_id"/"copy_number".
+4. Verificado el manejo de los genes con copy_number vacio en las tablas regeneradas: se propagan correctamente como celda vacia (sin corrupcion, sin caracteres extranos), con un recuento por cohorte (sobre el primer paciente de cada una, a modo de muestra): BRCA 357, LUAD 406, LUSC 350, COAD 351, KIRC 351 genes vacios de 60.623 (0,6-0,7%), consistente entre cohortes.
+5. Re-ejecutado src/17_verificar_coordinacion.py sobre las 5 cohortes tras la regeneracion, para confirmar que la coordinacion de pacientes (case_id identicos + Primary Tumor consistente + array 450K) sigue intacta (este bug no afecta a que pacientes se seleccionan, solo al contenido de la tabla CNV). Resultado: True en las 5 cohortes, sin cambios respecto a antes de la correccion.
+
+Entrada:
+- data/raw/cnv_brca/, cnv_luad/, cnv_lusc/, cnv_coad/, cnv_kirc/ (200 subcarpetas cada una, ya descargadas en los Pasos 24-29, sin cambios)
+
+Salida:
+- src/10_convertir_cnv.py (corregido)
+- data/raw/BRCA_cnv.tsv, LUAD_cnv.tsv, LUSC_cnv.tsv, COAD_cnv.tsv, KIRC_cnv.tsv (regenerados, 60.623 genes x 200 pacientes cada uno)
+
+Resultado obtenido y verificado en esta sesion:
+- Las 5 tablas CNV regeneradas sin la fila fantasma, 60.623 genes reales cada una.
+- src/17_verificar_coordinacion.py: True en las 5 cohortes (BRCA, LUAD, LUSC, COAD, KIRC), coordinacion de pacientes intacta tras la correccion.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Este bug estaba presente desde el Paso 4 (primera conversion de CNV de BRCA, con 20 pacientes) y paso desapercibido en todas las verificaciones anteriores (Pasos 4, 8, 13, 16, 19, 24-29) porque ninguna de ellas inspecciono el CONTENIDO de las filas de la tabla CNV, solo el numero de filas/columnas y la estructura de cabecera de paciente; el recuento "60.624 genes" parecia razonable y consistente entre cohortes (siempre el mismo numero), lo que reforzaba la falsa sensacion de correccion.
+- Los runlogs de los Pasos 4, 8, 13, 16, 19, 25, 26, 27, 28 y 29 citan la cifra antigua (60.624 genes) tal como se informo en su momento; no se han modificado esos runlogs (son registro historico de lo que se ejecuto y observo en cada momento), pero queda esta nota y la actualizacion de CLAUDE.md como referencia de la cifra correcta (60.623) a partir de este paso.
+- src/13_construir_grafo.py NO se ve afectado por este bug: no usa CNV en absoluto para construir el grafo (usa RNA-seq como universo de referencia de genes). El grafo heterogeneo ya construido (data/processed/grafo_heterogeneo.pt, Paso 23) sigue siendo valido sin cambios.
+- Pendiente: continuar con src/18_construir_atributos_gen.py (bloqueado hasta ahora por este bug), que ya tenia el manejo de valores vacios/no numericos previsto en su diseño (opcion (a) del plan: NaN + mascara de validez), asi que no necesita cambios por este hallazgo, mas alla de que ahora carga las tablas CNV ya corregidas.
+
+Conclusion: Corregido un bug real que afectaba a las 5 tablas CNV desde su primera generacion (Paso 4): una fila fantasma causada por no saltar la cabecera del fichero crudo, que inflaba el recuento de genes en 1 (60.624 -> 60.623 genes reales). Regeneradas las 5 tablas y re-verificada la coordinacion de pacientes (intacta). Se retoma ahora la implementacion de src/18_construir_atributos_gen.py sobre datos CNV correctos.
