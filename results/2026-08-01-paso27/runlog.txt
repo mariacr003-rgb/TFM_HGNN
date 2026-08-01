@@ -58,7 +58,7 @@ Resultado obtenido y verificado en esta sesion:
 - data/raw/COAD_metilacion.tsv: proceso en streaming sin errores ni "Killed"; 486.427 sitios CpG x 200 pacientes.
 - Verificacion de coordinacion entre las 3 tablas: se tradujo cada columna (UUID de fichero, distinto entre modalidades incluso para el mismo paciente) a su case_id usando el mapeo ya calculado al generar los manifests, y se comprobo que el conjunto de 200 case_id es identico en las 3 tablas y coincide exactamente con los 200 case_id de la seleccion. Resultado: True en ambas comprobaciones.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: c76677a
 
 Observaciones:
 - COAD tiene un universo de candidatos con las 3 modalidades notablemente mas ajustado (295) que BRCA/LUAD/LUSC (786/454/368), por tener menos ficheros totales en el proyecto y una tasa de coincidencia de las 3 modalidades algo menor; sigue habiendo margen suficiente sobre los 200 requeridos, pero es la cohorte con menos margen hasta ahora. Relevante para KIRC (siguiente cohorte pendiente): no dar por hecho que el margen sera igual de holgado, hay que confirmar el numero antes de proceder igual que se ha hecho en todas las cohortes.
