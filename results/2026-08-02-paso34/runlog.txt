@@ -35,7 +35,7 @@ Entrada:
 Salida:
 - data/processed/LUAD_atributos_gen.pt, LUSC_atributos_gen.pt, COAD_atributos_gen.pt, KIRC_atributos_gen.pt (58 MB cada uno; BRCA_atributos_gen.pt ya generado en el Paso 33)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 902601b
 
 Observaciones:
 - No se ha modificado src/18_construir_atributos_gen.py en este paso: se ha ejecutado sin cambios sobre las 4 cohortes restantes, reproduciendo el mismo comportamiento verificado en BRCA.
