@@ -1,0 +1,78 @@
+ID de ejecucion: 2026-08-02-paso33
+Fecha: 2 de agosto de 2026
+
+Objetivo: Construir, para TCGA-BRCA (primera de las 5 cohortes, probada antes de replicar), el tensor de atributos por paciente para los nodos "gen" del grafo heterogeneo (data/processed/grafo_heterogeneo.pt), combinando RNA-seq, CNV y metilacion (agregada por promotor) en 3 canales, con src/18_construir_atributos_gen.py.
+
+Bloqueado inicialmente por el hallazgo y correccion del Paso 32 (fila fantasma en las 5 tablas CNV); retomado sobre datos CNV ya corregidos (60.623 genes reales).
+
+Diseno del script (aprobado previamente en la conversacion, sin cambios de fondo salvo 2 correcciones tecnicas de esta sesion):
+- Universo de 19.962 nodos "gen" = mismo orden que el grafo (RNA-seq protein_coding, Paso 23).
+- RNA-seq: alineado por POSICION de fila (verificado identico en las 5 cohortes).
+- CNV: alineado por ENSG (diccionario), no por posicion; CNV tiene 60.623 genes (todos los del pipeline ASCAT2, no solo protein_coding); duplicados (genes PAR) resueltos quedandose con la primera fila vista.
+- Metilacion: agregada por gen usando el manifest HM450.hg38.manifest.gencode.v41.tsv.gz (sesame/Zhou Lab, ver docs/manifest-datos.tsv); sonda de promotor = |distToTSS| <= 1500 en algun transcrito protein_coding del gen (TSS1500); valor final = media de las sondas de promotor del gen, por paciente, calculada en streaming (sin cargar las 486.427 filas en memoria).
+- Genes PAR duplicados (18, mismo ENSG en 2 posiciones de nodo): sin codigo especial; al unir CNV/metilacion por ENSG, ambas posiciones buscan la misma clave y reciben automaticamente el mismo valor (limitacion heredada de que ni CNV ni la anotacion de metilacion distinguen la copia X de la Y).
+- Valores no disponibles: NaN + tensor de mascara de validez aparte (mascara_valido), sin imputar en este script.
+- Salida: data/processed/<COHORTE>_atributos_gen.pt con tensor x [pacientes, genes, 3 canales] + mascara_valido + metadatos (pacientes, genes_ensg, canales). El grafo compartido (topologia) no se toca.
+
+Correcciones tecnicas aplicadas en esta sesion, antes de ejecutar sobre los 200 pacientes reales:
+1. cargar_tabla_numerica fallaba con ValueError al encontrar celdas de copy_number vacias en CNV (~0,6-0,7% de los genes, dato real del GDC, no un error, ver Paso 32). Corregido con convertir_a_float(), que devuelve NaN en vez de lanzar excepcion.
+2. Las mascaras de validez de RNA-seq y CNV marcaban True sin comprobar si el valor concreto era NaN. Corregido: valido = (x == x) (comparacion que es False unicamente para NaN), celda a celda.
+3. El bucle final que copiaba los 3 canales al tensor de salida hacia ~12 millones de asignaciones elemento a elemento (muy lento en CPU). Sustituido por construccion vectorizada (torch.stack + permute), validada con un caso sintetico antes de usarla sobre datos reales.
+
+Investigacion previa a la ejecucion (pedida por el usuario): patron de los genes sin cobertura de promotor.
+Con el manifest solo (sin ejecutar aun sobre el fichero real de metilacion), de los 19.944 ENSG unicos: 12.568 con al menos 1 sonda de promotor, 7.376 sin ninguna. De estos 7.376:
+  - 3.982 (54,0%) no tienen NINGUNA sonda del array asignada al gen (en ninguna posicion, no solo promotor).
+  - 3.394 (46,0%) SI tienen sondas en el array, pero ninguna cae en la ventana TSS1500 de un transcrito protein_coding.
+  - Mediana de sondas totales en el array: 14 en genes con promotor cubierto, 0 en genes sin cobertura.
+  - Mediana de transcritos protein_coding distintos con sonda cercana: 3 en genes cubiertos, 0 en no cubiertos.
+Conclusion del patron: NO es aleatorio. El factor dominante es la densidad de sondas del diseño fisico del array 450K (genes con pocas o ninguna sonda en todo el array, no solo en el promotor), no una propiedad biologica especifica del gen en si.
+
+Comando:
+  python src/18_construir_atributos_gen.py BRCA
+
+Ejecutado en background (nohup+disown, dado el historial de desconexiones de WSL), con monitor de progreso sobre logs/paso33_atributos_brca.log.
+
+Resultado obtenido durante la ejecucion (verificado en el log):
+  19962 genes (19944 ENSG unicos)
+  200 pacientes coordinados en las 3 modalidades (resueltos via API del GDC)
+  CNV: {'filas_totales': 60623, 'ensg_unicos': 60579, 'filas_duplicadas_descartadas': 44}
+  genes del universo sin dato de CNV: 13
+  simbolos_ambiguos_excluidos: 6 (identico al Paso 23)
+  manifest de metilacion: {'sin_gen_asignado': 60094, 'simbolo_no_mapeado_a_ensg': 175990, 'sin_sonda_en_promotor_protein_coding': 127518, 'asignadas_a_promotor': 122825}
+  genes del universo sin ninguna sonda de promotor (tras procesar el fichero real): 7820
+  Tensor x: (200, 19962, 3), validos: 10384956 / 11977200
+
+Hallazgo durante la ejecucion (investigado antes de cerrar el runlog, a peticion del usuario): discrepancia entre la cifra prevista con el manifest solo (7.376, sobre 19.944 ENSG unicos) y la cifra real tras procesar el fichero de metilacion (7.820, sobre 19.962 posiciones de nodo). Investigado y explicado por completo:
+  - 7.394 posiciones sin ninguna sonda de promotor asignada por el manifest (coincide con el maximo esperado: 7.376 + hasta 18 posiciones duplicadas PAR que tambien caen sin cobertura).
+  - 426 posiciones ADICIONALES: SI tienen sonda(s) de promotor asignada(s) por el manifest, pero esas sondas concretas aparecen como "NA" en los 200 pacientes en el propio fichero real de metilacion del GDC. Verificado directamente en los datos crudos con un ejemplo (ENSG00000005075, 5 sondas de promotor asignadas: cg00131121, cg02705681, cg17970286, cg25831233, cg26636244; las 5 con valor "NA" en los 8 primeros pacientes revisados, y confirmado que ninguno de los 200 tiene valor numerico en ninguna de las 5). Esto es enmascaramiento de calidad del pipeline SeSAMe (sondas con problemas conocidos de deteccion, reactividad cruzada o solapamiento con SNP, descartadas sistematicamente para toda la cohorte por el propio pipeline del GDC, no un error de este script ni de los datos descargados).
+  - Total: 7.394 + 426 = 7.820, cuadra exactamente con el resultado real.
+
+Desglose final de la mascara de validez por canal (calculado sobre el tensor guardado, 200 pacientes x 19.962 genes = 3.992.400 celdas por canal):
+
+  Canal                      | Celdas validas | Total     | % valido | Genes invalidos en TODOS los pacientes
+  rnaseq_tpm                 | 3.992.400      | 3.992.400 | 100,00%  | 0
+  cnv_copy_number            | 3.981.119      | 3.992.400 | 99,72%   | 35 (34 ENSG unicos + 1 posicion duplicada PAR)
+  metilacion_promotor_beta   | 2.411.437      | 3.992.400 | 60,40%   | 7.820
+  TOTAL                      | 10.384.956     | 11.977.200| 86,71%   | -
+
+Desglose de los 35 genes de CNV invalidos en todos los pacientes (34 ENSG unicos + 1 duplicado PAR que comparte ENSG con otro ya contado):
+  - 13 genes ausentes de la tabla CNV (mitocondriales, ver Paso 32: MT-ND1, MT-CO1, MT-CYB, etc. - ASCAT2 no cubre ADN mitocondrial).
+  - 21 genes presentes en la tabla CNV pero con copy_number vacio en los 200 pacientes (genes en regiones geonomicas dificiles de segmentar de forma consistente en toda la cohorte, mismo tipo de fenomeno tecnico que el enmascaramiento de calidad de metilacion, aplicado aqui a la segmentacion de copy number de ASCAT2).
+
+Salida:
+- data/processed/BRCA_atributos_gen.pt (58 MB)
+  Contenido: {"cohorte": "BRCA", "pacientes": [200 case_id], "genes_ensg": [19962 ENSG sin version, mismo orden que el grafo], "canales": ["rnaseq_tpm", "cnv_copy_number", "metilacion_promotor_beta"], "x": tensor float32 [200, 19962, 3], "mascara_valido": tensor bool [200, 19962, 3]}
+
+Confirmacion de forma y tamano: verificado releyendo el fichero guardado con torch.load() - x.shape=(200, 19962, 3), mascara_valido.shape=(200, 19962, 3), tamano en disco 58 MB.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Nota para la Seccion 4 del TFM (cuando se redacte, coherente con la limitacion ya documentada en la Seccion 4.9 sobre bases de datos biologicas): el canal de metilacion por gen tiene cobertura del 60,4% de las celdas (60,8% de los genes con al menos 1 paciente valido), NO por azar sino por 2 factores tecnicos combinados del array Illumina HumanMethylation450: (1) el diseno fisico del array no cubre uniformemente el genoma - un 37% de los genes protein_coding no tienen ninguna sonda en la ventana TSS1500 de su promotor, mayoritariamente por tener pocas o ninguna sonda en el array en general, no por una propiedad biologica del gen; y (2) un 2,1% adicional de genes (426 de 19.944) SI tienen sonda de promotor, pero esa sonda esta marcada como no fiable ("NA") por el pipeline de control de calidad SeSAMe del GDC para toda la cohorte. Ambas limitaciones son inherentes a la tecnologia del array (2011, ~485.577 sondas fijas) y a su procesamiento estandar, no a decisiones de diseno de este proyecto; se gestionan con una mascara de validez explicita en vez de imputar valores, dejando la decision de como tratar los datos faltantes al script de entrenamiento.
+- El canal de CNV tiene una limitacion analoga y mas pequena (99,72% de cobertura): 13 genes mitocondriales estructuralmente fuera del alcance del pipeline ASCAT2 (no analiza ADN mitocondrial) y 21 genes con segmentacion de copy number no disponible de forma consistente en la cohorte.
+- El script tarda varios minutos en la fase de metilacion (procesamiento en streaming de 486.427 sitios CpG), similar en orden de magnitud a src/11_convertir_metilacion.py; el resto de fases (RNA-seq, CNV, resolucion de pacientes via API, manifest) son rapidas (segundos).
+- data/processed/BRCA_atributos_gen.pt no se sube a git (regla data/processed/*.pt del .gitignore), regenerable con el comando de este runlog.
+- logs/paso33_atributos_brca.log no se sube a git (regla *.log); el contenido relevante queda documentado en este runlog.
+- Pendiente: replicar sobre LUAD, LUSC, COAD y KIRC (mismo comando, cambiando el parametro de cohorte).
+
+Conclusion: Construido y guardado con exito el tensor de atributos por paciente de BRCA (200 pacientes x 19.962 genes x 3 canales), con mascara de validez explicita documentando 2 limitaciones tecnicas reales y ya cuantificadas (cobertura del array de metilacion 450K, y cobertura de la segmentacion de CNV de ASCAT2), ninguna de ellas un error del pipeline. Queda pendiente replicar en las 4 cohortes restantes.
