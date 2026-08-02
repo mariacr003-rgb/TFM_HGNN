@@ -1,0 +1,46 @@
+ID de ejecucion: 2026-08-02-paso34
+Fecha: 2 de agosto de 2026
+
+Objetivo: Replicar src/18_construir_atributos_gen.py (probado y aprobado sobre BRCA en el Paso 33) sobre las 4 cohortes restantes (LUAD, LUSC, COAD, KIRC), completando el tensor de atributos por paciente de las 5 cohortes del TFM.
+
+Comando (identico para las 4 cohortes, solo cambia el parametro):
+  python src/18_construir_atributos_gen.py LUAD
+  python src/18_construir_atributos_gen.py LUSC
+  python src/18_construir_atributos_gen.py COAD
+  python src/18_construir_atributos_gen.py KIRC
+
+Ejecutadas una a una en background (nohup+disown), con monitor de progreso sobre logs/paso33_atributos_<cohorte>.log (mismo prefijo de log que BRCA, Paso 33, por ser el mismo bloque de trabajo).
+
+Resultado obtenido y verificado (identico patron en las 5 cohortes, confirmando que el pipeline es reproducible y estable):
+
+  Cohorte | Tensor x        | Celdas validas / total | % valido | Tamano en disco
+  BRCA    | (200, 19962, 3) | 10.384.956 / 11.977.200 | 86,71%  | 58 MB
+  LUAD    | (200, 19962, 3) | 10.394.127 / 11.977.200 | 86,79%  | 58 MB
+  LUSC    | (200, 19962, 3) | 10.393.582 / 11.977.200 | 86,78%  | 58 MB
+  COAD    | (200, 19962, 3) | 10.393.315 / 11.977.200 | 86,78%  | 58 MB
+  KIRC    | (200, 19962, 3) | 10.394.250 / 11.977.200 | 86,78%  | 58 MB
+
+En las 5 cohortes, de forma identica:
+  - CNV: {'filas_totales': 60623, 'ensg_unicos': 60579, 'filas_duplicadas_descartadas': 44}; 13 genes del universo sin dato de CNV (mitocondriales).
+  - simbolos_ambiguos_excluidos: 6 (identico al Paso 23/33).
+  - manifest de metilacion: {'sin_gen_asignado': 60094, 'simbolo_no_mapeado_a_ensg': 175990, 'sin_sonda_en_promotor_protein_coding': 127518, 'asignadas_a_promotor': 122825} (identico en las 5, porque el manifest y el mapa simbolo->ENSG no dependen de la cohorte).
+  - genes del universo sin ninguna sonda de promotor tras procesar el fichero real de metilacion: 7.820 en las 5 cohortes, EXACTAMENTE el mismo numero.
+
+Hallazgo de esta replicacion: la cifra de 7.820 (7.394 sin sonda asignada por el manifest + 426 con sonda pero enmascarada NA, ver Paso 33) es IDENTICA en las 5 cohortes, no solo en BRCA. Esto confirma la hipotesis planteada durante la ejecucion de LUAD: el enmascaramiento de calidad "NA" de esas 426 sondas por el pipeline SeSAMe es una propiedad FIJA de la sonda en si (probablemente sondas con problemas conocidos de reactividad cruzada o solapamiento con SNP, marcadas de forma universal en el pipeline de procesamiento del GDC), no algo especifico de la cohorte o de pacientes concretos. Util saberlo de cara a la Seccion 4 del TFM: la limitacion de cobertura del array de metilacion (60,4% de celdas validas) es una caracteristica constante y predecible de la tecnologia/pipeline, igual en las 5 cohortes, no una fuente de variabilidad entre ellas.
+
+Entrada:
+- data/raw/LUAD_rnaseq.tsv, LUAD_cnv.tsv, LUAD_metilacion.tsv, data/raw/rnaseq_luad/ (y equivalentes para LUSC, COAD, KIRC), ya generados y verificados en los Pasos 25-32
+- data/raw/HM450_manifest_gencode_v41.tsv.gz (mismo fichero para las 5 cohortes, ver Paso 33/docs/manifest-datos.tsv)
+
+Salida:
+- data/processed/LUAD_atributos_gen.pt, LUSC_atributos_gen.pt, COAD_atributos_gen.pt, KIRC_atributos_gen.pt (58 MB cada uno; BRCA_atributos_gen.pt ya generado en el Paso 33)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- No se ha modificado src/18_construir_atributos_gen.py en este paso: se ha ejecutado sin cambios sobre las 4 cohortes restantes, reproduciendo el mismo comportamiento verificado en BRCA.
+- data/processed/*_atributos_gen.pt no se suben a git (regla data/processed/*.pt del .gitignore), regenerables con los comandos de este runlog.
+- logs/paso33_atributos_luad.log, _lusc.log, _coad.log, _kirc.log no se suben a git (regla *.log); el contenido relevante queda documentado en este runlog.
+- Con este paso, las 5 cohortes del TFM tienen ya su tensor de atributos por paciente (RNA-seq + CNV + metilacion por gen) listo para combinarse con el grafo heterogeneo compartido (data/processed/grafo_heterogeneo.pt, Paso 23) en el script de entrenamiento de GAT/GCN/VGAE, pendiente de implementar.
+
+Conclusion: Replicado con exito src/18_construir_atributos_gen.py sobre LUAD, LUSC, COAD y KIRC, completando las 5 cohortes con resultados consistentes entre si (misma forma de tensor, mismo tamano en disco, mismos recuentos de descarte, y la misma cifra exacta de cobertura de metilacion en las 5, confirmando que las limitaciones de cobertura documentadas en el Paso 33 son propiedades fijas del array/pipeline y no varian por cohorte). Cierra el bloque de trabajo de construccion de atributos por paciente iniciado en el Paso 33.
