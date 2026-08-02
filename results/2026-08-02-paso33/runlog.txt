@@ -65,7 +65,7 @@ Salida:
 
 Confirmacion de forma y tamano: verificado releyendo el fichero guardado con torch.load() - x.shape=(200, 19962, 3), mascara_valido.shape=(200, 19962, 3), tamano en disco 58 MB.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: c082c39
 
 Observaciones:
 - Nota para la Seccion 4 del TFM (cuando se redacte, coherente con la limitacion ya documentada en la Seccion 4.9 sobre bases de datos biologicas): el canal de metilacion por gen tiene cobertura del 60,4% de las celdas (60,8% de los genes con al menos 1 paciente valido), NO por azar sino por 2 factores tecnicos combinados del array Illumina HumanMethylation450: (1) el diseno fisico del array no cubre uniformemente el genoma - un 37% de los genes protein_coding no tienen ninguna sonda en la ventana TSS1500 de su promotor, mayoritariamente por tener pocas o ninguna sonda en el array en general, no por una propiedad biologica del gen; y (2) un 2,1% adicional de genes (426 de 19.944) SI tienen sonda de promotor, pero esa sonda esta marcada como no fiable ("NA") por el pipeline de control de calidad SeSAMe del GDC para toda la cohorte. Ambas limitaciones son inherentes a la tecnologia del array (2011, ~485.577 sondas fijas) y a su procesamiento estandar, no a decisiones de diseno de este proyecto; se gestionan con una mascara de validez explicita en vez de imputar valores, dejando la decision de como tratar los datos faltantes al script de entrenamiento.
