@@ -1,0 +1,247 @@
+ID de ejecucion: 2026-08-03-paso35
+Fecha: 3 de agosto de 2026
+
+Objetivo: Documentar el diseno y las decisiones confirmadas del modelo GAT+GCN del Bloque 6 (src/19-22), un hallazgo sobre la cobertura real de datos de supervivencia en BRCA, el diagnostico y correccion de un fallo de memoria (OOM) en el primer intento de smoke test, y el resultado del smoke test ya verificado con exito. Cierra, con evidencia de viabilidad tecnica, la primera etapa del Bloque 6 (implementacion) antes de pasar a un entrenamiento real sobre BRCA.
+
+Contexto: src/19_proyectar_grafo_gen_gen.py y src/20_preprocesar_atributos_gen.py ya se habian ejecutado con exito en pasos previos de esta sesion (generando data/processed/grafo_gen_gen_ppi.pt y data/processed/BRCA_atributos_gen_norm.pt), pero no se habian subido a git todavia; junto con src/21_modelo_gat_gcn.py y src/22_entrenar_gat_gcn.py (nuevos en este paso), quedan los 4 subidos por primera vez en el commit de este runlog.
+
+================================================================
+1) Diseno del modelo (formulas 1-3, Seccion 4.3 del TFM)
+================================================================
+
+Arquitectura implementada en src/21_modelo_gat_gcn.py (ModeloGATGCN):
+
+1. CodificadorGenGAT: GAT sobre el grafo gen-gen (proyeccion del PPI de
+   STRING a nivel de gen, ver src/19_proyectar_grafo_gen_gen.py: 19962
+   nodos gen, 457.162 aristas dirigidas). 2 capas GATConv, K=8 cabezas
+   de atencion (concatenadas en la capa 1, promediadas en la capa 2
+   para fijar la dimension de salida por gen), activacion ELU
+   (formulas 1 y 2, Tanvir et al. 2024). Los mismos pesos se aplican a
+   cada paciente (mismo edge_index del grafo gen-gen, distinto vector
+   de atributos x de 3 canales por paciente: RNA-seq, CNV, metilacion,
+   ver src/20_preprocesar_atributos_gen.py).
+
+2. Pooling medio: los embeddings de gen resultantes del GAT se agregan
+   por la media a un unico vector fijo por paciente. SUSTITUYE al paso
+   de "embeddings de vias" (Capa 2 del TFM), que queda fuera del
+   alcance de este bloque de trabajo porque el grafo heterogeneo de
+   vias (Reactome/KEGG) todavia no esta incorporado (pendiente, ver
+   CLAUDE.md). Justificacion: para poder aplicar el GCN paciente-
+   paciente (formula 3) hace falta un vector de tamano fijo por
+   paciente independientemente del numero de genes; el pooling medio
+   es la forma mas simple y estandar de obtener ese vector a partir de
+   los embeddings de gen sin necesitar la jerarquia de vias. Es una
+   decision de diseno razonada para completar el flujo GAT->GCN de
+   forma funcional en este bloque, NO una reformulacion de la formula 3
+   del TFM ni un sustituto definitivo de la Capa 2 (que se documentara
+   como trabajo pendiente en la Seccion 4.9 del TFM cuando se redacte).
+
+3. construir_grafo_knn_pacientes: grafo paciente-paciente por k-NN
+   dinamico (k=20 por defecto, parametrizable; k=10 en el smoke test de
+   este paso) sobre el vector agregado por paciente, similitud coseno,
+   simetrizado (union de aristas i->j / j->i). Se recalcula en CADA
+   forward pass (no se aprende ni se fija de antemano): con ~200
+   pacientes el coste de un k-NN por similitud coseno es insignificante
+   frente al coste del GAT sobre el grafo de genes. El top-k no es
+   diferenciable, por lo que el modelo llama a esta funcion siempre con
+   los embeddings .detach()-ados: la TOPOLOGIA del grafo paciente-
+   paciente no propaga gradiente, pero los VALORES que entran a la GCN
+   si lo hacen.
+
+4. PropagadorPacienteGCN: GCN sobre el grafo paciente-paciente (formula
+   3, Kesimoglu y Bozdag 2023), 2 capas GCNConv con normalizacion
+   simetrica D~^(-1/2) A~ D~^(-1/2) (A~=A+I, ya incluida en GCNConv),
+   activacion ELU.
+
+5. Capa lineal final (cabeza_riesgo): de la salida de la GCN a un
+   log-riesgo escalar por paciente, entrada directa de la perdida de
+   Cox (implementada en src/22_entrenar_gat_gcn.py, funcion
+   perdida_cox: log-verosimilitud parcial negativa estandar, calculada
+   con logcumsumexp sobre el tiempo ordenado descendente, sin bucles).
+
+================================================================
+2) Decisiones confirmadas
+================================================================
+
+- Un modelo INDEPENDIENTE por cohorte (5 modelos en total, uno por
+  BRCA/LUAD/LUSC/COAD/KIRC), no un modelo pooled entrenado sobre las 5
+  a la vez. Coherente con el protocolo de evaluacion por cohorte de la
+  Seccion 4.8 del TFM y con el criterio ya usado en el resto del
+  pipeline (cada cohorte con su propio <COHORTE>_atributos_gen.pt).
+
+- Validacion cruzada K-fold ESTRATIFICADA POR EVENTO, 5 pliegues por
+  defecto (parametro n_pliegues de src/22_entrenar_gat_gcn.py; el
+  smoke test de este paso uso 2 pliegues para acelerar la iteracion,
+  ver seccion 5). La estratificacion reparte por separado los indices
+  con evento=1 y evento=0 en round-robin (construir_pliegues), para no
+  dejar ningun pliegue sin eventos observados. Decision justificada
+  directamente por el hallazgo de la seccion 3: con solo 17 eventos
+  observados en 181 pacientes de BRCA (~9,4%), un K-fold sin
+  estratificar podria dejar facilmente algun pliegue de validacion sin
+  ningun evento, haciendo el C-index de ese pliegue no evaluable (el
+  propio script lo detecta y lo reporta como "no evaluable" en vez de
+  fallar o dar un numero enganoso). K-fold se considera ademas mas
+  robusto que un hold-out unico precisamente por el bajo numero de
+  eventos por cohorte.
+
+- Excepcion documentada a la convencion de estilo del proyecto ("sin
+  clases, funciones basicas", ver CLAUDE.md): src/21_modelo_gat_gcn.py
+  usa subclases de nn.Module (CodificadorGenGAT, PropagadorPacienteGCN,
+  ModeloGATGCN). Es la UNICA excepcion del Bloque 6, documentada en la
+  cabecera del propio fichero: PyTorch exige subclases de nn.Module
+  para registrar los pesos entrenables que el optimizador debe
+  actualizar, y no hay alternativa idiomatica sin clases usando
+  GATConv/GCNConv de PyTorch Geometric. Los demas scripts nuevos del
+  bloque (19, 20, 22) se mantienen sin clases, siguiendo la convencion
+  habitual.
+
+================================================================
+3) Hallazgo: cobertura real de datos de supervivencia en BRCA
+================================================================
+
+Al cruzar los 200 pacientes de BRCA (con las 3 capas omicas
+coordinadas, ver Pasos 24-32) con data/processed/BRCA_clinical_valid.tsv
+por case_id (funcion cargar_supervivencia en src/22_entrenar_gat_gcn.py),
+solo 181 de los 200 pacientes (90,5%) tienen un dato de supervivencia
+UTILIZABLE para la perdida de Cox: se excluyen los pacientes sin fila
+clinica correspondiente, con vital_status distinto de "Alive"/"Dead", o
+sin el campo de tiempo requerido (days_to_death si vital_status=Dead,
+days_to_last_follow_up si vital_status=Alive). De esos 181 pacientes
+utilizables, 17 tienen evento observado (fallecimiento), es decir una
+tasa de eventos del 9,4% (17/181) — baja, como es habitual en cohortes
+TCGA con tiempos de seguimiento moderados, y la razon directa detras de
+la decision de K-fold estratificado por evento (seccion 2). Verificado
+en la ejecucion real (ver smoke_test.log, linea previa al submuestreo
+del smoke test): "181 / 200 pacientes con supervivencia utilizable (17
+eventos observados)".
+
+================================================================
+4) Problema de OOM: diagnostico y correccion
+================================================================
+
+Sintoma: el primer intento de smoke test (30 pacientes, 2 epocas, 2
+pliegues, k=10) murio por falta de memoria, confirmado con dmesg:
+"Out of memory: Killed process (python3) total-vm:3333776kB,
+anon-rss:1651736kB" (~1,65 GB de RSS antes de morir), incluso siendo un
+smoke test minimo, en un WSL con el limite de memoria ya ampliado a
+6 GB en .wslconfig.
+
+Diagnostico (revision de src/20, 21 y 22 antes de tocar nada): DESCARTADO
+que el problema fuera carga de datos de mas de una cohorte (solo se
+carga <COHORTE>_atributos_gen_norm.pt de la cohorte pedida, ~48 MB para
+200 pacientes) o duplicacion del grafo gen-gen (se carga una vez en
+main() y se pasa por REFERENCIA a cada fold y cada paciente, sin
+copiarse). La causa real: en ModeloGATGCN.forward (src/21), el bucle
+sobre pacientes del batch llama al GAT paciente a paciente, y en
+entrenar_un_pliegue (src/22) solo se llama a perdida.backward() UNA VEZ,
+al final de cada epoca, despues de procesar TODOS los pacientes del
+pliegue de entrenamiento (~15-24 segun el fold). Como PyTorch no libera
+el grafo de autograd hasta que se llama a backward(), las activaciones
+intermedias del GAT de CADA paciente del pliegue quedaban retenidas EN
+MEMORIA SIMULTANEAMENTE. El GAT sobre ~19.962 nodos / 457.162 aristas no
+es barato: solo el gather interno de GATConv de las features
+transformadas por arista ("x_j", forma [aristas, cabezas, dim_salida])
+ya supone, por paciente: ~234 MB en la capa 1 (8 cabezas x 16 canales) y
+~469 MB en la capa 2 (8 cabezas x 32 canales), demas de coeficientes de
+atencion y otros tensores intermedios menores. Con ~700 MB/paciente y
+varios pacientes acumulados antes del backward unico, el pico teorico de
+memoria supera ampliamente los pocos GB disponibles, consistente con
+que el proceso muriera a 1,65 GB tras procesar solo 2-3 de los ~24
+pacientes del pliegue de entrenamiento.
+
+Solucion aplicada (src/21_modelo_gat_gcn.py, ModeloGATGCN.forward): la
+llamada al GAT por paciente se envuelve en torch.utils.checkpoint.checkpoint
+(con use_reentrant=False), que NO retiene las activaciones intermedias
+del forward, sino que las recalcula durante el backward, paciente a
+paciente y de forma secuencial. Esto acota el pico de memoria del GAT a
+UN paciente en vez de a los N pacientes del pliegue de entrenamiento,
+sin cambiar el resultado matematico del entrenamiento (mismo forward,
+mismo backward, solo cambia CUANDO se calculan las activaciones
+intermedias). El resto de ficheros revisados (src/20_preprocesar_atributos_gen.py,
+src/22_entrenar_gat_gcn.py) no presentaban ningun problema de memoria:
+tensores de tamano moderado, sin acumulacion entre epocas ni entre
+pliegues, evaluacion ya protegida con torch.no_grad().
+
+================================================================
+5) Resultado del smoke test (ya verificado con exito)
+================================================================
+
+Comando:
+  nohup python3 src/22_entrenar_gat_gcn.py BRCA data/processed/BRCA_smoke_metricas.txt 2 2 30 10 > smoke_test.log 2>&1 &
+  disown
+
+Ejecutado en background (nohup+disown, para proteger la ejecucion de
+desconexiones de terminal) tras aplicar la correccion de la seccion 4,
+monitorizado hasta el final. Proceso arrancado (PID 1032, confirmado
+con ps aux) y terminado sin errores, uso de memoria estable (sin OOM).
+
+Resultado (BRCA, 30 pacientes submuestreados de los 181 con
+supervivencia utilizable, 4 eventos en la submuestra, 2 pliegues, 2
+epocas por pliegue, k=10 vecinos):
+
+  Pliegue 1: 15 train / 15 val (2 eventos en val) - C-index = 0,4118
+  Pliegue 2: 15 train / 15 val (2 eventos en val) - C-index = 0,3125
+  C-index medio +/- desviacion estandar: 0,3621 +/- 0,0496
+
+ACLARACION EXPLICITA: este resultado es EXCLUSIVAMENTE una prueba de
+VIABILIDAD TECNICA del pipeline (el modelo entrena de principio a fin,
+sin errores ni fugas de memoria, y produce un C-index numerico
+evaluable) y NO debe interpretarse como un resultado de RENDIMIENTO real
+del modelo. Con solo 30 pacientes (submuestreados arbitrariamente, los
+30 primeros), 2 epocas de entrenamiento y unicamente 2-4 eventos
+observados por pliegue de validacion, el C-index no es estadisticamente
+informativo (un C-index de ~0,36, por debajo de 0,5, es perfectamente
+compatible con ruido dado el tamano de muestra y el numero minimo de
+epocas). El entrenamiento real, con resultados evaluables para el TFM,
+requiere como minimo: los 181 pacientes utilizables de BRCA (no 30),
+bastantes mas epocas que 2, y probablemente el n_pliegues=5 ya fijado
+por defecto en el script.
+
+Entrada:
+- data/processed/grafo_gen_gen_ppi.pt (Paso previo de esta sesion, src/19)
+- data/processed/BRCA_atributos_gen_norm.pt (Paso previo de esta sesion, src/20)
+- data/processed/BRCA_clinical_valid.tsv (ya generado, Fase 1)
+
+Salida:
+- src/19_proyectar_grafo_gen_gen.py, src/20_preprocesar_atributos_gen.py,
+  src/21_modelo_gat_gcn.py, src/22_entrenar_gat_gcn.py (subidos a git
+  por primera vez en el commit de este paso)
+- data/processed/BRCA_smoke_metricas.txt (no se sube a git, regla
+  data/processed/*.txt del .gitignore; contenido documentado arriba)
+- smoke_test.log (no se sube a git, regla *.log del .gitignore;
+  contenido relevante documentado en este runlog)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/grafo_gen_gen_ppi.pt y BRCA_atributos_gen_norm.pt no se
+  suben a git (reglas data/processed/*.pt del .gitignore), regenerables
+  con src/19_proyectar_grafo_gen_gen.py y
+  "python src/20_preprocesar_atributos_gen.py BRCA".
+- El parametro k_vecinos=10 del smoke test es menor que el valor por
+  defecto (k=20) del script; se eligio para acelerar la iteracion sobre
+  una submuestra de solo 30 pacientes, no es el valor recomendado para
+  el entrenamiento real.
+- Con este paso, el Bloque 6 tiene evidencia de viabilidad tecnica
+  completa (diseno correcto, sin fugas de memoria, entrenamiento de
+  principio a fin) pero AUN NO tiene un resultado de rendimiento real
+  sobre BRCA ni sobre el resto de cohortes: pendiente el entrenamiento
+  completo (181 pacientes, mas epocas, 5 pliegues) sobre BRCA, y su
+  replicacion posterior en LUAD/LUSC/COAD/KIRC.
+
+Conclusion: Documentado el diseno del modelo GAT+GCN (formulas 1-3 de
+la Seccion 4.3 del TFM, con la sustitucion razonada de "embeddings de
+vias" por pooling medio + k-NN dinamico) y las decisiones confirmadas
+sobre evaluacion (5 modelos independientes por cohorte, K-fold
+estratificado por evento) y estilo de codigo (excepcion de nn.Module).
+Registrado el hallazgo de cobertura real de supervivencia en BRCA
+(181/200 pacientes utilizables, 17 eventos, 9,4%). Diagnosticado con
+precision el fallo de OOM del primer smoke test (acumulacion del grafo
+de autograd de multiples pacientes antes de un unico backward() por
+epoca) y corregido con torch.utils.checkpoint sin alterar la logica de
+entrenamiento. Verificado el smoke test tras la correccion: entrena sin
+errores ni problemas de memoria, con un resultado (C-index 0,3621 +/-
+0,0496) que es unicamente prueba de viabilidad tecnica, no de
+rendimiento. Cierra la etapa de implementacion y depuracion del Bloque
+6; queda pendiente el entrenamiento real sobre BRCA y su replicacion en
+las 4 cohortes restantes.
