@@ -211,7 +211,7 @@ Salida:
 - smoke_test.log (no se sube a git, regla *.log del .gitignore;
   contenido relevante documentado en este runlog)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: a6b56e4
 
 Observaciones:
 - data/processed/grafo_gen_gen_ppi.pt y BRCA_atributos_gen_norm.pt no se
