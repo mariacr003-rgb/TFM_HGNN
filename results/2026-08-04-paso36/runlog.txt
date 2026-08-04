@@ -144,7 +144,7 @@ Salida:
 - data/processed/BRCA_entrenamiento_real_metricas.txt (metricas del entrenamiento real de BRCA, contenido documentado arriba)
 - logs/paso36_entrenamiento_real_brca.log (log completo, perdida de Cox por epoca de las 20 epocas x 5 pliegues)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: b013370
 
 Observaciones:
 - data/processed/*_clinical_valid.tsv, *_rnaseq_valid.tsv, *_validation_report.txt y BRCA_entrenamiento_real_metricas.txt no se suben a git (reglas data/processed/*.tsv, *.txt del .gitignore); los resultados relevantes quedan documentados en este runlog.
