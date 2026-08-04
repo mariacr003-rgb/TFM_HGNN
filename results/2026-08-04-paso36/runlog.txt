@@ -1,0 +1,155 @@
+ID de ejecucion: 2026-08-04-paso36
+Fecha: 3-4 de agosto de 2026 (lanzado 2026-08-03, terminado 2026-08-04)
+
+Objetivo: Antes de comprometer dias de computo sobre una suposicion,
+confirmar con datos reales el numero de pacientes con supervivencia
+utilizable en las 4 cohortes aun sin validar (LUAD, LUSC, COAD, KIRC).
+Con esa confirmacion, lanzar y documentar el primer entrenamiento REAL
+(no smoke test) del modelo GAT+GCN del Bloque 6 sobre BRCA: 181
+pacientes, 5 pliegues, 20 epocas.
+
+================================================================
+1) Validacion clinica de LUAD, LUSC, COAD y KIRC (src/01_validate_data.py)
+================================================================
+
+Hasta este paso, solo BRCA habia pasado por src/01_validate_data.py
+(data/processed/BRCA_clinical_valid.tsv ya existia de Fase 1). Las
+otras 4 cohortes tenian su clinico completo descargado
+(data/raw/<COHORTE>_clinical.tsv) pero NUNCA se habian validado, por
+lo que la cifra de "pacientes con supervivencia utilizable" para
+ellas era una incognita real, no una suposicion razonable a extrapolar
+sin mas.
+
+Comando (identico para las 4 cohortes, solo cambia el parametro):
+  python src/01_validate_data.py LUAD data/raw/LUAD_clinical.tsv data/raw/LUAD_rnaseq.tsv data/processed
+  python src/01_validate_data.py LUSC data/raw/LUSC_clinical.tsv data/raw/LUSC_rnaseq.tsv data/processed
+  python src/01_validate_data.py COAD data/raw/COAD_clinical.tsv data/raw/COAD_rnaseq.tsv data/processed
+  python src/01_validate_data.py KIRC data/raw/KIRC_clinical.tsv data/raw/KIRC_rnaseq.tsv data/processed
+
+Tras generar <COHORTE>_clinical_valid.tsv, se cruzo (misma logica que
+cargar_supervivencia() de src/22_entrenar_gat_gcn.py) contra los 200
+pacientes coordinados de cada cohorte (case_id de
+<COHORTE>_atributos_gen.pt), contando cuantos tienen vital_status
+valido (Alive/Dead) y el campo de tiempo correspondiente presente.
+
+Resultado (numero real, no supuesto):
+
+  Cohorte | Pacientes con supervivencia utilizable | Eventos | % eventos
+  BRCA    | 181/200 (ya conocido)                   | 17      | 9,4%
+  LUAD    | 168/200                                 | 73      | 43,5%
+  LUSC    | 185/200                                 | 87      | 47,0%
+  COAD    | 179/200                                 | 41      | 22,9%
+  KIRC    | 182/200                                 | 68      | 37,4%
+
+Hallazgo: el numero de pacientes validos es similar en las 5 cohortes
+(168-185, banda de apenas 17 pacientes), confirmando que la suposicion
+de partida ("numero similar a BRCA") era razonable en cuanto a TAMANO
+de muestra. Sin embargo, la TASA DE EVENTOS de BRCA (9,4%) resulta ser
+un caso atipico frente a las otras 4 cohortes (23%-47%): BRCA es, con
+diferencia, la cohorte con menos señal para la perdida de Cox de las
+5. Esto no cambia la estimacion de TIEMPO de computo por epoca (que
+depende del numero de pacientes, no de eventos), pero si las
+expectativas de estabilidad del C-index entre pliegues (ver seccion
+3).
+
+================================================================
+2) Entrenamiento real de BRCA (181 pacientes, 5 pliegues, 20 epocas)
+================================================================
+
+Decision de numero de epocas: 20, decidido por el usuario como primer
+intento real. Justificacion: con solo 17 eventos en toda la cohorte
+(y por tanto ~13-14 eventos por pliegue de entrenamiento en un 5-fold),
+el riesgo de sobreajuste sobre una señal tan escasa aparece pronto; no
+se espera que un numero de epocas mucho mayor aporte una mejora
+significativa, y permite iterar sobre las 5 cohortes en un tiempo total
+razonable.
+
+Comando:
+  nohup python3 -u src/22_entrenar_gat_gcn.py BRCA data/processed/BRCA_entrenamiento_real_metricas.txt 20 5 > logs/paso36_entrenamiento_real_brca.log 2>&1 &
+  disown
+
+Ejecutado en background (nohup+disown, proteccion frente a
+desconexiones de terminal), con flag -u de Python (salida sin buffer)
+para que la perdida de Cox por epoca quedara visible en el log EN
+TIEMPO REAL, no solo al terminar. NOTA: el primer intento de lanzamiento
+(sin -u) se detuvo a los pocos segundos al comprobar que el log
+quedaba vacio por el buffering de stdout al redirigir a fichero (sin
+perdida de trabajo real, el proceso llevaba <1 minuto vivo); se
+relanzo inmediatamente con -u. Monitorizado con monitor de baja
+frecuencia (inicio y C-index de cada pliegue, mensaje final de exito o
+fallo), para no saturar de notificaciones durante una ejecucion de
+varias horas sin perder la capacidad de detectar un fallo (ej. OOM) en
+cuanto ocurriera.
+
+Inicio: 2026-08-03 22:23:49 CEST
+Fin: 2026-08-04 ~15:23 CEST
+TIEMPO REAL: ~17 horas (16h 59min), frente a la estimacion previa de
+~28h (basada en extrapolar linealmente el ritmo por paciente-epoca
+medido en el smoke test de 30 pacientes). La estimacion sobreestimo el
+tiempo real en aproximadamente un 40%; hipotesis mas probable: el
+smoke test, al ser una muestra muy pequeña (30 pacientes), tiene una
+proporcion de overhead fijo (carga de datos, construccion de
+pliegues, arranque de Python/PyTorch) mas alta en relacion al trabajo
+real de entrenamiento que la ejecucion completa, lo que infla el
+ritmo por-unidad medido en el smoke test y hace que la extrapolacion
+lineal sea conservadora (sobreestime) para ejecuciones mas grandes. Se
+toma nota para futuras estimaciones sobre LUAD/LUSC/COAD/KIRC: ~17h es
+la cifra de referencia mas fiable ahora que hay una ejecucion completa
+real medida, no la extrapolacion del smoke test.
+
+Resultado (181 pacientes, 5 pliegues, 20 epocas, k=20 vecinos):
+
+  Pliegue 1: C-index = 0,4921
+  Pliegue 2: C-index = 0,7619
+  Pliegue 3: C-index = 0,4565
+  Pliegue 4: C-index = 0,6544
+  Pliegue 5: C-index = 0,7627
+
+  C-index medio +/- desviacion estandar: 0,6255 +/- 0,1301
+
+Comparacion con el smoke test (Paso 35): C-index medio notablemente
+mejor (0,6255 frente a 0,3621 del smoke test de 30 pacientes/2
+epocas), señal de que con el conjunto completo de pacientes y mas
+epocas el modelo SI capta señal real por encima del azar (0,5), a
+diferencia del smoke test (cuyo unico objetivo era verificar
+viabilidad tecnica, no rendimiento).
+
+EXPLICACION DE LA ALTA DESVIACION ENTRE PLIEGUES (0,1301, rango
+0,4565-0,7627): con solo 17 eventos observados en toda la cohorte de
+BRCA repartidos en 5 pliegues estratificados, cada pliegue de
+VALIDACION tiene unicamente 3-4 eventos (ver "eventos en val" de cada
+pliegue en el log: 4, 4, 3, 3, 3). El C-index de un pliegue se calcula
+sobre los pares comparables que involucran a esos 3-4 pacientes con
+evento observado; con una muestra tan pequeña, el resultado es muy
+sensible a que esos 3-4 pacientes concretos sean casos "faciles" o
+"dificiles" de ordenar correctamente para el modelo, lo que produce
+una varianza alta de un pliegue a otro por construccion estadistica
+(tamaño de muestra pequeño), no necesariamente por inestabilidad del
+modelo en si. Es la misma razon, ya documentada en el Paso 35, por la
+que se eligio K-fold estratificado por evento en vez de un hold-out
+unico: reparte el poco riesgo disponible entre pliegues, pero no
+elimina la varianza inherente a evaluar sobre 3-4 eventos por pliegue.
+Cohortes con mas eventos (LUAD, LUSC, COAD, KIRC, ver seccion 1) deberian
+mostrar folds de validacion con mas eventos cada uno y, por tanto, es
+razonable esperar una desviacion menor entre pliegues.
+
+Entrada:
+- data/processed/grafo_gen_gen_ppi.pt (Paso previo, src/19)
+- data/processed/BRCA_atributos_gen_norm.pt (Paso previo, src/20)
+- data/processed/BRCA_clinical_valid.tsv (Fase 1)
+
+Salida:
+- data/raw/LUAD_clinical.tsv, LUSC_clinical.tsv, COAD_clinical.tsv, KIRC_clinical.tsv (entrada, ya existian)
+- data/processed/LUAD_clinical_valid.tsv, LUAD_rnaseq_valid.tsv, LUAD_validation_report.txt (y equivalentes LUSC/COAD/KIRC)
+- data/processed/BRCA_entrenamiento_real_metricas.txt (metricas del entrenamiento real de BRCA, contenido documentado arriba)
+- logs/paso36_entrenamiento_real_brca.log (log completo, perdida de Cox por epoca de las 20 epocas x 5 pliegues)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/*_clinical_valid.tsv, *_rnaseq_valid.tsv, *_validation_report.txt y BRCA_entrenamiento_real_metricas.txt no se suben a git (reglas data/processed/*.tsv, *.txt del .gitignore); los resultados relevantes quedan documentados en este runlog.
+- logs/paso36_entrenamiento_real_brca.log no se sube a git (regla *.log del .gitignore).
+- Con este paso, BRCA tiene ya un primer resultado de entrenamiento REAL (no solo viabilidad tecnica) del modelo GAT+GCN, con evidencia de que el modelo aprende señal por encima del azar (C-index medio 0,6255 > 0,5) aunque con alta varianza entre pliegues, explicada por el bajo numero de eventos.
+- La cifra de ~17h de tiempo real (frente a la estimacion previa de ~28h) se usa como referencia para presupuestar el entrenamiento de LUAD, LUSC, COAD y KIRC (proximo paso), con la salvedad de que estas 4 cohortes tienen algo menos de pacientes que BRCA (168-185 frente a 181, similar) pero mas eventos, lo que no deberia afectar significativamente al tiempo de computo por epoca (dominado por el numero de pacientes, no por el numero de eventos).
+
+Conclusion: Confirmados con datos reales (no supuestos) los pacientes con supervivencia utilizable en las 4 cohortes restantes del TFM (LUAD 168, LUSC 185, COAD 179, KIRC 182, todas con tasas de eventos bastante mayores que BRCA). Completado y documentado el primer entrenamiento real del modelo GAT+GCN sobre BRCA (C-index medio 0,6255 +/- 0,1301 en ~17h de computo CPU), con evidencia de aprendizaje de señal real y una explicacion estadistica clara de la alta varianza entre pliegues (3-4 eventos de validacion por pliegue). Deja el terreno preparado, con una estimacion de tiempo mas fiable, para replicar el mismo entrenamiento (20 epocas, 5 pliegues) en las 4 cohortes restantes.
