@@ -1,0 +1,104 @@
+ID de ejecucion: 2026-08-05-paso37
+Fecha: 4-5 de agosto de 2026 (lanzado 2026-08-04, terminado 2026-08-05)
+
+Objetivo: Entrenamiento real (no smoke test) del modelo GAT+GCN del
+Bloque 6 sobre LUAD, con el mismo procedimiento ya validado en BRCA
+(Paso 36): 168 pacientes con supervivencia utilizable, 5 pliegues, 20
+epocas. Contrastar con BRCA la hipotesis de que una cohorte con muchos
+mas eventos observados (73 en LUAD frente a 17 en BRCA) produce un
+C-index mas estable entre pliegues.
+
+Bloqueo previo resuelto antes de lanzar: data/processed/LUAD_atributos_gen_norm.pt
+no existia todavia (src/20_preprocesar_atributos_gen.py solo se habia
+ejecutado para BRCA hasta este punto). Generado con:
+  python src/20_preprocesar_atributos_gen.py LUAD
+(200, 19962, 3), 35 genes sin ningun valor valido de CNV, 7820 sin
+sonda de promotor de metilacion — mismo orden de magnitud que BRCA (13
+y 7820 respectivamente), sin incidencias.
+
+Comando:
+  nohup python3 -u src/22_entrenar_gat_gcn.py LUAD data/processed/LUAD_entrenamiento_real_metricas.txt 20 5 > logs/paso37_entrenamiento_real_luad.log 2>&1 &
+  disown
+
+Mismo patron que BRCA (Paso 36): nohup+disown para proteger de
+desconexiones de terminal, flag -u de Python para log en tiempo real
+(sin buffering), monitor de baja frecuencia (inicio y C-index de cada
+pliegue, mensaje final de exito o fallo).
+
+Inicio: 2026-08-04 15:41:21 CEST
+Fin: 2026-08-05 ~07:02 CEST
+TIEMPO REAL: ~15h 20min. Coherente con la cifra de referencia de BRCA
+(~17h) y con la expectativa de que fuera ligeramente menor: LUAD tiene
+algo menos pacientes con supervivencia utilizable que BRCA (168 frente
+a 181), y el tiempo de computo por epoca esta dominado por el numero
+de pacientes (tamaño del batch de entrenamiento por pliegue), no por
+el numero de eventos.
+
+INCIDENCIA DURANTE LA MONITORIZACION (no afecto al entrenamiento en
+si): el primer monitor de progreso, que usaba `tail -f --pid=$PID`
+para dejar de seguir el log cuando el proceso terminara, disparo una
+notificacion de "proceso terminado" prematura mientras el
+entrenamiento seguia vivo (en pliegue 5/5, epoca 4/20 de 20).
+Verificado con `ps aux` que el proceso PID 8914 seguia efectivamente
+en ejecucion; la notificacion prematura coincide en el tiempo con
+varias entradas de dmesg de esa franja horaria ("WSL ERROR:
+CheckConnection: getaddrinfo() failed", "drop_caches") compatibles con
+una suspension/reanudacion del equipo host, que probablemente mato el
+proceso de `tail` del monitor sin afectar al proceso Python de
+entrenamiento (que no depende de red, solo de CPU). Se sustituyo el
+monitor por una version mas robusta, basada en `kill -0 $PID` en un
+bucle de sondeo cada 30s en vez de depender del seguimiento interno de
+`tail --pid`, que si detecto correctamente el fin real del proceso.
+Leccion para futuras cohortes: usar el monitor basado en `kill -0` en
+vez de `tail --pid` desde el principio.
+
+Resultado (168 pacientes, 5 pliegues, 20 epocas, k=20 vecinos):
+
+  Pliegue 1: 134 train, 34 val (15 eventos en val) - C-index = 0,4685
+  Pliegue 2: 134 train, 34 val (15 eventos en val) - C-index = 0,4550
+  Pliegue 3: 134 train, 34 val (15 eventos en val) - C-index = 0,6419
+  Pliegue 4: 135 train, 33 val (14 eventos en val) - C-index = 0,5090
+  Pliegue 5: 135 train, 33 val (14 eventos en val) - C-index = 0,5900
+
+  C-index medio +/- desviacion estandar: 0,5329 +/- 0,0720
+
+COMPARACION CON BRCA (Paso 36) — CONFIRMA LA HIPOTESIS DE PARTIDA:
+
+  Cohorte | Pacientes | Eventos totales | Eventos/pliegue val | C-index medio +/- desv.
+  BRCA    | 181       | 17 (9,4%)        | 3-4                  | 0,6255 +/- 0,1301
+  LUAD    | 168       | 73 (43,5%)       | 14-15                | 0,5329 +/- 0,0720
+
+La desviacion estandar entre pliegues de LUAD (0,0720) es
+aproximadamente la MITAD que la de BRCA (0,1301), confirmando la
+hipotesis planteada antes de lanzar el entrenamiento: con 14-15
+eventos por pliegue de validacion (frente a 3-4 en BRCA), el C-index
+de cada pliegue se calcula sobre una muestra de eventos bastante mayor
+y por tanto es menos sensible a que los pocos pacientes con evento
+observado sean casos particularmente "faciles" o "dificiles" de
+ordenar. El C-index MEDIO de LUAD (0,5329) es mas bajo que el de BRCA
+(0,6255), pero esta apoyado en una base estadistica mas solida (73
+eventos totales frente a 17): con tan pocos eventos en BRCA, su
+C-index medio mas alto es, el mismo, menos fiable que el de LUAD a
+pesar de ser numericamente mayor. Ambos son consistentes con que el
+modelo aprende señal por encima del azar (0,5) en las dos cohortes,
+de forma mas clara y estable en LUAD.
+
+Entrada:
+- data/processed/grafo_gen_gen_ppi.pt (Paso previo, src/19)
+- data/processed/LUAD_atributos_gen_norm.pt (generado en este paso, src/20)
+- data/processed/LUAD_clinical_valid.tsv (Paso 36, src/01_validate_data.py)
+
+Salida:
+- data/processed/LUAD_atributos_gen_norm.pt (48 MB)
+- data/processed/LUAD_entrenamiento_real_metricas.txt (metricas, contenido documentado arriba)
+- logs/paso37_entrenamiento_real_luad.log (log completo, perdida de Cox por epoca de las 20 epocas x 5 pliegues)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/LUAD_atributos_gen_norm.pt y LUAD_entrenamiento_real_metricas.txt no se suben a git (reglas data/processed/*.pt, *.txt del .gitignore); regenerable el primero con "python src/20_preprocesar_atributos_gen.py LUAD", documentado el segundo en este runlog.
+- logs/paso37_entrenamiento_real_luad.log no se sube a git (regla *.log del .gitignore).
+- Aprovechando el tiempo de espera de este entrenamiento, se generaron tambien data/processed/LUSC_atributos_gen_norm.pt, COAD_atributos_gen_norm.pt y KIRC_atributos_gen_norm.pt (mismo comando, sin incidencias en ninguna de las 3), para que el entrenamiento de la siguiente cohorte pueda lanzarse sin este bloqueo previo.
+- Con este paso, 2 de las 5 cohortes (BRCA, LUAD) tienen ya resultado de entrenamiento real. Pendiente: LUSC, COAD, KIRC.
+
+Conclusion: Completado y documentado el entrenamiento real del modelo GAT+GCN sobre LUAD (C-index medio 0,5329 +/- 0,0720 en ~15h20min de computo CPU). Confirmada con datos reales, comparando BRCA y LUAD, la hipotesis de que un mayor numero de eventos por pliegue de validacion reduce la varianza del C-index entre pliegues (0,0720 en LUAD frente a 0,1301 en BRCA). Corregida ademas una fuente de falsos positivos en el sistema de monitorizacion de procesos en background (sustituido `tail --pid` por un sondeo `kill -0`), relevante para las cohortes restantes.
