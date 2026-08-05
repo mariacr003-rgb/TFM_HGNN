@@ -93,7 +93,7 @@ Salida:
 - data/processed/LUAD_entrenamiento_real_metricas.txt (metricas, contenido documentado arriba)
 - logs/paso37_entrenamiento_real_luad.log (log completo, perdida de Cox por epoca de las 20 epocas x 5 pliegues)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 8c142cd
 
 Observaciones:
 - data/processed/LUAD_atributos_gen_norm.pt y LUAD_entrenamiento_real_metricas.txt no se suben a git (reglas data/processed/*.pt, *.txt del .gitignore); regenerable el primero con "python src/20_preprocesar_atributos_gen.py LUAD", documentado el segundo en este runlog.
