@@ -1,0 +1,105 @@
+ID de ejecucion: 2026-08-07-paso39
+Fecha: 6-7 de agosto de 2026 (lanzado 2026-08-06, terminado 2026-08-07)
+
+Objetivo: Entrenamiento real del modelo GAT+GCN sobre COAD (179
+pacientes con supervivencia utilizable, 5 pliegues, 20 epocas), mismo
+protocolo que BRCA (Paso 36), LUAD (Paso 37) y LUSC (Paso 38).
+
+Comando:
+  nohup python3 -u src/22_entrenar_gat_gcn.py COAD data/processed/COAD_entrenamiento_real_metricas.txt 20 5 > logs/paso39_entrenamiento_real_coad.log 2>&1 &
+  disown
+
+Mismo patron ya validado: nohup+disown, flag -u para log en tiempo
+real, monitor de baja frecuencia con sondeo `kill -0 $PID` (sin
+incidencias esta vez, detecto correctamente el fin real del proceso).
+
+Inicio: 2026-08-06 06:25:08 CEST
+Fin: 2026-08-07 ~00:57 CEST
+TIEMPO REAL: ~18h33min. Dentro del rango de las otras 3 cohortes
+(BRCA ~17h, LUAD ~15h20min, LUSC ~20h37min), coherente con el numero
+de pacientes de COAD (179), intermedio entre LUAD (168) y LUSC/BRCA
+(181-185).
+
+Resultado (179 pacientes, 5 pliegues, 20 epocas, k=20 vecinos):
+
+  Pliegue 1: 142 train, 37 val (9 eventos en val) - C-index = 0,6046
+  Pliegue 2: 143 train, 36 val (8 eventos en val) - C-index = 0,3415
+  Pliegue 3: 143 train, 36 val (8 eventos en val) - C-index = 0,4412
+  Pliegue 4: 144 train, 35 val (8 eventos en val) - C-index = 0,5702
+  Pliegue 5: 144 train, 35 val (8 eventos en val) - C-index = 0,3423
+
+  C-index medio +/- desviacion estandar: 0,4599 +/- 0,1107
+
+HALLAZGO — ROMPE LA RELACION SIMPLE "MAS EVENTOS = MENOS VARIANZA"
+OBSERVADA EN LUAD/LUSC:
+
+  Cohorte | Eventos/pliegue val | C-index medio +/- desviacion estandar
+  BRCA    | 3-4                  | 0,6255 +/- 0,1301
+  LUAD    | 14-15                | 0,5329 +/- 0,0720
+  LUSC    | 17-18                | 0,4514 +/- 0,0642
+  COAD    | 8-9                  | 0,4599 +/- 0,1107
+
+Con los 3 primeros resultados (BRCA, LUAD, LUSC) parecia emerger un
+patron claro: a mas eventos de validacion por pliegue, menor
+desviacion estandar entre pliegues (0,1301 -> 0,0720 -> 0,0642),
+atribuido a que el C-index de cada pliegue se apoya en una muestra de
+eventos mayor y por tanto es menos sensible a que los pocos casos con
+evento observado sean particularmente faciles o dificiles de ordenar.
+COAD ROMPE este patron: con 8-9 eventos por pliegue (mas que BRCA,
+menos que LUAD/LUSC), su desviacion estandar (0,1107) es la SEGUNDA
+MAS ALTA de las 4 cohortes, mucho mas cercana a la de BRCA (3-4
+eventos) que a la de LUAD/LUSC (14-18 eventos) — no ocupa la posicion
+intermedia que la relacion simple predeciria. El patron por pliegue de
+COAD tampoco se parece al de LUAD/LUSC (valores agrupados de forma mas
+o menos consistente): COAD alterna 2 pliegues claramente por encima
+del azar (0,6046 y 0,5702) con 3 claramente por debajo (0,3415, 0,4412,
+0,3423), una dispersion bimodal mas que una variacion suave.
+
+Se documenta este hallazgo para la discusion general cuando esten las
+5 cohortes: la relacion "mas eventos de validacion => menor varianza
+del C-index entre pliegues" NO es una regla general fiable solo con
+el numero de eventos como variable explicativa (util como intuicion de
+partida, confirmada en el caso BRCA-LUAD-LUSC, pero no en COAD). Otros
+factores no controlados en este bloque de trabajo (heterogeneidad de
+la cohorte, distribucion de tiempos de supervivencia dentro de cada
+pliegue, la particion aleatoria concreta de pacientes, o
+caracteristicas especificas de la señal omica-supervivencia de COAD)
+probablemente influyen tanto o mas que el simple recuento de eventos.
+Pendiente de contrastar con el resultado de KIRC (68 eventos, la
+cohorte con mas eventos en terminos absolutos aunque no en tasa) antes
+de sacar una conclusion definitiva sobre esta relacion.
+
+Entrada:
+- data/processed/grafo_gen_gen_ppi.pt (Paso previo, src/19)
+- data/processed/COAD_atributos_gen_norm.pt (generado durante la
+  espera de LUAD, Paso 37, src/20)
+- data/processed/COAD_clinical_valid.tsv (Paso 36, src/01_validate_data.py)
+
+Salida:
+- data/processed/COAD_entrenamiento_real_metricas.txt (metricas, documentadas arriba)
+- logs/paso39_entrenamiento_real_coad.log (log completo, perdida de Cox por epoca)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/COAD_entrenamiento_real_metricas.txt no se sube a git
+  (regla data/processed/*.txt del .gitignore); contenido documentado
+  arriba. logs/paso39_entrenamiento_real_coad.log no se sube a git
+  (regla *.log).
+- Con este paso, 4 de las 5 cohortes (BRCA, LUAD, LUSC, COAD) tienen ya
+  resultado de entrenamiento real. Pendiente: KIRC (ultima cohorte).
+- No se ha investigado en este paso la causa del C-index medio de COAD
+  por debajo del azar con el mismo nivel de detalle que en LUSC (Paso
+  38, curva de perdida, integridad de datos): se deja para la
+  discusion general conjunta con las 5 cohortes, una vez este tambien
+  KIRC, en vez de repetir el mismo analisis por separado cohorte a
+  cohorte.
+
+Conclusion: Completado y documentado el entrenamiento real de COAD
+(C-index medio 0,4599 +/- 0,1107 en ~18h33min). Hallazgo relevante para
+la discusion general: COAD rompe la relacion simple "mas eventos de
+validacion por pliegue => menor varianza del C-index" que sugerian
+BRCA, LUAD y LUSC, con una desviacion estandar alta (0,1107) pese a
+tener un numero de eventos por pliegue intermedio (8-9). Queda KIRC
+como ultima cohorte pendiente antes de poder cerrar esta discusion con
+las 5 cohortes completas.
