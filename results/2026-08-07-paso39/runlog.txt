@@ -79,7 +79,7 @@ Salida:
 - data/processed/COAD_entrenamiento_real_metricas.txt (metricas, documentadas arriba)
 - logs/paso39_entrenamiento_real_coad.log (log completo, perdida de Cox por epoca)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 115b258
 
 Observaciones:
 - data/processed/COAD_entrenamiento_real_metricas.txt no se sube a git
