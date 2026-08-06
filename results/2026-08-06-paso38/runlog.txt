@@ -1,0 +1,216 @@
+ID de ejecucion: 2026-08-06-paso38
+Fecha: 5-6 de agosto de 2026 (lanzado 2026-08-05, terminado 2026-08-06)
+
+Objetivo: Entrenamiento real del modelo GAT+GCN sobre LUSC (185
+pacientes con supervivencia utilizable, 5 pliegues, 20 epocas), mismo
+protocolo que BRCA (Paso 36) y LUAD (Paso 37). Al obtener un C-index
+medio por debajo del azar (0,5), investigar la causa antes de decidir
+si se relanza con algun ajuste o se continua con el resto de cohortes.
+
+Comando:
+  nohup python3 -u src/22_entrenar_gat_gcn.py LUSC data/processed/LUSC_entrenamiento_real_metricas.txt 20 5 > logs/paso38_entrenamiento_real_lusc.log 2>&1 &
+  disown
+
+Mismo patron ya validado en BRCA/LUAD: nohup+disown, flag -u para log
+en tiempo real, monitor de progreso. Monitor mejorado respecto al de
+BRCA/LUAD: en vez de `tail -f --pid=$PID` (que dio un falso positivo
+de "proceso terminado" durante LUAD, ver Paso 37), se uso un sondeo
+`kill -0 $PID` en bucle cada 30s, que esta vez detecto correctamente
+el fin real del proceso sin incidencias.
+
+Inicio: 2026-08-05 07:41:10 CEST
+Fin: 2026-08-06 ~04:18 CEST
+TIEMPO REAL: ~20h37min. Algo mas que BRCA (~17h) y LUAD (~15h20min),
+coherente con ser la cohorte con mas pacientes de las 3 (185).
+
+================================================================
+1) RESULTADO
+================================================================
+
+185 pacientes, 5 pliegues, 20 epocas, k=20 vecinos:
+
+  Pliegue 1: 147 train, 38 val (18 eventos en val) - C-index = 0,3806
+  Pliegue 2: 147 train, 38 val (18 eventos en val) - C-index = 0,4558
+  Pliegue 3: 148 train, 37 val (17 eventos en val) - C-index = 0,5692
+  Pliegue 4: 149 train, 36 val (17 eventos en val) - C-index = 0,4118
+  Pliegue 5: 149 train, 36 val (17 eventos en val) - C-index = 0,4395
+
+  C-index medio +/- desviacion estandar: 0,4514 +/- 0,0642
+
+Dos observaciones inmediatas: (a) la desviacion estandar (0,0642) es
+la mas baja de las 3 cohortes entrenadas hasta ahora (BRCA 0,1301,
+LUAD 0,0720), confirmando de nuevo que mas eventos por pliegue de
+validacion (17-18 en LUSC) da resultados mas consistentes entre
+pliegues; pero (b) el C-index MEDIO (0,4514) esta POR DEBAJO de 0,5
+(azar), a diferencia de BRCA (0,6255) y LUAD (0,5329). Al ser la
+desviacion baja, este resultado flojo no es un artefacto de un unico
+pliegue con mala suerte: los 5 pliegues estan consistentemente en el
+rango 0,38-0,57, con solo 1 de los 5 por encima de 0,5 (pliegue 3).
+
+================================================================
+2) INVESTIGACION (antes de decidir si relanzar, sin re-entrenar)
+================================================================
+
+Se investigaron 4 angulos, tal como se planteo antes de decidir:
+
+--- 2.1) Curva de perdida de Cox por epoca de LUSC ---
+
+En los 5 pliegues la perdida BAJA de forma clara al principio (ningun
+pliegue "fue en direccion equivocada" desde el arranque). Pero en 3 de
+los 5 pliegues alcanza un minimo bastante antes de la epoca 20 y luego
+SUBE (revierte parte de la mejora):
+
+  Pliegue | perdida ep.1 | minimo (epoca)      | perdida ep.20 | mejora hasta el minimo | reversion tras el minimo | % de la mejora "devuelto"
+  1       | 279,102      | 278,035 (ep.13)      | 278,140       | -1,067                  | +0,105                    | 10%
+  2       | 276,717      | 276,394 (ep.16)      | 276,584       | -0,323                  | +0,191                    | 59%
+  3       | 284,279      | 283,281 (ep.17)      | 283,409       | -0,998                  | +0,128                    | 13%
+  4       | 288,969      | 288,169 (ep.20)      | 288,169       | -0,800                  | 0,000                      | 0% (sin reversion)
+  5       | 287,728      | 285,797 (ep.20)      | 285,797       | -1,931                  | 0,000                      | 0% (sin reversion)
+
+El pliegue 2 es el mas llamativo: recupera el 59% de la (ya de por si
+pequeña) mejora conseguida.
+
+--- 2.2) Comparacion de la curva de perdida con BRCA y LUAD ---
+
+  Cohorte | Caida relativa de perdida (rango por pliegue, ep.1->ep.20) | Pliegues con reversion tras un minimo intermedio
+  BRCA    | 2,4% - 3,4%                                                  | 1 de 5 (minima, -0,01, practicamente nula)
+  LUAD    | 0,10% - 0,43%                                                | 4 de 5 (la peor devuelve el 66%, pliegue 4)
+  LUSC    | 0,05% - 0,67%                                                | 3 de 5 (la peor devuelve el 59%, pliegue 2)
+
+Hallazgo clave: el patron de LUSC (mejora relativa pequeña + reversion
+parcial en varios pliegues) NO es exclusivo de LUSC. LUAD muestra el
+MISMO patron, con una reversion incluso mas severa en su peor pliegue
+(66% en LUAD frente a 59% en LUSC) — y aun asi LUAD termino con un
+C-index medio aceptable (0,5329). Ademas, dentro de LUSC, los 2
+pliegues SIN ninguna reversion (4 y 5) tienen un C-index igual de flojo
+(0,4118 y 0,4395) que los que si revierten. Esto descarta que la
+reversion tardia (sobreajuste en las ultimas epocas) sea, por si sola,
+la explicacion del resultado flojo de LUSC: no hay correlacion entre
+"cuanto revierte un pliegue" y su C-index final, ni dentro de LUSC ni
+comparando con LUAD.
+
+Nota aparte, tambien real y compartida por LUAD y LUSC: BRCA mejora su
+perdida de Cox ~10 veces mas (en terminos relativos y tambien por
+evento) que LUAD y LUSC. Verificado que esto NO es un artefacto de
+escala (el valor absoluto de la perdida inicial, normalizado por
+numero de eventos de entrenamiento del pliegue, es similar en las 3
+cohortes, ~4,0-4,2 por evento): es una diferencia real en cuanto
+mejora el modelo por evento durante el entrenamiento, mucho menor
+cuantos mas eventos hay que ordenar correctamente (73-87 en LUAD/LUSC
+frente a 17 en BRCA). Plausible que el problema de optimizacion sea
+intrinsecamente mas dificil con muchos mas eventos en solo 20 epocas,
+independientemente de si el resultado final es bueno (LUAD) o malo
+(LUSC).
+
+--- 2.3) Verificacion de los datos de entrada de LUSC ---
+
+Sin anomalia detectable, comparado con BRCA y LUAD:
+
+  Mascara de validez (data/processed/LUSC_atributos_gen.pt):
+    rnaseq_tpm: 100,00% celdas validas (identico a BRCA/LUAD)
+    cnv_copy_number: 99,79% (BRCA 99,72%, LUAD 99,68%)
+    metilacion_promotor_beta: 60,54% (BRCA 60,40%, LUAD 60,66%)
+    total: 86,78% (BRCA 86,71%, LUAD 86,78%)
+
+  Tensor normalizado (data/processed/LUSC_atributos_gen_norm.pt):
+    0 NaN, 0 Inf en los 3 canales (identico a BRCA/LUAD)
+    rangos min/max y proporcion de valores extremos (|z|>10) del mismo
+    orden de magnitud que BRCA/LUAD en los 3 canales
+
+  Distribucion de tiempos de supervivencia (185 pacientes validos):
+    min=0, mediana=699, max=5287 dias — comparable a BRCA (0/683/4159)
+    y LUAD (0/656/6732), sin valores atipicos.
+
+No se encontro ningun indicio de un problema de datos especifico de
+LUSC que explique el resultado.
+
+--- 2.4) ¿20 epocas insuficientes o excesivas para LUSC? ---
+
+Ninguna de las dos explicaciones encaja limpiamente con la evidencia:
+- No parece "insuficientes epocas": la mejora ya es muy pequeña por
+  epoca incluso al principio del entrenamiento, no hay una curva
+  empinada cortada a mitad de camino que sugiera que continuar
+  entrenando fuera a mejorar sustancialmente el resultado.
+- No parece "demasiadas epocas especificamente para LUSC": el mismo
+  patron de sobreajuste tardio leve aparece en LUAD con igual o mayor
+  severidad (66% de reversion en su peor pliegue, frente al 59% de
+  LUSC), y ese entrenamiento si produjo un resultado utilizable.
+
+================================================================
+3) DIAGNOSTICO Y DECISION
+================================================================
+
+No se ha encontrado una causa mecanica identificable (ni en los datos
+de entrada, ni en un exceso o defecto claro de epocas) que explique
+por que LUSC cae por debajo del azar mientras LUAD, con un patron de
+curva de perdida esencialmente equivalente, no lo hace.
+
+HIPOTESIS ABIERTAS (no investigables sin trabajo adicional, quedan
+pendientes, no descartadas ni confirmadas):
+  a) Ruido de una unica semilla/inicializacion aleatoria: no se han
+     repetido ejecuciones de LUSC con distintas semillas para separar
+     señal real de varianza de muestreo del propio proceso de
+     entrenamiento (inicializacion de pesos, orden de construccion de
+     pliegues).
+  b) Relacion biologica genuinamente mas debil en LUSC: es posible que
+     estos 3 canales omicos (RNA-seq, CNV, metilacion de promotor)
+     tengan menor poder predictivo de supervivencia en carcinoma
+     escamoso de pulmon que en los otros subtipos/cohortes, una
+     limitacion del conjunto de features, no del pipeline en si.
+  c) Hiperparametro compartido no igual de apropiado: k_vecinos=20
+     (u otro hiperparametro fijo entre cohortes) podria no ser la
+     mejor eleccion para la estructura especifica de los datos de
+     LUSC, sin haberse explorado ningun barrido de hiperparametros por
+     cohorte en este bloque de trabajo.
+
+DECISION (tomada con el usuario): NO relanzar LUSC en este momento. No
+hay una hipotesis concreta y accionable que justifique que cambiar
+(ni "mas epocas" ni "menos" tiene respaldo claro en la evidencia
+recogida), por lo que reentrenar ahora supondria repetir ~20h de
+computo sin una correccion dirigida. Se documenta el resultado y este
+analisis TAL CUAL, como HALLAZGO, no como fallo del pipeline: los
+datos de entrada son correctos y consistentes, el entrenamiento
+completo sin errores tecnicos, y el patron de la curva de perdida es
+del mismo tipo que en LUAD. Se continua con COAD bajo el mismo
+protocolo (20 epocas, 5 pliegues), dejando esta investigacion como
+NOTA PARA LA SECCION 4.9 DEL TFM (limitaciones) cuando se redacte: el
+resultado de LUSC por debajo del azar es una limitacion a documentar y
+contextualizar con el resto de cohortes, no un error a "arreglar" sin
+una hipotesis solida.
+
+Entrada:
+- data/processed/grafo_gen_gen_ppi.pt (Paso previo, src/19)
+- data/processed/LUSC_atributos_gen_norm.pt (generado durante la
+  espera de LUAD, Paso 37, src/20)
+- data/processed/LUSC_clinical_valid.tsv (Paso 36, src/01_validate_data.py)
+
+Salida:
+- data/processed/LUSC_entrenamiento_real_metricas.txt (metricas, documentadas arriba)
+- logs/paso38_entrenamiento_real_lusc.log (log completo, perdida de Cox por epoca)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/LUSC_entrenamiento_real_metricas.txt no se sube a git
+  (regla data/processed/*.txt del .gitignore); contenido documentado
+  arriba. logs/paso38_entrenamiento_real_lusc.log no se sube a git
+  (regla *.log).
+- Con este paso, 3 de las 5 cohortes (BRCA, LUAD, LUSC) tienen ya
+  resultado de entrenamiento real. Pendiente: COAD, KIRC.
+- El analisis de este paso (secciones 2 y 3) se realizo integramente
+  sobre datos ya generados (logs existentes, tensores ya guardados),
+  sin re-entrenar ningun modelo, tal como se pidio antes de decidir.
+
+Conclusion: Completado y documentado el entrenamiento real de LUSC
+(C-index medio 0,4514 +/- 0,0642 en ~20h37min). A diferencia de BRCA y
+LUAD, el resultado esta por debajo del azar. Investigadas 4 vias
+(curva de perdida propia, comparacion con BRCA/LUAD, integridad de
+datos de entrada, adecuacion del numero de epocas) sin encontrar una
+causa mecanica identificable ni un problema de datos o de pipeline:
+el patron de la curva de perdida de LUSC es del mismo tipo que el de
+LUAD (mejora relativa pequeña, reversion parcial tardia en varios
+pliegues), y esa reversion no correlaciona con el C-index final ni
+dentro de LUSC ni entre cohortes. Se documenta como hallazgo/limitacion
+(candidato a la Seccion 4.9 del TFM) con 3 hipotesis abiertas sin
+confirmar, y se decide continuar con COAD bajo el mismo protocolo en
+vez de relanzar LUSC sin una correccion dirigida.
