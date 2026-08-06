@@ -188,7 +188,7 @@ Salida:
 - data/processed/LUSC_entrenamiento_real_metricas.txt (metricas, documentadas arriba)
 - logs/paso38_entrenamiento_real_lusc.log (log completo, perdida de Cox por epoca)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: b5cc1b1
 
 Observaciones:
 - data/processed/LUSC_entrenamiento_real_metricas.txt no se sube a git
