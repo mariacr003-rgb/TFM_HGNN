@@ -128,13 +128,84 @@ incidencias, aplicando el filtro desde el principio, en LUSC/COAD/KIRC
 analisis completo, incluida la transparencia sobre el origen de los
 valores de referencia de los arrays 27K/EPIC.
 
-Trabajo pendiente: MIL, DEC y el entrenamiento de GAT/GCN/VGAE sobre
-las 5 cohortes (de momento solo probado minimamente en BRCA con el
-script 12). STRING v12 ya está descargado; Reactome y KEGG siguen
-pendientes para completar el grafo heterogéneo de vías (Fase 3).
-`docs/manifest-datos.tsv` ya está al día con este estado; `README.md`
-NO — todavía dice "solo está descargada la cohorte TCGA-BRCA" y no
-refleja las 5 cohortes completas, pendiente de actualizar.
+Bloque 6 (GAT+GCN) — CERRADO (2026-08-07): implementado en
+`src/19_proyectar_grafo_gen_gen.py` (proyección del PPI de STRING a
+grafo gen-gen, 19.962 nodos, 457.162 aristas dirigidas),
+`src/20_preprocesar_atributos_gen.py` (imputación por media +
+normalización de los 3 canales por gen), `src/21_modelo_gat_gcn.py`
+(`ModeloGATGCN`: GAT de 2 capas/8 cabezas sobre el grafo gen-gen →
+pooling medio por paciente → k-NN dinámico coseno → GCN de 2 capas →
+riesgo escalar; única excepción documentada a la convención "sin
+clases" del proyecto, por ser requisito de PyTorch/PyG para registrar
+pesos entrenables) y `src/22_entrenar_gat_gcn.py` (entrenamiento con
+validación cruzada K-fold estratificada por evento, un modelo
+independiente por cohorte, no pooled).
+
+Entrenado con éxito, con el mismo protocolo (20 épocas, 5 pliegues,
+k=20 vecinos), sobre las 5 cohortes del TFM. Resultado real (C-index
+medio ± desviación estándar entre pliegues):
+
+BRCA 0,6255 ± 0,1301 · LUAD 0,5329 ± 0,0720 · LUSC 0,4514 ± 0,0642 ·
+COAD 0,4599 ± 0,1107 · KIRC 0,4928 ± 0,0481
+
+HALLAZGO: solo BRCA y LUAD superan el azar (0,5) con claridad; LUSC y
+COAD quedan por debajo; KIRC es prácticamente indistinguible del azar.
+El framework, tal como está implementado en este bloque (solo
+GAT+GCN), NO generaliza de forma uniforme a las 5 cohortes. Dos
+hipótesis razonadas, no confundibles entre sí ni verificadas: (a) el
+diseño completo del TFM incluye VGAE/MIL/DEC precisamente para
+capturar señal que GAT+GCN solos no alcanzan (el Bloque 6 evalúa solo
+2 de las 5 técnicas previstas); (b) no se ha hecho ningún ajuste de
+hiperparámetros por cohorte (arquitectura, épocas, k_vecinos, learning
+rate fijos, elegidos una única vez a partir del perfil de eventos de
+BRCA). Ver `results/2026-08-07-paso40/runlog.txt` para la discusión
+completa comparando las 5 cohortes (incluye además el hallazgo de que
+la relación "más eventos de validación → menor varianza del C-index"
+es una tendencia general, no una regla estricta: COAD y KIRC la
+rompen en direcciones opuestas).
+
+LECCIONES TÉCNICAS a recordar para los próximos bloques (VGAE, MIL,
+DEC):
+- El GAT aplicado paciente a paciente en un bucle Python sobre un
+  grafo de ~20.000 nodos, sin llamar a `backward()` hasta el final del
+  batch, agota la memoria (OOM): PyTorch retiene el grafo de autograd
+  de TODOS los pacientes del batch simultáneamente. Solución aplicada
+  en `21_modelo_gat_gcn.py`: envolver la llamada al GAT por paciente en
+  `torch.utils.checkpoint.checkpoint` (`use_reentrant=False`), que
+  recalcula las activaciones durante el backward en vez de retenerlas,
+  acotando el pico de memoria a un paciente en vez de a todo el batch.
+- Los entrenamientos largos (15-20h por cohorte en este hardware, CPU
+  sin GPU) se lanzan con `nohup ... & disown` para sobrevivir a
+  desconexiones de terminal — necesario en esta sesión, con un
+  historial real de varios cortes de conexión de WSL a mitad de
+  entrenamiento. IMPORTANTE: usar siempre `python3 -u` (o
+  `PYTHONUNBUFFERED=1`) al redirigir la salida a un fichero de log; sin
+  esto, `print()` se bufferiza al no ser una TTY y el log queda vacío
+  hasta que el proceso termina, inutilizando el log para verificar
+  progreso en tiempo real (ver incidente en
+  `results/2026-08-04-paso36/runlog.txt`).
+- Al monitorizar un proceso en background con `tail -f --pid=$PID`, un
+  corte transitorio de la VM de WSL puede matar el proceso de `tail`
+  sin matar el proceso Python real, generando un falso aviso de
+  "proceso terminado". Más robusto: sondear `kill -0 $PID` en un
+  bucle, en vez de depender del seguimiento interno de `tail --pid`
+  (ver incidente y corrección en `results/2026-08-05-paso37/runlog.txt`).
+
+Estado del documento Word del TFM (`TFM_bioinfor_corregido.docx`, no
+incluido en este repositorio): ya actualizado con los resultados
+reales de este bloque en la Tabla 6 y la discusión de la Sección 5.6.
+Las Secciones 5.3/5.4/5.5 (hipótesis H2/H3/H4) siguen pendientes de
+MIL, DEC y el análisis de biomarcadores, respectivamente.
+
+Trabajo pendiente: Bloque 7 (VGAE, Sección 4.4 del TFM) para
+imputación generativa de los datos faltantes — siguiente bloque a
+implementar. Después, MIL (Bloque 8, imágenes WSI, aún no descargadas)
+y DEC (Bloque 9, subtipos moleculares). STRING v12 ya está descargado;
+Reactome y KEGG siguen pendientes para completar el grafo heterogéneo
+de vías (Fase 3). `docs/manifest-datos.tsv` ya está al día con este
+estado; `README.md` NO — todavía dice "solo está descargada la
+cohorte TCGA-BRCA" y no refleja las 5 cohortes completas ni el Bloque
+6 cerrado, pendiente de actualizar.
 
 ## Comandos
 

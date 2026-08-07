@@ -24,7 +24,64 @@ Cohortes TCGA:
 - COAD (cancer de colon)
 - KIRC (cancer de rinon)
 
-## Estado actual del repositorio (punto de partida, NO empezar de cero)
+## Estado actual (actualizado 2026-08-07) — LEER ESTO PRIMERO
+
+La sección "Estado actual del repositorio" de más abajo describe un
+punto de partida antiguo (solo BRCA, Fase 1) que ya NO refleja la
+realidad; se conserva como registro histórico pero está superada por
+lo siguiente:
+
+- Fase 1 (datos): completa en las 5 cohortes (BRCA, LUAD, LUSC, COAD,
+  KIRC), no solo BRCA. Cada cohorte tiene clínico completo, y RNA-seq +
+  CNV + metilación coordinados a 200 pacientes con muestra tumoral
+  primaria consistente (Pasos 24-32). Detalle completo en CLAUDE.md.
+- Fase 3 (grafo heterogéneo): construido (Paso 23,
+  `data/processed/grafo_heterogeneo.pt`, con STRING/PPI, BioMart,
+  Reactome, KEGG y TRRUST) y proyectado a grafo gen-gen (Paso 34-35,
+  `data/processed/grafo_gen_gen_ppi.pt`, 19.962 nodos, 457.162 aristas
+  dirigidas).
+- Bloque 6 (GAT+GCN) — CERRADO (2026-08-07): implementado
+  (`src/19_proyectar_grafo_gen_gen.py`, `src/20_preprocesar_atributos_gen.py`,
+  `src/21_modelo_gat_gcn.py`, `src/22_entrenar_gat_gcn.py`) y entrenado
+  con éxito sobre las 5 cohortes (20 épocas, 5 pliegues, K-fold
+  estratificado por evento). Resultado real (C-index medio ±
+  desviación estándar): BRCA 0,6255±0,1301, LUAD 0,5329±0,0720, LUSC
+  0,4514±0,0642, COAD 0,4599±0,1107, KIRC 0,4928±0,0481.
+
+  HALLAZGO: solo BRCA y LUAD superan el azar (0,5) con claridad; LUSC
+  y COAD quedan por debajo; KIRC es prácticamente indistinguible del
+  azar. El framework, con solo GAT+GCN implementado, NO generaliza de
+  forma uniforme a las 5 cohortes. Dos hipótesis razonadas y no
+  confundibles entre sí: (a) el diseño completo del TFM incluye
+  VGAE/MIL/DEC precisamente para capturar señal que GAT+GCN solos no
+  alcanzan (el Bloque 6 evalúa solo 2 de las 5 técnicas previstas); (b)
+  no se ha hecho ningún ajuste de hiperparámetros por cohorte (mismos
+  20 épocas, k=20 vecinos, arquitectura y learning rate en las 5,
+  elegidos a partir del perfil de BRCA). Ver
+  `results/2026-08-07-paso40/runlog.txt` para la discusión completa.
+
+  Lecciones técnicas clave (relevantes para VGAE/MIL/DEC también): el
+  GAT sobre ~20.000 nodos aplicado paciente a paciente sin backward
+  incremental agota la memoria (OOM), corregido con
+  `torch.utils.checkpoint`; los entrenamientos largos (15-20h/cohorte,
+  CPU sin GPU) se lanzan con `nohup ... & disown` y SIEMPRE con
+  `python3 -u` (si no, el log queda vacío hasta el final por
+  buffering); monitorizar con sondeo `kill -0 $PID` en vez de `tail -f
+  --pid=$PID` (menos fiable ante cortes transitorios de la VM de WSL,
+  ver incidente en `results/2026-08-05-paso37/runlog.txt`).
+
+  Documento Word del TFM (`TFM_bioinfor_corregido.docx`, no incluido en
+  este repositorio): ya actualizado con estos resultados reales en la
+  Tabla 6 y la discusión de la Sección 5.6. Secciones 5.3/5.4/5.5
+  (hipótesis H2/H3/H4) pendientes de MIL, DEC y biomarcadores.
+
+- SIGUIENTE BLOQUE: Bloque 7, VGAE (Sección 4.4 del TFM), para
+  imputación generativa de los datos faltantes (sustituyendo a la
+  imputación simple por media usada en `src/20_preprocesar_atributos_gen.py`).
+  Después: MIL (Bloque 8, imágenes WSI, aún no descargadas) y DEC
+  (Bloque 9, subtipos moleculares).
+
+## Estado actual del repositorio (punto de partida, NO empezar de cero) — HISTÓRICO, ver seccion anterior para el estado real
 
 ### Ya completado y verificado (Fase 1 - pipeline de datos, solo BRCA):
 - src/00_generar_datos_prueba.py - genera datos ficticios de prueba
@@ -140,16 +197,18 @@ en el futuro).
 - src/08_figura6_subtipos_paad.py
 - src/09_figura7_roc.py
 
-### Pendiente de implementar (esto es el trabajo a realizar):
-- Descargar y procesar las 4 cohortes restantes (LUAD, LUSC, COAD, KIRC), 
-  replicando el pipeline ya usado en BRCA
-- Descargar Reactome y KEGG (STRING ya esta descargado)
-- Construir el grafo heterogeneo real (genes, proteinas, metabolitos, vias)
-- Implementar y entrenar GAT + GCN sobre PyTorch Geometric
-- Implementar y entrenar VGAE
-- Descargar WSI e implementar MIL
-- Implementar DEC
+### Pendiente de implementar (esto es el trabajo a realizar) — ACTUALIZADO 2026-08-07:
+Los 4 primeros puntos de esta lista (descargar las 4 cohortes
+restantes, construir el grafo heterogeneo, GAT+GCN) YA ESTAN HECHOS —
+ver "Estado actual (actualizado 2026-08-07)" al principio de este
+documento. Lo que queda realmente pendiente:
+- Implementar y entrenar VGAE (Bloque 7, Seccion 4.4 del TFM) - SIGUIENTE
+- Descargar WSI e implementar MIL (Bloque 8)
+- Implementar DEC (Bloque 9)
 - Generar todas las tablas y figuras de resultados con datos reales
+- Descargar Reactome y KEGG completos para el grafo heterogeneo de vias
+  (Fase 3; STRING/PPI, BioMart, Reactome, KEGG y TRRUST parciales ya
+  incorporados en data/processed/grafo_heterogeneo.pt, Paso 23)
 
 ## Entorno tecnico
 - Python del sistema (Windows): 3.14, usado para Fase 1 (csv, matplotlib)
