@@ -1,0 +1,255 @@
+ID de ejecucion: 2026-08-07-paso40
+Fecha: 7 de agosto de 2026
+
+Objetivo: Entrenamiento real del modelo GAT+GCN sobre KIRC (182
+pacientes con supervivencia utilizable, 5 pliegues, 20 epocas), ultima
+de las 5 cohortes del TFM. Con las 5 cohortes ya entrenadas bajo el
+mismo protocolo (BRCA Paso 36, LUAD Paso 37, LUSC Paso 38, COAD Paso
+39, KIRC en este paso), cerrar el bloque de entrenamiento real del
+Bloque 6 con una discusion general comparativa entre las 5.
+
+================================================================
+1) ENTRENAMIENTO REAL DE KIRC
+================================================================
+
+Comando:
+  nohup python3 -u src/22_entrenar_gat_gcn.py KIRC data/processed/KIRC_entrenamiento_real_metricas.txt 20 5 > logs/paso40_entrenamiento_real_kirc.log 2>&1 &
+  disown
+
+Mismo patron ya validado en las 4 cohortes anteriores: nohup+disown,
+flag -u para log en tiempo real, monitor de baja frecuencia con sondeo
+`kill -0 $PID` (sin incidencias).
+
+Inicio: 2026-08-07 01:03:04 CEST
+Fin: 2026-08-07 ~20:08 CEST
+TIEMPO REAL: ~19h05min. Dentro del rango de las otras 4 cohortes
+(BRCA ~17h, LUAD ~15h20min, LUSC ~20h37min, COAD ~18h33min), coherente
+con el numero de pacientes de KIRC (182), similar a BRCA (181) y KIRC
+(182).
+
+Resultado (182 pacientes, 5 pliegues, 20 epocas, k=20 vecinos):
+
+  Pliegue 1: 145 train, 37 val (14 eventos en val) - C-index = 0,5813
+  Pliegue 2: 145 train, 37 val (14 eventos en val) - C-index = 0,4740
+  Pliegue 3: 145 train, 37 val (14 eventos en val) - C-index = 0,4718
+  Pliegue 4: 146 train, 36 val (13 eventos en val) - C-index = 0,4387
+  Pliegue 5: 147 train, 35 val (13 eventos en val) - C-index = 0,4981
+
+  C-index medio +/- desviacion estandar: 0,4928 +/- 0,0481
+
+HALLAZGO: KIRC tiene la DESVIACION ESTANDAR MAS BAJA DE LAS 5
+COHORTES (0,0481), incluso mas baja que LUAD (0,0720) y LUSC (0,0642)
+pese a tener MENOS eventos por pliegue de validacion (13-14 en KIRC
+frente a 14-15 en LUAD y 17-18 en LUSC). Esto refuerza, con un segundo
+caso ademas de COAD (Paso 39), que la relacion "mas eventos de
+validacion => menor varianza del C-index entre pliegues" es una
+tendencia general pero NO estricta: COAD la rompe por arriba
+(desviacion alta con eventos intermedios) y KIRC la rompe por abajo
+(desviacion muy baja con menos eventos que LUAD/LUSC). Ver la
+discusion general (seccion 2) para el analisis conjunto con las 5
+cohortes.
+
+Entrada:
+- data/processed/grafo_gen_gen_ppi.pt (Paso previo, src/19)
+- data/processed/KIRC_atributos_gen_norm.pt (generado durante la
+  espera de LUAD, Paso 37, src/20)
+- data/processed/KIRC_clinical_valid.tsv (Paso 36, src/01_validate_data.py)
+
+Salida:
+- data/processed/KIRC_entrenamiento_real_metricas.txt (metricas, documentadas arriba)
+- logs/paso40_entrenamiento_real_kirc.log (log completo, perdida de Cox por epoca)
+
+================================================================
+2) DISCUSION GENERAL COMPARATIVA (5 COHORTES COMPLETAS)
+================================================================
+
+Con BRCA, LUAD, LUSC, COAD y KIRC entrenadas bajo EXACTAMENTE el mismo
+protocolo (misma arquitectura ModeloGATGCN, 20 epocas, 5 pliegues
+estratificados por evento, k=20 vecinos, misma semilla de particion),
+se puede comparar el resultado de forma directa entre las 5.
+
+--- 2.1) Tabla comparativa completa ---
+
+  Cohorte | Pacientes | Eventos totales (%) | Eventos/pliegue val | C-index medio | Desviacion estandar | Tiempo real
+  BRCA    | 181       | 17 (9,4%)             | 3-4                  | 0,6255         | 0,1301                | ~17h
+  LUAD    | 168       | 73 (43,5%)            | 14-15                | 0,5329         | 0,0720                | ~15h20min
+  LUSC    | 185       | 87 (47,0%)            | 17-18                | 0,4514         | 0,0642                | ~20h37min
+  COAD    | 179       | 41 (22,9%)            | 8-9                  | 0,4599         | 0,1107                | ~18h33min
+  KIRC    | 182       | 68 (37,4%)            | 13-14                | 0,4928         | 0,0481                | ~19h05min
+
+--- 2.2) Hallazgo honesto: el framework NO supera el azar de forma
+uniforme en las 5 cohortes ---
+
+La expectativa inicial de diseño era que el framework GAT+GCN
+aportara señal predictiva por encima del azar (C-index > 0,5) de forma
+consistente en las 5 cohortes. Los resultados reales NO confirman esa
+expectativa:
+
+  - SUPERAN el azar con claridad: BRCA (0,6255), LUAD (0,5329)
+  - POR DEBAJO del azar: LUSC (0,4514), COAD (0,4599)
+  - PRACTICAMENTE EN el azar (no distinguible de 0,5 dada su
+    variabilidad): KIRC (0,4928)
+
+Es decir, solo 2 de las 5 cohortes (BRCA, LUAD) muestran evidencia
+clara de que el modelo aprende señal util; en las otras 3 el resultado
+es, como minimo, no concluyente, y en 2 de ellas (LUSC, COAD) el
+C-index medio esta francamente por debajo de 0,5. Esto es un hallazgo
+que debe documentarse con honestidad en la Seccion 4 del TFM: el
+framework, TAL COMO ESTA IMPLEMENTADO EN ESTE BLOQUE (solo GAT+GCN),
+no generaliza de forma uniforme a las 5 cohortes de cancer
+consideradas.
+
+--- 2.3) La relacion eventos/pliegue <-> desviacion: tendencia
+general, no regla estricta ---
+
+Ordenando las 5 cohortes por eventos/pliegue de validacion:
+
+  BRCA (3-4) -> COAD (8-9) -> KIRC (13-14) -> LUAD (14-15) -> LUSC (17-18)
+  desviacion: 0,1301 -> 0,1107 -> 0,0481 -> 0,0720 -> 0,0642
+
+Si la relacion fuera estricta, la desviacion deberia decrecer de forma
+monotona en ese orden. No lo hace: COAD (eventos intermedios) tiene
+una desviacion casi tan alta como BRCA (la de menos eventos), y KIRC
+(menos eventos que LUAD y LUSC) tiene la desviacion MAS BAJA de las 5,
+por debajo incluso de LUAD y LUSC. La INTUICION de fondo sigue siendo
+razonable (con muy pocos eventos, como en BRCA, el C-index de un
+pliegue es estadisticamente muy sensible a que casos concretos caigan
+en ese pliegue) y el extremo de BRCA (el caso mas claro, 3-4 eventos)
+si respalda esa intuicion con la desviacion mas alta de las 5. Pero
+como regla CUANTITATIVA general para predecir la desviacion a partir
+solo del numero de eventos, NO es fiable: factores no controlados en
+este bloque de trabajo (la particion aleatoria concreta de cada
+cohorte, la heterogeneidad interna de cada tipo de cancer, la
+distribucion de tiempos de supervivencia dentro de cada pliegue, o
+caracteristicas especificas de la relacion entre los 3 canales omicos
+usados y la supervivencia en cada cohorte) probablemente pesan tanto o
+mas que el simple recuento de eventos.
+
+--- 2.4) Hipotesis honestas sobre el rendimiento modesto en 3 de 5
+cohortes ---
+
+La hipotesis mas importante a documentar, y la mas alineada con el
+diseño original del TFM: EL MODELO ENTRENADO EN ESTE BLOQUE ES
+DELIBERADAMENTE INCOMPLETO respecto al framework completo descrito en
+la Seccion 4. Este bloque de trabajo (Bloque 6) implementa UNICAMENTE
+GAT (atencion sobre genes) + GCN (propagacion entre pacientes), de las
+5 tecnicas previstas:
+
+  1. GAT - IMPLEMENTADO (este bloque)
+  2. GCN - IMPLEMENTADO (este bloque)
+  3. VGAE (autoencoder variacional de grafos) - PENDIENTE. Su funcion
+     prevista es la imputacion GENERATIVA de datos faltantes; el
+     Bloque 6 usa en su lugar una imputacion simple por media del gen
+     (ver src/20_preprocesar_atributos_gen.py), bastante mas pobre,
+     sobre canales con cobertura real limitada (60,4% en metilacion,
+     ver runlogs de los Pasos 18/33/34). Es plausible que una parte
+     del "ruido" que erosiona la señal en LUSC/COAD/KIRC proceda
+     precisamente de esta imputacion simplificada, que un VGAE
+     entrenado sustituiria por una estimacion mas informada.
+  4. MIL (Multiple Instance Learning sobre imagenes WSI) - PENDIENTE.
+     Ninguna informacion histopatologica (morfologia, arquitectura
+     tisular) entra en el modelo actual; solo 3 canales moleculares
+     por gen. Es una fuente de señal completa, potencialmente muy
+     relevante para supervivencia, que el diseño original preve y que
+     el Bloque 6 no incorpora todavia.
+  5. DEC (Deep Embedded Clustering, subtipos moleculares) - PENDIENTE.
+     El descubrimiento de subtipos podria aportar una señal de
+     agrupamiento complementaria a la puramente supervisada de la
+     perdida de Cox, especialmente util en cohortes con heterogeneidad
+     interna alta.
+
+En otras palabras: el framework completo del TFM incluye
+deliberadamente VGAE, MIL y DEC precisamente para capturar mas señal
+predictiva de la que GAT+GCN, por si solos, pueden extraer. Que
+GAT+GCN solos no superen el azar en 3 de 5 cohortes no es evidencia de
+que el DISEÑO del framework completo sea insuficiente; es el resultado
+esperable de evaluar solo 2 de sus 5 componentes. Esta hipotesis no se
+puede confirmar sin implementar y entrenar tambien VGAE/MIL/DEC (fuera
+del alcance de este bloque), pero es la explicacion mas alineada con
+la logica de diseño original del TFM y debe presentarse como tal: una
+hipotesis razonada, no una conclusion verificada.
+
+--- 2.5) Limitacion metodologica: arquitectura e hiperparametros
+fijos, sin busqueda por cohorte ---
+
+Un segundo factor, mas mundano pero igual de real, que NO se debe
+confundir con una limitacion de diseño del framework: las 5 cohortes
+se han entrenado con EXACTAMENTE los mismos hiperparametros (20
+epocas, k=20 vecinos, misma arquitectura GAT de 2 capas/8 cabezas y
+GCN de 2 capas, mismo learning rate de Adam 1e-3), elegidos una unica
+vez a partir del perfil de eventos de BRCA (Paso 36) y aplicados sin
+ajuste a las 4 cohortes restantes. NO se ha hecho ningun barrido de
+hiperparametros por cohorte (ni de numero de epocas, ni de k_vecinos,
+ni de tasa de aprendizaje, ni de arquitectura) en este bloque de
+trabajo. Es enteramente posible que cohortes como LUSC o COAD
+necesiten un numero de epocas distinto, una tasa de aprendizaje mas
+alta (dado que su perdida de Cox mejora mucho mas lentamente por
+evento que la de BRCA, ver investigacion de LUSC en el Paso 38), o un
+k_vecinos distinto para el grafo paciente-paciente, y que un ajuste
+especifico por cohorte mejorara sus resultados. Esta es una limitacion
+METODOLOGICA de ESTE BLOQUE DE TRABAJO (falta de busqueda de
+hiperparametros), no necesariamente una limitacion del framework
+GAT+GCN en si ni del diseño completo del TFM, y debe documentarse
+como tal, distinguiendola claramente de la hipotesis de la seccion 2.4
+(componentes del framework aun no implementados).
+
+================================================================
+3) CIERRE DEL BLOQUE DE ENTRENAMIENTO REAL
+================================================================
+
+Con este paso se completa el entrenamiento real (20 epocas, 5
+pliegues, mismo protocolo) de GAT+GCN sobre las 5 cohortes del TFM
+(BRCA, LUAD, LUSC, COAD, KIRC), cerrando el bloque de trabajo iniciado
+en el Paso 36. Resultado global: señal predictiva clara en 2 de 5
+cohortes (BRCA, LUAD), resultado no concluyente o por debajo del azar
+en las otras 3 (LUSC, COAD, KIRC), con 2 hipotesis abiertas y
+razonadas (componentes del framework aun no implementados: VGAE/MIL/
+DEC; falta de busqueda de hiperparametros por cohorte) que se
+documentan explicitamente como pendientes, no como conclusiones
+verificadas.
+
+Entrada (para la discusion general, seccion 2):
+- results/2026-08-04-paso36/runlog.txt (BRCA)
+- results/2026-08-05-paso37/runlog.txt (LUAD)
+- results/2026-08-06-paso38/runlog.txt (LUSC, incluye investigacion de curva de perdida)
+- results/2026-08-07-paso39/runlog.txt (COAD)
+
+Salida:
+- data/processed/KIRC_entrenamiento_real_metricas.txt (no se sube a git, regla data/processed/*.txt)
+- logs/paso40_entrenamiento_real_kirc.log (no se sube a git, regla *.log)
+- Esta discusion general comparativa (seccion 2 de este runlog)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- Las 5 cohortes tienen ya resultado de entrenamiento real bajo el
+  mismo protocolo, listo para su uso en la Seccion 4 del TFM (con las
+  matizaciones honestas de la seccion 2 de este runlog).
+- Pendiente, fuera del alcance de este bloque: implementar VGAE, MIL y
+  DEC (Bloques 7-9, no planificados todavia en detalle) y, si el
+  tiempo del TFM lo permite, un barrido minimo de hiperparametros por
+  cohorte sobre el GAT+GCN ya implementado, para separar
+  empiricamente cuanto del rendimiento modesto en LUSC/COAD/KIRC se
+  debe a hiperparametros subóptimos y cuanto a la ausencia de
+  VGAE/MIL/DEC.
+- Todas las cifras de esta discusion general proceden de los runlogs
+  ya committeados de cada cohorte (Pasos 36-40); no se ha re-entrenado
+  ni recalculado nada nuevo para escribir la seccion 2.
+
+Conclusion: Completado el entrenamiento real de KIRC (C-index medio
+0,4928 +/- 0,0481 en ~19h05min, la desviacion mas baja de las 5
+cohortes pese a tener menos eventos que LUAD/LUSC, reforzando que la
+relacion eventos-varianza es una tendencia y no una regla estricta).
+Con esto se cierra el bloque de entrenamiento real de GAT+GCN sobre
+las 5 cohortes del TFM. La discusion general comparativa documenta con
+honestidad que el framework, en su version actual (solo GAT+GCN), NO
+supera el azar de forma uniforme (2 de 5 cohortes claramente por
+encima, 2 por debajo, 1 indistinguible del azar), y plantea 2
+explicaciones razonadas y no confundibles entre si: (a) el diseño
+completo del TFM incluye VGAE/MIL/DEC precisamente para capturar señal
+que GAT+GCN solos no alcanzan, hipotesis no verificable sin
+implementarlos; y (b) no se ha hecho ningun ajuste de hiperparametros
+por cohorte, una limitacion metodologica de este bloque que podria
+explicar parte de la variabilidad de resultados independientemente del
+framework. Ambas quedan como trabajo futuro explicito para la Seccion
+4.9 del TFM.
