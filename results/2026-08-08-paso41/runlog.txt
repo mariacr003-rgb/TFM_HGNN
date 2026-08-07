@@ -191,7 +191,7 @@ Salida:
 - data/processed/BRCA_atributos_gen_vgae.pt (tensor imputado del ultimo smoke test, no representativo del resultado final: solo 15 epocas)
 - data/processed/BRCA_vgae_smoke_metricas.txt (metricas del ultimo smoke test)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 17022b4
 
 Observaciones:
 - data/processed/*_atributos_gen_vgae.pt y *_vgae_smoke_metricas.txt no se suben a git (reglas data/processed/*.pt, *.txt del .gitignore); resultados documentados arriba.
