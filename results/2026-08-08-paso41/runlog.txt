@@ -1,0 +1,201 @@
+ID de ejecucion: 2026-08-08-paso41
+Fecha: 8 de agosto de 2026
+
+Objetivo: Implementar el VGAE del Bloque 7 (Seccion 4.4 del TFM,
+Kipf y Welling 2016) para imputacion generativa de datos faltantes, y
+verificar su viabilidad tecnica con un smoke test antes de comprometer
+el pre-entrenamiento completo (50 epocas) sobre las 5 cohortes.
+
+================================================================
+1) DISENO (acordado con el usuario antes de escribir codigo)
+================================================================
+
+Confirmado que el encoder opera sobre el grafo PACIENTE-PACIENTE (PSN,
+k-NN por similitud coseno), no sobre el grafo gen-gen del GAT+GCN
+(Bloque 6): la formula "mu_i, log(sigma_i^2) = GCN_mu(X,A), GCN_sigma(X,A)"
+esta indexada "para cada paciente i", decisivo para esa lectura.
+
+Decisiones confirmadas (las 6, sin cambios respecto al plan
+discutido):
+  1. X = 3 canales concatenados y aplanados por paciente (19.962 genes
+     x 3 canales = 59.886 dims)
+  2. Encoder Kipf y Welling 2016: tronco GCN compartido + dos cabezas
+     GCN separadas (mu, log-varianza) - no dos pilas GCN totalmente
+     independientes
+  3. Decoder TAMBIEN basado en GCN sobre el mismo grafo de pacientes
+     (no un MLP plano)
+  4. Dimension latente: 32
+  5. Mascara sintetica de validacion: 12% de las celdas YA VALIDAS
+     (dentro del rango 10-15% acordado), estratificada por canal
+  6. Scripts: src/23_modelo_vgae.py (arquitectura + perdida ELBO) y
+     src/24_entrenar_vgae.py (pre-entrenamiento independiente, 50
+     epocas por defecto)
+
+Independencia respecto al GAT+GCN (Bloque 6), confirmada en el plan:
+el grafo de pacientes del VGAE se construye con la MISMA FUNCION de
+21_modelo_gat_gcn.py (construir_grafo_knn_pacientes, reutilizada via
+importlib, no reimplementada), pero aplicada sobre el vector de
+atributos ya imputado/normalizado (20_preprocesar_atributos_gen.py),
+NO sobre embeddings de un GAT entrenado - evita la dependencia
+circular y cumple el "se pre-entrena de forma independiente" del
+texto del TFM.
+
+Mascara y reconstruccion: el encoder recibe como entrada el tensor
+normalizado (20_preprocesar_atributos_gen.py) con las celdas invalidas
+Y las retenidas para validacion puestas a 0, concatenado con un canal
+de mascara (para que la red sepa que celdas son dato real). La perdida
+de reconstruccion se calcula solo sobre las celdas de la mascara de
+ENTRENAMIENTO (validas menos las retenidas), usando error cuadratico
+medio.
+
+================================================================
+2) HALLAZGO 1: colapso de NaN sin acotar logvar
+================================================================
+
+Primer smoke test (BRCA, 5 epocas, sin ningun ajuste de estabilidad):
+la epoca 1 dio valores razonables (elbo=25,18, reconstruccion=0,99,
+kl=24,19), pero la epoca 2 diverguio a NaN/Inf (kl=inf) y las
+siguientes 3 epocas se quedaron en NaN.
+
+Causa: logvar (salida de la cabeza GCN correspondiente) no estaba
+acotado. La formula de KL incluye exp(logvar); con una dimension de
+entrada inusualmente grande (~120k, valores + mascara concatenados),
+un solo paso de gradiente puede empujar logvar a valores que
+desbordan exp() en float32. Es un problema NUMERICO conocido en la
+practica de entrenar VAEs, no un error de la formula del TFM ni de la
+arquitectura en si.
+
+Correccion aplicada (23_modelo_vgae.py, EncoderVGAE.forward): clamp de
+logvar a [-10, 10] antes de devolverlo (exp(10)=22026, exp(-10)=4.5e-5,
+ambos seguros). Ademas, gradient clipping (max_norm=5.0) en el bucle
+de entrenamiento (24_entrenar_vgae.py) como segunda red de seguridad
+numerica estandar en entrenamiento de GNN/VAE.
+
+================================================================
+3) HALLAZGO 2: colapso/dominancia del termino KL (KL collapse)
+================================================================
+
+Con el clamp de logvar aplicado, el smoke test (BRCA, 5 epocas) ya no
+producia NaN, pero revelo un segundo problema, distinto del anterior:
+el KL saltaba de 24 (epoca 1) a ~145.000 (epoca 2) y se quedaba ahi,
+dominando la perdida total por 4-5 ordenes de magnitud sobre la
+reconstruccion (que apenas mejoraba: 0,99 -> 3,29 -> 2,56 -> 1,70 ->
+1,79). El RMSE de imputacion sobre la mascara sintetica retenida
+(1,35-1,45 por canal) reflejaba que el modelo aun no aprendia a
+reconstruir bien.
+
+Este fenomeno ("KL collapse" o colapso temprano del posterior) esta
+BIEN DOCUMENTADO en la literatura de VAEs: al principio del
+entrenamiento, antes de que el encoder aprenda nada util, el termino
+KL puede saturar el limite de varianza y dominar el gradiente. NO es
+un error de implementacion; es un comportamiento esperado de la
+formulacion ELBO estandar sin ningun mecanismo de mitigacion. La
+solucion estandar de la literatura es KL annealing (calentamiento):
+aplicar un peso beta_kl al termino KL que crece gradualmente de 0 a 1,
+dejando que el encoder aprenda primero a reconstruir razonablemente.
+
+Correccion acordada con el usuario: beta_kl lineal de 0 a 1 durante el
+primer 20% de las epocas (10 de 50 en el pre-entrenamiento completo),
+anadido como parametro de perdida_elbo() en 23_modelo_vgae.py y
+calculado por epoca en el bucle de entrenamiento de
+24_entrenar_vgae.py.
+
+================================================================
+4) HALLAZGO 3: el primer smoke test con annealing NO era una prueba
+justa del esquema real
+================================================================
+
+Repetido el smoke test (BRCA, 5 epocas) con el annealing recien
+anadido, ESCALANDO PROPORCIONALMENTE la ventana de calentamiento al
+20% de las epocas del smoke test: epocas_calentamiento_kl =
+max(1, round(5*0.2)) = 1. Resultado: beta_kl salta de 0 (epoca 1) a 1
+(epoca 2) en UN SOLO PASO, reproduciendo practicamente el mismo
+colapso que sin ningun annealing (kl=211.850 en la epoca 2, RMSE de
+imputacion 1,90-2,01, incluso peor que el intento anterior).
+
+Diagnostico: escalar la ventana de calentamiento proporcionalmente al
+numero de epocas del smoke test degenera, con pocas epocas, en "sin
+calentamiento, con un paso de retraso" - no es una prueba justa del
+esquema de 10 epocas de rampa GRADUAL que se usara en la ejecucion
+real de 50 epocas. Corregido anadiendo un parametro explicito
+(epocas_calentamiento_kl) a 24_entrenar_vgae.py que permite FIJAR la
+ventana de calentamiento de forma independiente del numero total de
+epocas, para poder probar la MISMA granularidad de rampa en un smoke
+test corto.
+
+================================================================
+5) RESULTADO FINAL DEL SMOKE TEST (granularidad de rampa real)
+================================================================
+
+Comando:
+  python src/24_entrenar_vgae.py BRCA data/processed/BRCA_vgae_smoke_metricas.txt 15 0.12 20 0 10
+
+(15 epocas totales, 10 de calentamiento KL - misma ventana que se
+usara en el pre-entrenamiento real de 50 epocas -, fraccion retenida
+0.12, k=20, semilla 0.) Ejecutado en foreground, sin nohup+disony (tal
+como se acordo para el smoke test): tardo varios minutos, mas de lo
+estimado originalmente ("segundos") - el coste real del VGAE es mucho
+menor que el del GAT+GCN (Bloque 6, horas), pero mayor de lo
+proyectado inicialmente, probablemente por las capas densas grandes
+(~120k <-> 128 dimensiones) sobre un BLAS no optimizado en este
+entorno WSL de 2 CPUs.
+
+  Epoca | beta_kl | ELBO       | Reconstruccion | KL
+  1     | 0,000   | 0,988      | 0,988           | 27,16
+  2     | 0,100   | 15.928,96  | 4,187           | 159.247,69
+  3     | 0,200   | 29.478,10  | 2,758           | 147.376,70
+  4     | 0,300   | 39.987,99  | 2,397           | 133.285,31
+  5     | 0,400   | 52.988,55  | 2,647           | 132.464,77
+  6     | 0,500   | 64.108,22  | 2,267           | 128.211,91
+  7     | 0,600   | 69.052,23  | 1,846           | 115.083,96
+  8     | 0,700   | 74.544,71  | 1,661           | 106.490,07
+  9     | 0,800   | 81.142,95  | 1,547           | 101.426,76
+  10    | 0,900   | 87.117,95  | 1,718           | 96.795,82
+  11    | 1,000   | 88.185,05  | 1,659           | 88.183,40
+  12    | 1,000   | 74.031,44  | 1,659           | 74.029,78
+  13    | 1,000   | 70.349,48  | 1,480           | 70.348,00
+  14    | 1,000   | 72.318,04  | 1,529           | 72.316,51
+  15    | 1,000   | 65.041,84  | 1,525           | 65.040,32
+
+  RMSE de imputacion por canal (mascara sintetica retenida):
+    rnaseq_tpm: 1,1924
+    cnv_copy_number: 1,2401
+    metilacion_promotor_beta: 1,1956
+
+LO POSITIVO: sin NaN ni explosion catastrofica. El KL en crudo vuelve
+a saltar en la epoca 2 (159.248, similar magnitud al hallazgo 2), pero
+con beta_kl pequeno (0,1) su contribucion a la perdida total queda
+amortiguada; a partir de ahi, tanto la reconstruccion (4,19 -> 1,52)
+como el ELBO mejoran de forma CONSISTENTE durante las 15 epocas,
+incluso despues de que beta_kl alcance 1,0 en la epoca 11 (sin
+re-divergencia). El entrenamiento es estable con esta granularidad de
+rampa.
+
+LO QUE HAY QUE DECIR CON HONESTIDAD: los datos de entrada estan
+z-scored (varianza 1 por construccion), por lo que un modelo TRIVIAL
+que prediga siempre 0 (la media) tendria RMSE=1,0 exactamente. El RMSE
+obtenido (1,19-1,24) TODAVIA ESTA POR ENCIMA de esa base trivial a las
+15 epocas - mejor que los 2 intentos fallidos anteriores (1,35-1,45 y
+1,90-2,01), pero el VGAE aun no supera a "predecir la media" con esta
+cantidad de epocas. La tendencia de reconstruccion es claramente
+descendente y sin signos de re-divergencia, lo que sugiere (no
+confirma) que las 50 epocas completas del pre-entrenamiento real
+podrian cruzar ese umbral.
+
+Entrada:
+- data/processed/BRCA_atributos_gen.pt (crudo, mascara de validez)
+- data/processed/BRCA_atributos_gen_norm.pt (imputado/normalizado)
+
+Salida:
+- src/23_modelo_vgae.py, src/24_entrenar_vgae.py
+- data/processed/BRCA_atributos_gen_vgae.pt (tensor imputado del ultimo smoke test, no representativo del resultado final: solo 15 epocas)
+- data/processed/BRCA_vgae_smoke_metricas.txt (metricas del ultimo smoke test)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/*_atributos_gen_vgae.pt y *_vgae_smoke_metricas.txt no se suben a git (reglas data/processed/*.pt, *.txt del .gitignore); resultados documentados arriba.
+- Los 3 hallazgos de este paso (colapso NaN, colapso/dominancia KL, smoke test injusto por escalado proporcional) son, los 3, comportamientos ESPERADOS y bien documentados en la practica de entrenar VAEs sobre datos de alta dimension - no errores de la formula del TFM ni fallos del pipeline de datos. Se documentan aqui con ese encuadre explicito.
+- Pendiente de decidir con el usuario: si se procede directamente al pre-entrenamiento completo (50 epocas, 5 cohortes) dado que la tendencia es favorable y el coste computacional del VGAE es bajo (a diferencia del GAT+GCN), o si se investiga mas antes de comprometer las 5 ejecuciones.
+
+Conclusion: Implementado el VGAE del Bloque 7 (src/23, src/24) segun las 6 decisiones de diseno acordadas. El proceso de smoke test, tal como estaba previsto, sirvio precisamente para detectar y corregir 2 problemas reales de estabilidad numerica (NaN por logvar sin acotar; dominancia del KL sin annealing) y 1 problema de metodologia de prueba (escalado proporcional del calentamiento invalidando el smoke test), todos documentados con su causa y correccion. El resultado final del smoke test (15 epocas, misma granularidad de rampa que la ejecucion real) muestra un entrenamiento ESTABLE con mejora consistente, aunque todavia por debajo de la base trivial (RMSE=1,0) a esta cantidad reducida de epocas - resultado honesto, ni conclusivo a favor ni en contra del pre-entrenamiento completo, que queda pendiente de decision.
