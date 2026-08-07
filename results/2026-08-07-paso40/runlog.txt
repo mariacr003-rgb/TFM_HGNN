@@ -219,7 +219,7 @@ Salida:
 - logs/paso40_entrenamiento_real_kirc.log (no se sube a git, regla *.log)
 - Esta discusion general comparativa (seccion 2 de este runlog)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: cad31d5
 
 Observaciones:
 - Las 5 cohortes tienen ya resultado de entrenamiento real bajo el
