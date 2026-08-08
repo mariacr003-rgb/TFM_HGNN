@@ -138,7 +138,7 @@ Salida:
 - logs/paso42_vgae_pretrain_brca.log (50 epocas sin free bits, hallazgo 4)
 - logs/paso42_vgae_smoke_freebits_brca.log (20 epocas con free bits)
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 695b73a
 
 Observaciones:
 - data/processed/*_atributos_gen_vgae.pt y *_vgae_*_metricas.txt no se suben a git (reglas data/processed/*.pt, *.txt del .gitignore); resultados documentados arriba.
