@@ -84,7 +84,8 @@ def calcular_rmse_por_canal(x_reconstruido, x_verdad, mascara_retenida, canales)
     return resultados
 
 
-def main(cohorte, ruta_salida, n_epocas, fraccion_retenida, k_vecinos, semilla, epocas_calentamiento_kl=0):
+def main(cohorte, ruta_salida, n_epocas, fraccion_retenida, k_vecinos, semilla,
+         epocas_calentamiento_kl=0, minimo_libre_nats=0.5):
     ruta_salida = Path(ruta_salida)
     ruta_salida.parent.mkdir(parents=True, exist_ok=True)
 
@@ -145,6 +146,8 @@ def main(cohorte, ruta_salida, n_epocas, fraccion_retenida, k_vecinos, semilla, 
     # la literatura de VAEs, no un error de implementacion).
     if not epocas_calentamiento_kl:
         epocas_calentamiento_kl = max(1, round(n_epocas * 0.2))
+    print(f"  free bits: minimo {minimo_libre_nats} nats de KL por dimension latente "
+          f"(evita el posterior collapse, ver runlog del Bloque 7)")
     print(f"Pre-entrenamiento independiente, {n_epocas} epocas (Kipf y Welling 2016), "
           f"calentamiento KL en las primeras {epocas_calentamiento_kl} epocas...")
     for epoca in range(n_epocas):
@@ -153,7 +156,8 @@ def main(cohorte, ruta_salida, n_epocas, fraccion_retenida, k_vecinos, semilla, 
         beta_kl = min(1.0, epoca / epocas_calentamiento_kl)
         x_reconstruido, mu, logvar = modelo(x_entrada_valores, x_mascara_plano, edge_index_pacientes)
         perdida, perdida_recon, kl = perdida_elbo(
-            x_reconstruido, x_valores_plano, mascara_entrenamiento_plano, mu, logvar, beta_kl=beta_kl
+            x_reconstruido, x_valores_plano, mascara_entrenamiento_plano, mu, logvar,
+            beta_kl=beta_kl, minimo_libre_nats=minimo_libre_nats,
         )
         perdida.backward()
         # Clip de gradiente como segunda red de seguridad numerica,
@@ -235,4 +239,10 @@ if __name__ == "__main__":
     # MISMA granularidad de rampa que una ejecucion mas larga (ver
     # comentario junto al calculo de epocas_calentamiento_kl en main()).
     epocas_calentamiento_kl = int(argumentos[6]) if len(argumentos) > 6 else 0
-    sys.exit(main(cohorte, ruta_salida, n_epocas, fraccion_retenida, k_vecinos, semilla, epocas_calentamiento_kl))
+    # minimo_libre_nats: suelo de "free bits" por dimension latente
+    # (Kingma et al. 2016), 0.5 nats por defecto (valor estandar de la
+    # literatura), para evitar el posterior collapse (ver runlog del
+    # Bloque 7). 0.0 desactiva free bits (comportamiento anterior).
+    minimo_libre_nats = float(argumentos[7]) if len(argumentos) > 7 else 0.5
+    sys.exit(main(cohorte, ruta_salida, n_epocas, fraccion_retenida, k_vecinos, semilla,
+                  epocas_calentamiento_kl, minimo_libre_nats))

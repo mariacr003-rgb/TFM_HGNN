@@ -1,0 +1,148 @@
+ID de ejecucion: 2026-08-08-paso42
+Fecha: 8 de agosto de 2026
+
+Objetivo: Tras el smoke test estable del Paso 41 (15 epocas, RMSE
+todavia por encima de la base trivial), lanzar el pre-entrenamiento
+COMPLETO (50 epocas) del VGAE sobre BRCA. Diagnosticar el resultado y,
+si aparece un problema nuevo, investigar y corregir antes de comprometer
+el pre-entrenamiento de las 4 cohortes restantes.
+
+================================================================
+1) HALLAZGO 4: posterior collapse en el pre-entrenamiento completo
+   (50 epocas, SIN free bits)
+================================================================
+
+Comando:
+  python src/24_entrenar_vgae.py BRCA data/processed/BRCA_vgae_pretrain_metricas.txt 50
+
+(50 epocas, calentamiento KL automatico = 10 epocas [20% de 50], sin
+ningun mecanismo de free bits todavia.) Ejecutado en background con
+nohup+disony y python3 -u (logs/paso42_vgae_pretrain_brca.log).
+
+Resultado: el entrenamiento fue estable durante las primeras 25
+epocas (KL entre 16.815 y 41.785, reconstruccion bajando de forma
+gradual de 6,20 a 1,05 tras el pico inicial del calentamiento). Pero
+entre las epocas 26 y 30 el KL se desploma bruscamente:
+
+  Epoca | beta_kl | ELBO      | Reconstruccion | KL
+  25    | 1,000   | 33.307,11 | 1,431           | 33.305,68
+  26    | 1,000   | 14.824,02 | 1,095           | 14.822,93
+  27    | 1,000   | 475,38    | 1,073           | 474,31
+  28    | 1,000   | 73,05     | 1,000           | 72,05
+  29    | 1,000   | 61,93     | 0,994            | 60,94
+  30    | 1,000   | 101,68    | 0,983           | 100,69
+  50    | 1,000   | 2,516     | 0,990            | 1,527
+
+RMSE final de imputacion: rnaseq_tpm=0,9855, cnv_copy_number=0,9997,
+metilacion_promotor_beta=1,0031 - PRACTICAMENTE EMPATADO con la base
+trivial (predecir siempre 0 en datos z-scored da RMSE=1,0 exacto por
+definicion). No cruza el umbral de mejora acordado con el usuario.
+
+Diagnostico: POSTERIOR COLLAPSE, un modo de fallo de VAE distinto del
+"KL collapse"/dominancia temprana ya documentado en el Paso 41 (alli
+el KL EXPLOTABA; aqui se DESPLOMA). El encoder aprende mu=0, sigma=1
+para TODOS los pacientes por igual (ignorando la entrada real), la
+forma mas barata de minimizar KL cuando su peso (beta_kl=1,0 sostenido
+durante 40 epocas seguidas, epocas 11-50) no tiene ningun coste minimo
+garantizado. El decoder, sin informacion util del espacio latente,
+aprende simplemente a predecir la media global (0) en todas partes -
+de ahi que el RMSE final coincida con la base trivial. Fenomeno
+tambien BIEN DOCUMENTADO en la literatura de VAEs, no un error de
+implementacion ni de la formula del TFM.
+
+================================================================
+2) SOLUCION ELEGIDA: free bits (Kingma et al. 2016)
+================================================================
+
+Tecnica elegida, confirmada con el usuario: un MINIMO GARANTIZADO de
+KL por dimension latente (0,5 nats, valor estandar de la literatura),
+de forma que el termino KL total en la perdida sea, POR DIMENSION,
+max(KL_real_promedio, 0,5) en vez de KL_real sin mas, antes de sumar
+sobre las 32 dimensiones latentes.
+
+Justificacion de free bits FRENTE a la alternativa de un beta-VAE
+permanente (beta<1 fijo durante todo el entrenamiento, tambien
+considerada): free bits es MAS FIEL a la formula original del ELBO de
+la Seccion 4.4 del TFM. No cambia el peso final beta_kl=1,0 que
+especifica la formula (el annealing sigue llegando a beta_kl=1,0 tras
+el calentamiento, exactamente como antes) - free bits solo le quita al
+optimizador el incentivo de reducir el KL de una dimension concreta
+por debajo de un suelo minimo, sin alterar el peso relativo global
+entre reconstruccion y KL una vez alcanzado ese peso final. Un
+beta-VAE permanente, en cambio, SI se aparta de la formula del TFM (el
+ELBO especificado usa un unico termino KL sin ponderar por un beta<1
+constante), por eso se descarta como primera opcion.
+
+Implementacion (23_modelo_vgae.py, funcion perdida_elbo):
+  kl_por_dim_paciente = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
+  kl_por_dim = kl_por_dim_paciente.mean(dim=0)  # promedio sobre pacientes, por dimension
+  kl_por_dim_con_suelo = torch.clamp(kl_por_dim, min=minimo_libre_nats)
+  divergencia_kl = kl_por_dim_con_suelo.sum()
+
+El promedio se hace POR DIMENSION SOBRE TODOS LOS PACIENTES antes de
+aplicar el suelo (no por paciente individual), que es la forma
+estandar de free bits: evita que CUALQUIER dimension del espacio
+latente quede completamente sin usar en el conjunto de la cohorte, sin
+impedir que pacientes concretos tengan un KL bajo en dimensiones donde
+de verdad no aportan informacion.
+
+Nuevo parametro en 24_entrenar_vgae.py: minimo_libre_nats (por defecto
+0,5; 0,0 desactiva free bits, comportamiento anterior).
+
+================================================================
+3) SMOKE TEST CON FREE BITS (20 epocas, calentamiento fijo en 10)
+================================================================
+
+Comando:
+  python src/24_entrenar_vgae.py BRCA data/processed/BRCA_vgae_smoke_freebits_metricas.txt 20 0.12 20 0 10 0.5
+
+(20 epocas totales, calentamiento KL fijado explicitamente a 10 epocas
+- misma granularidad que se usaria en una ejecucion mas larga -,
+minimo_libre_nats=0,5.)
+
+  Epoca | beta_kl | ELBO       | Reconstruccion | KL
+  1     | 0,000   | 0,988      | 0,988           | 35,96
+  5     | 0,400   | 57.551,08  | 2,685           | 143.870,98
+  10    | 0,900   | 113.975,13 | 2,113           | 126.636,70
+  11    | 1,000   | 114.801,56 | 1,800           | 114.799,77
+  15    | 1,000   | 96.168,16  | 1,826           | 96.166,34
+  20    | 1,000   | 74.332,04  | 1,497           | 74.330,54
+
+  RMSE de imputacion: rnaseq_tpm=1,2538, cnv_copy_number=1,0210, metilacion_promotor_beta=1,2673
+
+LO POSITIVO: el KL YA NO SE DESPLOMA - baja de forma suave y gradual
+(114.800 -> 74.331, ~5-8% por epoca), sin el patron de caida brusca en
+varios ordenes de magnitud que aparecio entre las epocas 26-27 del
+intento anterior sin free bits (33.305 -> 474 -> 61 en 3 epocas). La
+reconstruccion tambien mejora de forma consistente (4,21 -> 1,50 desde
+la epoca 2).
+
+LIMITACION HONESTA, documentada explicitamente: este smoke test de 20
+epocas NO CUBRE la zona donde ocurrio el colapso la vez anterior
+(epocas 26-50 del pre-entrenamiento sin free bits). A la epoca 20, el
+KL (74.331) esta muy por encima del suelo de free bits (32 dimensiones
+x 0,5 nats = 16 nats minimo) - el suelo ni siquiera ha entrado en
+juego todavia como restriccion activa, porque el KL simplemente no ha
+bajado lo suficiente como para necesitarlo. Este smoke test CONFIRMA
+que el comportamiento es sano en las primeras 20 epocas, pero NO
+PUEDE CONFIRMAR que el suelo de free bits frene el colapso cuando (si)
+el KL se acerque a esa region - eso solo se puede verificar con una
+ejecucion que llegue hasta las epocas 26-50.
+
+Entrada:
+- data/processed/BRCA_atributos_gen.pt, BRCA_atributos_gen_norm.pt
+
+Salida:
+- src/23_modelo_vgae.py, src/24_entrenar_vgae.py (modificados: free bits en perdida_elbo, parametro minimo_libre_nats)
+- data/processed/BRCA_atributos_gen_vgae.pt (sobrescrito por el ultimo smoke test, no representativo del resultado final)
+- logs/paso42_vgae_pretrain_brca.log (50 epocas sin free bits, hallazgo 4)
+- logs/paso42_vgae_smoke_freebits_brca.log (20 epocas con free bits)
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/*_atributos_gen_vgae.pt y *_vgae_*_metricas.txt no se suben a git (reglas data/processed/*.pt, *.txt del .gitignore); resultados documentados arriba.
+- Este runlog documenta el progreso EN CURSO del Bloque 7, incluyendo un resultado (Hallazgo 4, posterior collapse) que por si solo seria negativo, y un resultado intermedio (smoke test con free bits) que es alentador pero explicitamente NO CONCLUYENTE sobre si el problema esta resuelto - se sube asi, con ambos matices honestos, en vez de esperar a un resultado final definitivo.
+- Siguiente paso, ya decidido con el usuario: pre-entrenamiento completo (50 epocas) con free bits aplicado sobre BRCA, prestando especial atencion a las epocas 26-50 (la zona de riesgo). Se documentara en un paso posterior.
+
+Conclusion: Diagnosticado un segundo modo de fallo del VGAE (posterior collapse en el pre-entrenamiento completo, Hallazgo 4), distinto del colapso/dominancia temprana del KL ya visto en el Paso 41. Elegida e implementada la tecnica de free bits (Kingma et al. 2016) como correccion, justificada frente a la alternativa de beta-VAE permanente por ser mas fiel a la formula del ELBO de la Seccion 4.4. El smoke test de 20 epocas con free bits muestra un comportamiento sano (sin la caida brusca de KL), pero no llega a cubrir la zona de riesgo real (epocas 26-50) - resultado prometedor pero explicitamente pendiente de confirmacion con el pre-entrenamiento completo.

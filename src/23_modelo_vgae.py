@@ -105,7 +105,7 @@ class ModeloVGAE(nn.Module):
         return x_reconstruido, mu, logvar
 
 
-def perdida_elbo(x_reconstruido, x_verdad, mascara, mu, logvar, beta_kl=1.0):
+def perdida_elbo(x_reconstruido, x_verdad, mascara, mu, logvar, beta_kl=1.0, minimo_libre_nats=0.5):
     # -ELBO = -E[log p(X_obs|Z)] + beta_kl * KL(q(Z|X) || p(Z)),
     # p(Z)=N(0,I) (formulas de la Seccion 4.4; beta_kl=1.0 es el ELBO
     # estandar). El termino de reconstruccion se aproxima con error
@@ -118,18 +118,36 @@ def perdida_elbo(x_reconstruido, x_verdad, mascara, mu, logvar, beta_kl=1.0):
     perdida_reconstruccion = (diff2 * mascara).sum() / n_validas
 
     # KL de una Gaussiana diagonal q(z|x)=N(mu,sigma^2) frente a
-    # N(0,I): forma cerrada estandar, sumada sobre dims latentes,
-    # promediada sobre pacientes.
-    kl_por_paciente = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-    divergencia_kl = kl_por_paciente.mean()
+    # N(0,I): forma cerrada estandar, POR DIMENSION LATENTE,
+    # promediada sobre pacientes ANTES de aplicar el suelo de "free
+    # bits" (Kingma et al. 2016, tecnica elegida frente a un beta-VAE
+    # permanente por ser mas fiel a la formula original del TFM: no
+    # cambia el peso final beta_kl=1.0 de la formula de la Seccion
+    # 4.4, solo evita que el optimizador pueda reducir el KL de una
+    # dimension a coste casi cero). Sin este suelo, visto en la
+    # practica (pre-entrenamiento completo de 50 epocas, ver runlog
+    # del Bloque 7): el KL se desploma de >30.000 a 1,5 entre las
+    # epocas 25 y 50, con la reconstruccion estancada exactamente en
+    # la base trivial (RMSE=1,0) - "posterior collapse": el encoder
+    # aprende mu=0, sigma=1 para todos los pacientes por igual
+    # (ignorando la entrada real), la forma mas barata de minimizar KL
+    # cuando no hay ningun coste minimo garantizado por dimension.
+    # Con free bits, cada dimension "cuesta" como minimo
+    # minimo_libre_nats de KL sin premio por reducirla mas alla de ese
+    # suelo, quitandole al optimizador el incentivo de colapsarla del
+    # todo.
+    kl_por_dim_paciente = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())  # [n_pacientes, dim_latente]
+    kl_por_dim = kl_por_dim_paciente.mean(dim=0)  # promedio sobre pacientes, por dimension
+    kl_por_dim_con_suelo = torch.clamp(kl_por_dim, min=minimo_libre_nats)
+    divergencia_kl = kl_por_dim_con_suelo.sum()
 
     # beta_kl: peso de calentamiento (KL annealing) aplicado por el
     # bucle de entrenamiento en 24_entrenar_vgae.py, NO calculado
     # aqui. Sin el (beta_kl=1.0 desde la epoca 1), el KL puede saturar
     # el clamp de logvar y dominar la perdida por varios ordenes de
     # magnitud antes de que el encoder aprenda nada util de la
-    # reconstruccion - fenomeno conocido en la literatura de VAEs
-    # ("KL collapse"/"posterior collapse" temprano), ver runlog del
-    # Bloque 7 para el hallazgo concreto observado en el smoke test.
+    # reconstruccion - fenomeno DISTINTO del posterior collapse de
+    # arriba (aqui el KL explota, no se colapsa), tambien documentado
+    # en el runlog del Bloque 7 (hallazgo del primer smoke test).
     perdida_total = perdida_reconstruccion + beta_kl * divergencia_kl
     return perdida_total, perdida_reconstruccion, divergencia_kl
