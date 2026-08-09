@@ -343,7 +343,7 @@ Salida final de este bloque:
   retoma esta investigacion (mas semillas, mas pacientes, u otras
   cohortes) con mas tiempo disponible.
 
-Commit: (pendiente, se anadira en un commit de seguimiento)
+Commit: 6255de5
 
 Observaciones:
 - data/processed/*_vgae*.pt, *_vgae*_metricas.txt no se suben a git
