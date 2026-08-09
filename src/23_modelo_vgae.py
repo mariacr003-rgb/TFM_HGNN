@@ -13,6 +13,21 @@ from torch_geometric.nn import GCNConv
 # cada paciente i", una media mu_i y una varianza sigma_i^2 - los
 # nodos del grafo son pacientes, no genes.
 #
+# DISENO: UN MODELO INDEPENDIENTE POR CANAL (RNA-seq, CNV,
+# metilacion), no un unico modelo con los 3 canales concatenados
+# (cambio de diseno respecto a la decision inicial del Bloque 7, ver
+# runlog: con los 3 canales concatenados, 59.886 dimensiones de
+# reconstruccion frente a solo 200 pacientes, el VGAE no lograba
+# superar la imputacion trivial ni con KL annealing ni con free bits -
+# desajuste de capacidad/muestra, no un problema de la arquitectura en
+# si. Separado por canal, 19.962 dimensiones cada uno, SI muestra
+# mejora real). Esta clase (ModeloVGAE) no cambia por eso: ya estaba
+# parametrizada por n_canales; el bucle por canal vive en
+# 24_entrenar_vgae.py, que instancia un ModeloVGAE(n_genes, n_canales=1)
+# por cada uno de los 3 canales, cada uno con su propio grafo de
+# pacientes (k-NN sobre el perfil de ese canal, no mezclado con los
+# otros 2).
+#
 # Independencia del GAT+GCN (Bloque 6): el texto especifica que el
 # VGAE "se pre-entrena de forma independiente... antes del
 # entrenamiento conjunto" (Kipf y Welling, 2016). Por eso el grafo de

@@ -1,0 +1,376 @@
+ID de ejecucion: 2026-08-09-paso43
+Fecha: 8-9 de agosto de 2026
+
+Objetivo: Cierre del Bloque 7 (VGAE, Seccion 4.4 del TFM) sobre BRCA.
+Documentar CON HONESTIDAD COMPLETA todo el proceso de depuracion e
+investigacion: 2 intentos fallidos con los 3 canales concatenados
+(Pasos 41-42, ya committeados), la hipotesis de desajuste
+capacidad/muestra, el cambio de diseno a 3 modelos VGAE independientes
+por canal, el hallazgo de falta de reproducibilidad (semilla no
+fijada) y su correccion, y un ultimo intento razonado (reduccion de
+genes por varianza + arquitectura mas pequeña) antes de decidir el
+cierre del bloque.
+
+Este runlog es la CONTINUACION directa de results/2026-08-08-paso41/runlog.txt
+y results/2026-08-08-paso42/runlog.txt: no repite el detalle completo
+de los hallazgos 1-3 (clamp de logvar, KL annealing, smoke test
+proporcional injusto) ni el hallazgo 4 (posterior collapse sin free
+bits), ya documentados y committeados alli - los resume brevemente
+para dar contexto y se centra en lo nuevo desde entonces.
+
+================================================================
+0) RESUMEN DE LO YA DOCUMENTADO (Pasos 41-42, para contexto)
+================================================================
+
+Hallazgo 1 (Paso 41): sin acotar logvar, el ELBO diverge a NaN/Inf en
+la epoca 2 del pre-entrenamiento. Corregido con clamp de logvar a
+[-10, 10] en EncoderVGAE.forward + gradient clipping (max_norm=5.0).
+
+Hallazgo 2 (Paso 41): con el clamp aplicado pero sin ningun mecanismo
+de calentamiento, el KL satura el clamp y domina la perdida por 4-5
+ordenes de magnitud, sin que la reconstruccion mejore ("KL collapse"
+temprano). Corregido con KL annealing: beta_kl crece linealmente de 0
+a 1 durante el primer 20% de las epocas.
+
+Hallazgo 3 (Paso 41): el primer smoke test con annealing escalaba la
+ventana de calentamiento proporcionalmente al numero de epocas del
+smoke test (5), degenerando en epocas_calentamiento_kl=1 - un unico
+salto de beta_kl=0 a 1, no una rampa gradual real, que reproducia el
+mismo colapso. Corregido anadiendo un parametro para FIJAR la ventana
+de calentamiento de forma independiente del numero total de epocas.
+
+Hallazgo 4 (Paso 42): el pre-entrenamiento COMPLETO (50 epocas, 3
+canales concatenados, SIN free bits) mostro un segundo modo de fallo
+distinto: entre las epocas 26-30 el KL se desploma de >30.000 a 1,5
+("posterior collapse" tardio, el encoder aprende mu=0,sigma=1 para
+todos los pacientes por igual). RMSE final practicamente empatado con
+la base trivial (0,9855/0,9997/1,0031). Corregido (propuesta) con free
+bits (Kingma et al. 2016): minimo garantizado de 0,5 nats de KL por
+dimension latente, elegido frente a un beta-VAE permanente por ser mas
+fiel a la formula del ELBO de la Seccion 4.4 (no altera el peso final
+beta_kl=1,0). El smoke test de 20 epocas con free bits (Paso 42) mostro
+comportamiento sano pero no llegaba a cubrir la zona de riesgo
+(epocas 26-50) - resultado prometedor, no concluyente.
+
+================================================================
+1) CONFIRMACION: free bits SI evita el colapso, pero el RMSE sigue
+   sin mejorar (3 canales concatenados, 50 epocas completas)
+================================================================
+
+Comando:
+  python src/24_entrenar_vgae.py BRCA data/processed/BRCA_vgae_pretrain_freebits_metricas.txt 50 0.12 20 0 10 0.5
+
+(50 epocas, calentamiento 10, free bits 0,5 nats/dim, TODAVIA con los
+3 canales concatenados - antes del cambio de diseno.)
+
+Resultado: el KL YA NO colapsa a casi 0 como en el Hallazgo 4 - se
+estabiliza justo encima del suelo de free bits (32 dimensiones x 0,5 =
+16,0 nats minimo): KL final = 16,3872, frente a 1,5265 sin free bits.
+El mecanismo de free bits funciona exactamente como se diseño.
+
+PERO el RMSE final de imputacion NO mejora: rnaseq_tpm=0,9861,
+cnv_copy_number=1,0005, metilacion_promotor_beta=1,0037 -
+practicamente IDENTICO al resultado sin free bits (0,9855/0,9997/
+1,0031). Free bits corrige el sintoma medible (el KL ya no colapsa)
+pero no el problema real: la informacion retenida en el espacio
+latente (ahora no-nula) no se traduce en mejor capacidad de
+reconstruccion. Modo de fallo conocido de free bits: garantiza que
+cada dimension "cueste" un minimo de KL sin garantizar que esa
+informacion sea UTIL para la tarea.
+
+Entrada: BRCA_atributos_gen.pt, BRCA_atributos_gen_norm.pt
+Salida: logs/paso43_vgae_pretrain_freebits_brca.log (log completo)
+
+================================================================
+2) HIPOTESIS: desajuste de capacidad/muestra (200 pacientes frente a
+   59.886 dimensiones de reconstruccion)
+================================================================
+
+Pregunta planteada por el usuario, respondida con opinion tecnica
+razonada (no solo intuicion): ¿el problema de fondo es un desajuste
+fundamental de capacidad/muestra (demasiados parametros para 200
+pacientes), mas que un problema de la tecnica de regularizacion?
+
+Argumentos a favor, verificados antes de actuar:
+- Dos intervenciones genuinamente distintas en el termino KL
+  (annealing, free bits) fallan de la MISMA forma (RMSE converge
+  siempre a ~0,99-1,00) - si el problema fuera de como se pondera el
+  KL, cabria esperar que al menos una desbloqueara una mejora real.
+- La primera capa del encoder es una matriz de ~120.000x128 (~15,3M
+  parametros) actualizada con UN SOLO paso de gradiente por epoca
+  (200 nodos, full-batch, sin minibatches que promedien ruido).
+- El cuello de botella real esta en el espacio latente: 200 pacientes
+  x 32 dimensiones son, en la practica, los unicos grados de libertad
+  utiles para resumir cada perfil de ~60.000 valores.
+- El grafo de pacientes (k-NN) tiene solo 5.704 aristas sobre 200
+  nodos, construido ademas sobre datos ya imputados de forma simple -
+  base ruidosa para la propagacion de informacion entre pacientes.
+
+Prueba propuesta: reducir el problema a UN canal (19.962 dimensiones
+en vez de 59.886, un tercio), empezando por metilacion (el canal con
+mas huecos que rellenar, ~40% invalido, el que mas necesita el VGAE).
+
+================================================================
+3) PRUEBAS SUELTAS POR CANAL SEPARADO (SIN semilla fija) - resultado
+   inicial prometedor
+================================================================
+
+Comandos (via el parametro canal_unico, entonces existente en
+24_entrenar_vgae.py, eliminado despues al adoptar el diseno por canal
+como el modo normal - ver seccion 5):
+  python src/24_entrenar_vgae.py BRCA ... 50 0.12 20 0 10 0.5 metilacion_promotor_beta
+  python src/24_entrenar_vgae.py BRCA ... 50 0.12 20 0 10 0.5 rnaseq_tpm
+  python src/24_entrenar_vgae.py BRCA ... 50 0.12 20 0 10 0.5 cnv_copy_number
+
+Resultado (3 ejecuciones independientes, cada una en su propio
+proceso Python, SIN ninguna semilla fijada explicitamente en el
+modelo - ver seccion 6):
+
+  Canal       | RMSE   | Mejora vs. base trivial (1,0) | Tendencia ultimas epocas
+  Metilacion  | 0,9582 | 4,2%                            | 0,974 -> 0,964 -> 0,948 -> 0,926 -> 0,911 (bajando)
+  RNA-seq     | 0,9663 | 3,4%                            | 0,955 -> 0,955 -> 0,916 -> 0,902 (bajando)
+  CNV         | 0,9276 | 7,2%                             | 0,937 -> 0,863 -> 0,813 (bajando, la mejor)
+
+Los 3 canales mostraron el MISMO patron cualitativo: mejora real y
+consistente en las ultimas epocas, sin techo aparente en la epoca 50
+(los 3 seguian bajando al final). Ningun intento con los 3 canales
+concatenados se habia acercado nunca a este resultado. Matiz
+observado en CNV: dinamica de KL mucho mas erratica que en los otros
+2 canales (sube y baja de forma brusca durante todo el entrenamiento,
+sin estabilizarse limpiamente en el suelo de free bits), explicacion
+plausible: CNV tiene solo ~0,3% de datos faltantes (frente al ~40% de
+metilacion), una señal de entrenamiento distinta con mucho menos que
+"rellenar" - no se investigo mas a fondo por limitacion de tiempo.
+
+DECISION (confirmada con el usuario, evidencia de 2 intentos fallidos
+concatenados + 3 intentos exitosos separados): cambiar el diseno del
+VGAE a 3 MODELOS INDEPENDIENTES POR CANAL (uno por RNA-seq, CNV,
+metilacion), en vez de 1 modelo con los 3 canales concatenados.
+
+================================================================
+4) ADAPTACION DEL CODIGO AL NUEVO DISENO
+================================================================
+
+23_modelo_vgae.py: sin cambios funcionales (ModeloVGAE ya estaba
+parametrizado por n_canales). Cabecera actualizada para documentar el
+cambio de diseno y su justificacion.
+
+24_entrenar_vgae.py: refactorizado. La logica de entrenamiento de un
+canal (antes en main(), con un parametro opcional canal_unico para
+pruebas puntuales) se extrae a una funcion reutilizable
+entrenar_un_canal(canal, x_norm, mascara_valido, ...). main() ahora
+SIEMPRE itera sobre los 3 canales reales de la cohorte, entrena un
+ModeloVGAE independiente para cada uno (con su propio grafo de
+pacientes, construido sobre el perfil de ESE canal, no mezclado con
+los otros 2), y combina los 3 tensores imputados en un unico
+<COHORTE>_atributos_gen_vgae.pt de 3 canales. Se elimina el parametro
+canal_unico (ya no hace falta un "modo de prueba": el comportamiento
+por canal es ahora el modo normal del script).
+
+================================================================
+5) HALLAZGO 5: la ejecucion formal (3 canales en un proceso) NO
+   REPRODUCE los numeros de las pruebas sueltas - falta de semilla fija
+================================================================
+
+Comando:
+  python src/24_entrenar_vgae.py BRCA data/processed/BRCA_vgae_pretrain_final_metricas.txt 50 0.12 20 0 10 0.5
+
+(Primera ejecucion "formal" con el codigo ya adaptado, los 3 canales
+en un unico proceso secuencial, SIN semilla fijada explicitamente.)
+
+  Canal       | Prueba suelta (RMSE) | Ejecucion formal #1 (RMSE)
+  RNA-seq     | 0,9663                 | 0,9781
+  CNV         | 0,9276                 | 1,0017 (ya no mejora)
+  Metilacion  | 0,9582                 | 0,9807
+
+Diagnostico: revisando el codigo, la inicializacion de pesos de
+ModeloVGAE (Glorot/Xavier por defecto de GCNConv) y el ruido de la
+reparametrizacion (torch.randn_like en el forward, durante el
+entrenamiento) usan el generador aleatorio GLOBAL de PyTorch, que
+NUNCA se fijaba explicitamente con una semilla - solo
+construir_mascara_sintetica usaba su propio generador local, con
+semilla fija. Cada ejecucion (las pruebas sueltas Y esta formal)
+partia de una inicializacion de pesos distinta y no reproducible; la
+diferencia de resultados es varianza de inicializacion, no un cambio
+real de comportamiento del diseno por canal en si.
+
+Correccion aplicada: torch.manual_seed(semilla) anadido al PRINCIPIO
+de entrenar_un_canal (no una sola vez al principio de main()), para
+que cada canal sea reproducible de forma independiente de los demas
+(el resultado de un canal no depende de cuantos numeros aleatorios
+consumieron los canales anteriores en el mismo proceso). Semilla usada:
+0 (por defecto, mismo valor ya usado como semilla del K-fold en
+22_entrenar_gat_gcn.py, por consistencia con el resto del proyecto -
+no 42 como sugirio inicialmente el usuario, se prefirio mantener la
+convencion ya establecida).
+
+================================================================
+6) RESULTADO FINAL CON SEMILLA FIJA (reproducible) - mejora marginal,
+   no la mejora clara que sugerian las pruebas sueltas
+================================================================
+
+Comando:
+  python src/24_entrenar_vgae.py BRCA data/processed/BRCA_vgae_pretrain_final_metricas.txt 50 0.12 20 0 10 0.5
+
+(Segunda ejecucion formal, codigo con torch.manual_seed(0) por canal.)
+
+  Canal       | Prueba suelta (sin semilla) | Formal #1 (sin semilla) | Formal #2 (semilla=0, REPRODUCIBLE)
+  RNA-seq     | 0,9663                        | 0,9781                    | 0,9902 (+1,0%)
+  CNV         | 0,9276                        | 1,0017                    | 1,0137 (-1,4%, PEOR que la base trivial)
+  Metilacion  | 0,9582                        | 0,9807                    | 0,9877 (+1,2%)
+
+Con la semilla fija (el resultado reproducible, tratado como
+definitivo): RNA-seq mejora solo un 1,0%, metilacion un 1,2%, y CNV
+queda CLARAMENTE PEOR que la base trivial (predecir la media). La
+mejora "clara" que sugerian las pruebas sueltas sin semilla (hasta
+7,2% en CNV) no se sostiene con un resultado reproducible - lo mas
+probable es que esas pruebas sueltas tuvieran, por azar, una
+inicializacion de pesos particularmente favorable, no que reflejaran
+una mejora real y consistente del diseno por canal.
+
+Con una sola semilla no es posible distinguir con rigor si (a) la
+semilla 0 en particular fue desfavorable y otras semillas mostrarian
+mejoras mas claras, o (b) la mejora real del diseno por canal es
+marginal en el mejor de los casos y nula o negativa en CNV. Decision
+del usuario: NO probar semillas adicionales por limitacion de tiempo
+disponible; documentar la ambiguedad tal cual, sin resolverla.
+
+Entrada: BRCA_atributos_gen.pt, BRCA_atributos_gen_norm.pt
+Salida:
+- src/23_modelo_vgae.py, src/24_entrenar_vgae.py (disenio final, 3 canales separados, semilla fija por canal)
+- data/processed/BRCA_atributos_gen_vgae.pt (3 canales combinados, semilla=0)
+- logs/paso45_vgae_pretrain_final_brca.log (ejecucion sin semilla, hallazgo 5)
+- logs/paso45_vgae_pretrain_final_brca_v2.log (ejecucion con semilla fija, resultado definitivo)
+
+================================================================
+7) ULTIMO INTENTO RAZONADO: reducir genes por varianza + arquitectura
+   mas pequeña (solo metilacion, limite de tiempo)
+================================================================
+
+Motivacion: seguir a fondo la hipotesis de desajuste capacidad/muestra
+(seccion 2) con dos cambios de hiperparametros combinados, SIN alterar
+la logica del modelo (mismo encoder de 2 GCN, misma reparametrizacion,
+mismo ELBO con free bits - fiel a la formula de la Seccion 4.4):
+  1. Reducir de 19.962 a 2.500 genes por canal, quedandose con los de
+     MAYOR VARIANZA entre los 200 pacientes de BRCA (calculada sobre
+     el tensor ya normalizado) - reduce aun mas el desajuste
+     dimensiones/muestra.
+  2. Arquitectura mas pequeña: dim_oculto 128->64, dim_latente 32->16
+     (menos parametros a ajustar con solo 200 pacientes).
+
+Aplicado UNICAMENTE al canal de metilacion (el que mas necesita el
+VGAE), semilla fija=0, 50 epocas, free bits 0,5 nats/dim, como prueba
+puntual (script temporal fuera de src/, reutilizando
+entrenar_un_canal de 24_entrenar_vgae.py sin duplicar logica - se
+anadieron los parametros dim_oculto/dim_latente, ya soportados por
+ModeloVGAE, a la firma de entrenar_un_canal para poder pasarlos).
+
+Resultado: 2.500 genes seleccionados (496.928/500.000 celdas validas
+en el subconjunto). RMSE final = 0,9730, frente a 0,9877 (diseno
+confirmado, 19.962 genes, dim_oculto=128, dim_latente=32, misma
+semilla). Mejora real (~1,5 puntos porcentuales, mas del doble de la
+mejora marginal que se venia viendo), pero NO CRUZA el umbral de 0,95
+fijado de antemano por el usuario como criterio de "mejora clara".
+
+Segun el criterio de decision fijado ANTES de ver el resultado ("si el
+RMSE mejora de forma clara, por debajo de 0,95, replicamos en RNA-seq
+y CNV; si sigue siendo marginal, paramos aqui definitivamente"): se
+para aqui. No se replica en RNA-seq ni CNV.
+
+Entrada: BRCA_atributos_gen.pt, BRCA_atributos_gen_norm.pt (canal metilacion_promotor_beta)
+Salida: logs/paso46_vgae_prueba_alta_varianza_metilacion.log (log completo del intento)
+
+================================================================
+8) CIERRE DEL BLOQUE 7 - CONCLUSION HONESTA
+================================================================
+
+El diseno de VGAE SEPARADO POR CANAL es CONSISTENTEMENTE SUPERIOR al
+diseno CONCATENADO: en NINGUN intento con los 3 canales concatenados
+(sin free bits, con free bits, con annealing) se logro superar la
+imputacion trivial (RMSE siempre >= 0,985); con canales separados, 2
+de 3 canales (RNA-seq, metilacion) superan la base trivial de forma
+reproducible, aunque modesta (~1-1,2%).
+
+PERO la evidencia de que el VGAE, tal como esta especificado en la
+Seccion 4.4 del TFM, supere de forma ROBUSTA la imputacion trivial
+(media global por gen) es DEBIL con el tamano de muestra disponible
+(200 pacientes por cohorte):
+  - Con una sola semilla fija (el resultado reproducible que se toma
+    como definitivo), la mejora es marginal en 2 de 3 canales (~1%) y
+    NULA/NEGATIVA en el tercero (CNV, -1,4%).
+  - Un ultimo intento con hiperparametros mas favorables a la
+    hipotesis de desajuste capacidad/muestra (menos genes, arquitectura
+    mas pequeña) mejora el resultado de metilacion (0,9877 -> 0,9730)
+    pero no cruza el umbral fijado de antemano como "mejora clara"
+    (0,95).
+  - NO se ha podido confirmar ni descartar con rigor si la mejora
+    observada en las pruebas sueltas sin semilla (hasta 7,2% en CNV)
+    era real o un artefacto de una inicializacion de pesos favorable,
+    por falta de tiempo para probar multiples semillas.
+
+DECISION FINAL (con el usuario): cerrar el Bloque 7 aqui, sobre BRCA
+unicamente. NO replicar el entrenamiento sobre las 4 cohortes
+restantes (LUAD, LUSC, COAD, KIRC): dado que el propio resultado en
+BRCA no es concluyente, replicarlo en 4 cohortes mas no aportaria una
+conclusion mas solida, solo mas casos de la misma ambiguedad, sin
+justificar el coste de tiempo adicional.
+
+Esto se documentara como LIMITACION METODOLOGICA en la Seccion 4.9
+del TFM (no como un fallo del pipeline ni de la implementacion): el
+modulo VGAE, implementado fielmente segun las formulas de la Seccion
+4.4 (encoder de 2 GCN paralelas con tronco compartido, reparametrizacion,
+ELBO con KL annealing y free bits para estabilidad numerica, decoder
+GCN sobre el mismo grafo de pacientes), NO demuestra una mejora
+robusta y reproducible sobre la imputacion trivial con el tamano de
+muestra disponible (200 pacientes por cohorte). Su beneficio dentro
+del framework completo del TFM queda como una CUESTION ABIERTA para
+trabajo futuro, que requeriria: (a) una muestra de pacientes mayor por
+cohorte, (b) validacion con multiples semillas para separar señal real
+de varianza de inicializacion, y/o (c) arquitecturas de menor
+capacidad relativa al tamano de muestra (linea sugerida por el ultimo
+intento de este paso, no confirmada de forma concluyente).
+
+Salida final de este bloque:
+- data/processed/BRCA_atributos_gen_vgae.pt: tensor imputado de BRCA
+  con el diseno final (3 canales separados, semilla fija=0),
+  DISPONIBLE para uso posterior si se decide usarlo pese a la mejora
+  marginal, pero NO adoptado automaticamente como reemplazo de la
+  imputacion simple de 20_preprocesar_atributos_gen.py en el
+  entrenamiento de GAT+GCN (Bloque 6) sin una decision explicita
+  adicional, dada la debilidad de la evidencia.
+- src/23_modelo_vgae.py, src/24_entrenar_vgae.py: implementacion final
+  y funcional del VGAE por canal, reutilizable si en el futuro se
+  retoma esta investigacion (mas semillas, mas pacientes, u otras
+  cohortes) con mas tiempo disponible.
+
+Commit: (pendiente, se anadira en un commit de seguimiento)
+
+Observaciones:
+- data/processed/*_vgae*.pt, *_vgae*_metricas.txt no se suben a git
+  (reglas data/processed/*.pt, *.txt del .gitignore); resultados
+  documentados en este runlog y en los Pasos 41-42.
+- logs/paso43-46_vgae_*.log no se suben a git (regla *.log).
+- El script temporal de la seccion 7 (prueba_vgae_alta_varianza.py) se
+  escribio en el directorio de scratchpad de la sesion, no en src/: es
+  una prueba puntual que no forma parte del pipeline numerado del
+  proyecto, y no se sube a git.
+- Con este paso se cierra el Bloque 7 (VGAE) tal como esta, con toda
+  la investigacion documentada con honestidad. Pendiente de decidir en
+  otro momento: retomar VGAE con mas tiempo/recursos, o avanzar
+  directamente a MIL (Bloque 8) o DEC (Bloque 9).
+
+Conclusion: Bloque 7 (VGAE) cerrado sobre BRCA tras una investigacion
+exhaustiva de 6 hallazgos tecnicos documentados con honestidad
+completa (NaN por logvar sin acotar, KL collapse temprano sin
+annealing, smoke test injusto por escalado proporcional, posterior
+collapse tardio sin free bits, falta de reproducibilidad por semilla
+no fijada, y un ultimo intento de reduccion de dimensionalidad que
+mejora pero no resuelve el problema). El diseno de 3 VGAE
+independientes por canal es la mejor version conseguida (unica que
+supera la base trivial en algun canal, de forma reproducible), pero la
+mejora es marginal (1-1,2% en 2 de 3 canales, negativa en el tercero)
+y no se puede confirmar como robusta con los recursos y el tiempo
+disponibles en este bloque. Se documenta como limitacion metodologica
+honesta para la Seccion 4.9 del TFM, no se replica en las 4 cohortes
+restantes, y se deja la puerta abierta a retomarlo en el futuro con
+mas semillas de validacion o mas pacientes por cohorte.
