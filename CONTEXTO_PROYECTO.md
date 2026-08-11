@@ -93,24 +93,63 @@ lo siguiente:
   `results/2026-08-08-paso42/runlog.txt` y
   `results/2026-08-09-paso43/runlog.txt`.
 
-- Bloque 8 (MIL) — EN CURSO: prerrequisito completado (modelo GAT+GCN
-  final de BRCA guardado en `data/processed/BRCA_modelo_gat_gcn_final.pt`,
-  vía `src/25_entrenar_gat_gcn_final.py`). Arquitectura implementada
-  (`src/26_modelo_mil.py`: ResNet-50 + atención de Ilse et al. 2018;
-  `src/27_procesar_wsi_paciente.py`: teselado + filtrado de tejido +
-  ResNet-50 + atención, por paciente). HALLAZGO Y CORRECCIÓN: la
-  primera versión agotaba la RAM de la máquina (5,7 GB) a los 28.126
-  parches de un solo paciente de prueba (TCGA-A1-A0SB, WSI de 741 MB),
-  sin llegar a arrancar ResNet-50 (`results/2026-08-10-paso44/runlog.txt`);
-  corregido con procesamiento en streaming (embedding por lote de 16
-  parches, descartando los arrays crudos inmediatamente), verificado
-  con el mismo paciente completo: 36.307 parches con tejido, ~3h
-  3,5min (teselado+ResNet-50+atención), pico de RAM 1.447 MB
-  (`results/2026-08-10-paso45/runlog.txt`). Pendiente: descargar el
-  resto de WSI de las 5 cohortes (solo el paciente de prueba está
-  descargado) y decidir la estrategia de volumen completo (698 GB
-  estimados) a la luz de este tiempo real (~3h/paciente). Después: DEC
-  (Bloque 9, subtipos moleculares).
+- Bloque 8 (MIL) — EN CURSO, alcance decidido: prerrequisito
+  completado para BRCA (modelo GAT+GCN final guardado en
+  `data/processed/BRCA_modelo_gat_gcn_final.pt`, vía
+  `src/25_entrenar_gat_gcn_final.py`); EN CURSO para LUAD/LUSC/COAD/KIRC
+  (2026-08-11, ver `results/2026-08-11-paso48/runlog.txt`). Arquitectura
+  implementada (`src/26_modelo_mil.py`: ResNet-50 + atención de Ilse
+  et al. 2018; `src/27_procesar_wsi_paciente.py`: teselado + filtrado
+  de tejido + ResNet-50 + atención, por paciente, diseño en streaming).
+  HALLAZGO Y CORRECCIÓN DE MEMORIA: la primera versión agotaba la RAM
+  de la máquina (5,7 GB) a los 28.126 parches de un solo paciente de
+  prueba (TCGA-A1-A0SB, WSI de 741 MB), sin llegar a arrancar ResNet-50
+  (`results/2026-08-10-paso44/runlog.txt`); corregido con streaming
+  (embedding por lote de 16 parches, descartando arrays crudos
+  inmediatamente): 36.307 parches con tejido, ~3h 3,5min
+  (teselado+ResNet-50+atención), pico de RAM 1.447 MB
+  (`results/2026-08-10-paso45/runlog.txt`).
+
+  TEST DE PARALELIZACIÓN (Paso 46): 2 pacientes en paralelo en las 2
+  CPUs disponibles dan solo 1,14x de speedup (12,4% de ahorro, no el
+  2x teórico) — el cuello de botella es I/O de disco (WSL↔Windows), no
+  CPU. Paralelizar por paciente no es una vía real de ahorro de tiempo
+  en este hardware.
+
+  CAMBIO DE ALCANCE (2026-08-11): con el tiempo real por paciente
+  (185,51 min = descarga estimada + 183,5 min de procesamiento medido)
+  y sin margen de paralelización, se decidió correr MIL sobre las 5
+  cohortes (no solo BRCA) con 12 pacientes por cohorte (60 total, ~6,8
+  de 8 días presupuestados exclusivamente para descarga+procesamiento,
+  ~1,2 días de margen), en vez de los 200 pacientes completos de una
+  sola cohorte. Prerrequisito en curso: generar el modelo GAT+GCN
+  final para LUAD/LUSC/COAD/KIRC (tiempo aparte, no cuenta dentro de
+  los 8 días de MIL). Pendiente tras esto: seleccionar 12 pacientes/
+  cohorte (primeros por case_id con supervivencia válida), verificar
+  disponibilidad de WSI en el GDC (sustituir si falta, mismo criterio
+  que RNA-seq/CNV/metilación en los Pasos 24-29), descargar+procesar,
+  y calcular C-index de MIL+molecular por cohorte comparado con el
+  C-index solo molecular (Bloque 6).
+
+- Bloque 9 (DEC) — RESULTADO INICIAL, LIMITACIÓN DOCUMENTADA
+  (2026-08-11, `results/2026-08-11-paso47/runlog.txt`,
+  `src/28_entrenar_dec.py`): reutiliza directamente `h_final` (embedding
+  de GAT+GCN ya guardado), sin autoencoder propio — coste
+  computacional trivial (~5s/cohorte). Un barrido de 90 configuraciones
+  (K∈{2,3,4,5,6} × lr × intervalo de actualización × 3 semillas) sobre
+  BRCA muestra que CUALQUIER K≥3 colapsa de forma reproducible al mismo
+  reparto binario subyacente (~65-68 vs ~113-117 pacientes), incluso
+  con la reponderación 1/f_j de Xie et al. 2016 ya incluida en la
+  fórmula (diseñada precisamente para evitar esto). Solo K=2 da un
+  resultado no degenerado (entropía normalizada 0,937). Mismo criterio
+  que VGAE: NO se persiguió IDEC (cambio de arquitectura, fuera del
+  presupuesto de ~0,5 día asignado a DEC de los 9 días totales
+  MIL+DEC); se documenta como limitación metodológica honesta para la
+  Sección 4.9 (el embedding, optimizado para riesgo de Cox, separa
+  "alto/bajo riesgo" pero no subtipos moleculares múltiples) y se
+  entrega K=2 como resultado final, guardado en
+  `data/processed/BRCA_dec_subtipos.pt`. Bloque cerrado con esta
+  limitación, sin más trabajo previsto salvo que se decida revisitarlo.
 
 ## Estado actual del repositorio (punto de partida, NO empezar de cero) — HISTÓRICO, ver seccion anterior para el estado real
 
@@ -233,11 +272,16 @@ Los primeros puntos de esta lista (descargar las 5 cohortes, construir
 el grafo heterogeneo, GAT+GCN, VGAE) YA ESTAN HECHOS — ver "Estado
 actual (actualizado 2026-08-11)" al principio de este documento. Lo
 que queda realmente pendiente:
-- Bloque 8 (MIL): descargar el resto de WSI de las 5 cohortes (solo
-  el paciente de prueba TCGA-A1-A0SB esta descargado) y decidir la
-  estrategia de volumen completo (698 GB estimados) con el tiempo real
-  ya verificado (~3h/paciente, streaming, sin problema de memoria)
-- Implementar DEC (Bloque 9)
+- Bloque 8 (MIL), alcance decidido (2026-08-11): 12 pacientes por
+  cohorte en las 5 cohortes (60 total, ~6,8 de 8 dias presupuestados).
+  Prerrequisito en curso: generar el modelo GAT+GCN final que falta
+  para LUAD/LUSC/COAD/KIRC (solo BRCA lo tiene). Despues: seleccionar
+  los 12 pacientes/cohorte, verificar WSI disponible en el GDC,
+  descargar+procesar (streaming, ya validado sin problema de memoria)
+  y calcular C-index de MIL+molecular vs. solo molecular
+- DEC (Bloque 9): cerrado con limitacion documentada (colapso de
+  clusters con K>=3, se entrega K=2) - ver arriba, sin mas trabajo
+  previsto
 - Generar todas las tablas y figuras de resultados con datos reales
 - Descargar Reactome y KEGG completos para el grafo heterogeneo de vias
   (Fase 3; STRING/PPI, BioMart, Reactome, KEGG y TRRUST parciales ya

@@ -259,19 +259,72 @@ completa (25,6% con tejido), procesados en 11.009,1s (~3h 3,5min,
 teselado+ResNet-50 combinados) + 1,6s de atención MIL — total 183,5
 min por paciente en este hardware (CPU, sin GPU, 2 núcleos). Pico de
 RAM: 1.447 MB (frente a los >5.130 MB, sin terminar, del diseño
-original). Con este dato real, la extrapolación al volumen completo de
-las 5 cohortes (698 GB estimados) queda pendiente de decidir.
+original).
 
-Trabajo pendiente: completar el Bloque 8 (MIL) — pendiente aún
-descargar el resto de WSI de las 5 cohortes (solo el paciente de
-prueba TCGA-A1-A0SB está descargado) y decidir la estrategia de
-volumen completo a la luz del tiempo real verificado (~3h/paciente).
-Después, DEC (Bloque 9, subtipos moleculares). STRING v12 ya está
+TEST DE PARALELIZACIÓN (Paso 46, 2026-08-11): antes de decidir el
+volumen, se probó si paralelizar el procesamiento de pacientes en las
+2 CPUs disponibles reduciría el tiempo total. Resultado: NO de forma
+significativa — speedup real de solo 1,14x (12,4% de ahorro), muy
+lejos del 2x teórico. Cada proceso individual se ralentiza ~1,75x
+cuando compite con otro por el mismo disco (el repositorio vive en
+`/mnt/c/...`, sistema de ficheros de Windows montado en WSL vía 9p,
+lento en lecturas pequeñas y aleatorias como las de `read_region()`
+sobre el WSI). Confirma que el cuello de botella es I/O, no CPU. Ver
+`results/2026-08-11-paso46/runlog.txt`.
+
+CAMBIO DE ALCANCE (2026-08-11): con el dato real de tiempo por
+paciente (185,51 min = descarga estimada + 183,5 min de procesamiento
+medido) y sin poder apoyarse en paralelización, se decidió ejecutar
+MIL sobre las 5 cohortes (no solo BRCA) con 12 pacientes por cohorte
+(60 total, ~6,8 días de 8 días presupuestados exclusivamente para
+descarga+procesamiento, dejando ~1,2 días de margen), en vez de
+sobre los 200 pacientes completos de una sola cohorte. Prerrequisito
+en curso: generar el modelo GAT+GCN final (`25_entrenar_gat_gcn_final.py`)
+para LUAD, LUSC, COAD y KIRC (hasta ahora solo existía para BRCA,
+`data/processed/BRCA_modelo_gat_gcn_final.pt`) — este tiempo de
+entrenamiento NO cuenta dentro de los 8 días de MIL, es un paso previo
+aparte. Ver `results/2026-08-11-paso48/runlog.txt`.
+
+Bloque 9 (DEC) — RESULTADO INICIAL, LIMITACIÓN DOCUMENTADA
+(2026-08-11): investigado con un presupuesto acotado de ~0,5 día (de
+los 9 días repartidos entre MIL y DEC). Reutiliza directamente
+`h_final` (el embedding de la Capa 3 ya calculado y guardado por
+`25_entrenar_gat_gcn_final.py`), sin autoencoder propio — coste
+computacional trivial (~5s por cohorte, smoke test real sobre BRCA).
+Un barrido de 90 configuraciones (K∈{2,3,4,5,6} × learning rate ×
+intervalo de actualización del target × 3 semillas) muestra que
+CUALQUIER K≥3 colapsa de forma reproducible al mismo reparto binario
+subyacente (~65-68 vs ~113-117 pacientes de BRCA), incluso con la
+reponderación 1/f_j de Xie et al. 2016 (diseñada precisamente para
+evitar esto) ya incluida en la fórmula. Solo K=2 da un resultado no
+degenerado (entropía normalizada 0,937, estable en las 18
+configuraciones probadas). Siguiendo el mismo criterio que VGAE, NO se
+persiguió IDEC (Guo et al. 2017, la corrección documentada en la
+literatura — exige un decoder y un cambio de arquitectura, fuera de
+presupuesto): se documenta el colapso como limitación metodológica
+honesta para la Sección 4.9 (el embedding de GAT+GCN, optimizado para
+riesgo de Cox, probablemente solo separa "alto riesgo/bajo riesgo", no
+subtipos moleculares múltiples) y se entrega K=2 como resultado final,
+guardado en `data/processed/BRCA_dec_subtipos.pt`
+(`src/28_entrenar_dec.py`). Ver `results/2026-08-11-paso47/runlog.txt`.
+
+Trabajo pendiente: (1) generar los 4 modelos GAT+GCN finales que
+faltan (LUAD, LUSC, COAD, KIRC) — en curso; (2) seleccionar 12
+pacientes por cohorte (primeros en orden alfabético de case_id, con
+supervivencia válida y modelo GAT+GCN entrenado), verificar
+disponibilidad de WSI en el GDC para cada uno (sustituyendo si falta,
+mismo criterio que se aplicó a RNA-seq/CNV/metilación en los Pasos
+24-29) y descargar+procesar (streaming) dentro de los 8 días
+presupuestados; (3) combinar z_WSI con el embedding molecular de la
+Capa 3 y calcular el C-index de MIL+molecular por cohorte, comparado
+con el C-index solo molecular ya documentado (Bloque 6); (4) DEC
+(Bloque 9) queda cerrado con la limitación documentada arriba, sin más
+trabajo previsto salvo que se decida revisitarlo. STRING v12 ya está
 descargado; Reactome y KEGG siguen pendientes para completar el grafo
 heterogéneo de vías (Fase 3). `docs/manifest-datos.tsv` ya está al día
-con el estado de Fase 1 (datos) pero NO refleja aún VGAE/MIL;
+con el estado de Fase 1 (datos) pero NO refleja aún VGAE/MIL/DEC;
 `README.md` tampoco — todavía dice "solo está descargada la cohorte
-TCGA-BRCA" y no refleja las 5 cohortes completas ni los Bloques 6-8,
+TCGA-BRCA" y no refleja las 5 cohortes completas ni los Bloques 6-9,
 pendiente de actualizar.
 
 ## Comandos
