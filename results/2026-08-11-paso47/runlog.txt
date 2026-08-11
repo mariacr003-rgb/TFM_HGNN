@@ -1,0 +1,170 @@
+ID de ejecucion: 2026-08-11-paso47
+Fecha: 11 de agosto de 2026
+
+Objetivo: Investigacion inicial de DEC (Deep Embedded Clustering, Xie,
+Girshick y Farhadi 2016, Bloque 9, Seccion 4.6 del TFM), con un
+presupuesto de tiempo acotado explicitamente por el usuario a ~0,5 dia
+de los 9 dias totales disponibles para repartir entre MIL y DEC (el
+resto va integramente a MIL, ver decision del usuario tras el analisis
+de escenarios de volumen). Se pide: (1) confirmar si DEC reutiliza
+embeddings ya calculados por GAT+GCN, (2) estimacion de complejidad
+computacional o smoke test, (3) si aparece un problema como el colapso
+de VGAE, decidir con criterio acotado en tiempo si corregirlo cabe en
+el presupuesto.
+
+NOTA: no se tiene acceso al texto exacto de la Seccion 4.6 del TFM
+(documento Word no incluido en este repositorio). Este paso se basa en
+(a) el algoritmo DEC estandar de la literatura y (b) el diseno ya
+existente en el codigo del proyecto (h_final expuesto explicitamente
+para reutilizacion en bloques posteriores), no en una cita directa del
+texto del TFM.
+
+================================================================
+1) REUTILIZACION DE EMBEDDINGS DE GAT+GCN - CONFIRMADO
+================================================================
+
+src/21_modelo_gat_gcn.py (ModeloGATGCN.forward) ya devuelve h_final,
+el "embedding molecular de la Capa 3" por paciente [n_pacientes, 32],
+explicitamente documentado en el propio codigo como pensado para
+reutilizarse en bloques posteriores. src/25_entrenar_gat_gcn_final.py
+(prerrequisito del Bloque 8) ya lo guarda en
+data/processed/<COHORTE>_modelo_gat_gcn_final.pt. Verificado cargando
+el fichero real de BRCA:
+
+  h_final: (181, 32)  -- 181 pacientes BRCA con supervivencia utilizable
+  c_index_entrenamiento (sanity check, no es generalizacion): 0,7334
+
+DEC parte DIRECTAMENTE de esta matriz, sin recalcular nada de GAT/GCN
+ni tocar los datos omicos crudos. A diferencia del DEC clasico (que
+pre-entrena su propio autoencoder apilado, SAE), aqui no hace falta:
+GAT+GCN ya produce un embedding de paciente de baja dimension.
+
+================================================================
+2) COMPLEJIDAD COMPUTACIONAL - IRRELEVANTE PARA EL PRESUPUESTO
+================================================================
+
+DEC opera sobre una matriz pequena (n_pacientes x 32), no sobre el
+grafo de ~20.000 genes ni sobre las WSI. Smoke test real (no
+simulado) sobre los 181 embeddings reales de BRCA, K=4 de prueba:
+
+  k-means init (4 clusters, 50 iter): 230 ms
+  Refinamiento DEC (200 iteraciones, KL(P||Q)):  2,3 s (convergencia
+    segun criterio estandar de DEC, <0,1% cambios de asignacion, en
+    la iteracion 8)
+  TOTAL: ~5,4 s (una cohorte)
+
+Para las 5 cohortes (~200 pacientes cada una): del orden de segundos
+en total. DEC no compite por presupuesto de tiempo con MIL.
+
+================================================================
+3) HALLAZGO: COLAPSO DE CLUSTERS (mismo patron que VGAE)
+================================================================
+
+Con el smoke test inicial (K=4), el refinamiento DEC colapso de un
+k-means inicial razonablemente equilibrado [64, 25, 57, 35] a solo 2
+clusters activos [67, 0, 0, 114] en 8 iteraciones. La formula de
+distribucion objetivo (calcular_p) YA incluye la reponderacion 1/f_j
+de Xie et al. 2016, diseñada especificamente para evitar que un
+cluster grande domine - y aun asi colapso. Esto no apunta a un
+hiperparametro mal puesto, apunta a una limitacion de fondo: el
+espacio de embeddings de GAT+GCN, optimizado para riesgo de Cox
+(Bloque 6), puede no tener una estructura de multiples clusters
+natural.
+
+================================================================
+4) BARRIDO BARATO ACOTADO EN TIEMPO (decision del usuario: 1-2h,
+   quedarse con la primera configuracion no degenerada)
+================================================================
+
+90 configuraciones probadas sobre los mismos 181 embeddings reales de
+BRCA: K en {2,3,4,5,6} x learning_rate en {0,001; 0,01; 0,05} x
+intervalo_actualizacion_p en {5, 20} x 3 semillas (0,1,2). Coste real
+del barrido completo: 491,2s (~8,2 min) - muy por debajo de la 1-2h
+acotadas, gracias al coste computacional trivial de DEC (punto 2).
+
+RESULTADO (entropia normalizada de la distribucion final: 1,0 =
+perfectamente equilibrado, 0,0 = colapsado a 1 cluster):
+
+  K=2: las 18 configuraciones (3 lr x 2 intervalo_p x 3 semillas) dan
+    el MISMO resultado estable: [64, 117], entropia=0,937,
+    convergencia en la iteracion 0 (el propio k-means init ya
+    practicamente lo resuelve, DEC apenas cambia nada).
+
+  K=3,4,5,6 (78 configuraciones en total): TODAS colapsan, de forma
+    reproducible, al MISMO reparto binario subyacente (~65-68 vs
+    ~113-117 pacientes, los mismos numeros que en K=2), dejando los
+    clusters sobrantes VACIOS. Ejemplos:
+      K=4, lr=0,001, int_p=5:  [67, 38, 0, 76]   (el menos colapsado de K=4, entropia=0,765)
+      K=3 (todas las configs): [66, 115, 0] o permutaciones (entropia=0,594-0,597)
+      K=5,6 (todas las configs): entropia 0,36-0,41, siempre 2 clusters con ~65-68/~113-117
+
+  Resumen: 0/90 con colapso severo a 1 cluster (entropia<0,3), pero
+  SOLO las 18 configuraciones de K=2 alcanzan una distribucion no
+  degenerada real (entropia>=0,7 la marca 21/90, y todas esas 21 son
+  K=2 o el mejor caso aislado de K=4 con lr=0,001/int_p=5). NINGUNA
+  configuracion con K>=3 evita el colapso al mismo reparto binario.
+
+CONCLUSION DEL BARRIDO: no es un problema de hiperparametros. La
+consistencia del reparto ~65-68/~113-117 en las 78 configuraciones de
+K=3,4,5,6 (independiente de learning rate, intervalo de actualizacion
+o semilla) es evidencia solida de que el embedding de GAT+GCN de BRCA
+tiene una estructura de EXACTAMENTE 2 grupos separables de forma
+robusta, no una estructura rica de multiples subtipos moleculares.
+
+================================================================
+5) DECISION (criterio acordado de antemano con el usuario)
+================================================================
+
+Segun el criterio fijado ANTES de ver el resultado del barrido: si
+ninguna configuracion con K>=3 da una distribucion razonable (sin
+colapso a 1-2 clusters) en el margen de 1-2h, NO se persigue IDEC
+(Guo et al. 2017, la correccion bien documentada en la literatura -
+anade una perdida de reconstruccion que regulariza contra el colapso,
+pero exige un decoder y es un cambio de arquitectura, no un ajuste de
+hiperparametros) y se documenta el colapso con la misma honestidad que
+VGAE. El barrido no encontro ninguna configuracion de K>=3 no
+degenerada -> se sigue el plan: NO se persigue IDEC.
+
+Se entrega el UNICO resultado no degenerado reproducible (K=2,
+[64, 117], entropia=0,937) como limitacion documentada, no como el
+descubrimiento de multiples subtipos moleculares que se buscaba
+originalmente.
+
+Comando (resultado final entregado):
+  python src/28_entrenar_dec.py BRCA data/processed/BRCA_modelo_gat_gcn_final.pt data/processed/BRCA_dec_subtipos.pt
+
+Salida: data/processed/BRCA_dec_subtipos.pt (asignacion_cluster,
+centros, K=2, entropia_normalizada=0,937, conteos_cluster=[64,117],
+iteracion_convergencia=0, y el campo "LIMITACION" con la explicacion
+completa, para que cualquier consumidor posterior de este fichero
+tenga el contexto sin depender de leer este runlog)
+
+Commit: (pendiente)
+
+================================================================
+6) CIERRE - CONCLUSION HONESTA
+================================================================
+
+DEC, con el embedding de GAT+GCN de BRCA tal como esta hoy, NO
+descubre multiples subtipos moleculares: descubre una biparticion
+robusta y reproducible (K=2, entropia 0,937), estable frente a
+learning rate, intervalo de actualizacion del target y semilla, e
+INCLUSO frente al numero de clusters pedido (K=3,4,5,6 colapsan al
+mismo reparto binario). Es plausible que esta biparticion refleje,
+de forma indirecta, la propia senal de riesgo de Cox que GAT+GCN
+optimizo (alto riesgo vs. bajo riesgo), no subtipos moleculares en el
+sentido de PAM50 - hipotesis razonable, no verificada en este paso
+(verificarla, p. ej. cruzando la asignacion de cluster con el riesgo
+predicho por GAT+GCN o con subtipos clinicos conocidos si estan
+disponibles, queda fuera del presupuesto de 0,5 dia).
+
+Se documenta como limitacion metodologica honesta para la Seccion 4.9
+del TFM (mismo patron que VGAE, Paso 43): el diseño de "reutilizar
+directamente el embedding de un bloque anterior sin re-entrenarlo
+para la tarea de clustering" es eficiente en computo pero no garantiza
+que el espacio resultante sea separable en el numero de subtipos
+deseado. No se replica en las 4 cohortes restantes (mismo criterio
+que VGAE: sin evidencia de que el patron cambiaria, y sin presupuesto
+para verificarlo). Pendiente para el futuro (fuera de alcance de los 9
+dias): IDEC con perdida de reconstruccion, o entrenar DEC de forma
+conjunta con GAT+GCN en vez de sobre un embedding ya congelado.

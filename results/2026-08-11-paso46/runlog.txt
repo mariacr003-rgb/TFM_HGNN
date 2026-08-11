@@ -1,0 +1,93 @@
+ID de ejecucion: 2026-08-11-paso46
+Fecha: 11 de agosto de 2026
+
+Objetivo: Test barato de paralelizacion del procesamiento de WSI del
+Bloque 8 (MIL) en las 2 CPUs disponibles de esta maquina, antes de
+decidir el tamano de muestra final. Motivado por la observacion (Paso
+45) de que el proceso Python se mantenia en ~59% de CPU (de 200%
+disponibles en 2 nucleos) y en estado 'D' (esperando I/O de disco)
+durante el procesamiento, indicio de que el cuello de botella real
+podria ser el I/O de lectura del WSI (el repositorio vive en
+/mnt/c/..., sistema de ficheros de Windows montado en WSL via 9p,
+conocido por ser lento en lecturas pequenas y aleatorias) y no la CPU
+- lo que limitaria la ganancia real de paralelizar por paciente.
+
+Solo hay un paciente WSI de prueba descargado (TCGA-A1-A0SB); el test
+usa el MISMO fichero en 2 procesos independientes (misma lectura,
+distinta salida) - sigue siendo una prueba valida de contencion de
+disco/CPU entre 2 procesos concurrentes, que es lo que se queria medir
+(no la comparacion de resultados de 2 pacientes distintos).
+
+INCIDENCIA (corregida antes del test real): el primer intento de
+lanzamiento uso una variable de shell $WSI para no repetir la ruta:
+  source venv/activate && WSI="..." && nohup ... paciente_A.pt & disown
+  nohup ... "$WSI" ... paciente_B.pt & disown
+El '&' al final de una cadena "cmd1 && cmd2 && cmd3" en bash pone en
+segundo plano TODA la cadena como un unico job (no solo el ultimo
+comando) - por tanto "WSI=..." solo se ejecuto DENTRO del job en
+segundo plano del paciente A, y la shell padre nunca tuvo $WSI
+definida cuando llego a la linea del paciente B. Resultado: el
+proceso B murio al instante (OpenSlideUnsupportedFormatError, ruta de
+fichero vacia). Corregido relanzando ambos procesos con la ruta
+literal del WSI en cada nohup (sin variable compartida), arrancados
+juntos en la misma llamada de shell.
+
+Comando (lanzamiento real, ambos procesos con ruta literal):
+  nohup python3 -u src/27_procesar_wsi_paciente.py \
+    data/raw/wsi_prueba/.../TCGA-A1-A0SB-....svs \
+    results/2026-08-11-paso46/paciente_A.pt \
+    > results/2026-08-11-paso46/log_A.txt 2>&1 &
+  disown
+  nohup python3 -u src/27_procesar_wsi_paciente.py \
+    data/raw/wsi_prueba/.../TCGA-A1-A0SB-....svs \
+    results/2026-08-11-paso46/paciente_B.pt \
+    > results/2026-08-11-paso46/log_B.txt 2>&1 &
+  disown
+
+Inicio: 2026-08-11 03:50:54
+Fin:    2026-08-11 09:12:29 (ambos procesos terminaron con menos de 1s
+de diferencia entre si)
+
+RESULTADO:
+
+  Wall-clock conjunto (2 pacientes en paralelo):        19.295s = 321,58 min = 5,3597 h
+  Secuencial de referencia (2 x Paso 45, sin contencion): 22.023,8s = 367,06 min = 6,1177 h
+
+  Speedup real: 1,141x (NO cerca del 2x teorico de 2 CPUs)
+  Ahorro de tiempo real: 12,4%
+
+  Cada proceso individual, corriendo en paralelo, tardo 19.256,9-
+  19.257,2s (320,9-321,0 min) frente a los 11.011,9s (183,5 min) que
+  tardaba el mismo trabajo AISLADO (Paso 45) - 1,749x MAS LENTO por
+  paciente cuando compite con otro proceso por el mismo disco. Ritmo
+  por parche: 530 ms/parche en paralelo frente a 303 ms/parche aislado
+  (mismo factor ~1,75x).
+
+  Pico de RAM: sin problemas, 508 MB -> ~1.110 MB -> ~1.440 MB por
+  proceso (x2 procesos concurrentes ~2,9 GB, muy por debajo de los 5,7
+  GB disponibles). Verificado con dmesg tras la finalizacion: sin
+  entradas de OOM.
+
+CONFIRMACION DE LA HIPOTESIS: el cuello de botella es I/O de disco,
+no CPU. Cada proceso individual se ralentiza ~1,75x cuando compite con
+otro por el mismo disco, y la ganancia agregada de correr 2 en
+paralelo es solo del 12,4% (muy lejos del 2x que cabria esperar si el
+cuello de botella fuera CPU). Paralelizar por paciente en este
+hardware NO es una via realista para reducir significativamente el
+tiempo total de procesamiento del Bloque 8.
+
+Salida: results/2026-08-11-paso46/paciente_A.pt, paciente_B.pt (mismo
+contenido que Paso 45, redundante - el objetivo del test era medir
+tiempo, no generar un resultado nuevo)
+
+Commit: (pendiente)
+
+Conclusion: las estimaciones de tiempo secuencial ya calculadas
+(Sección "extrapolacion" del Bloque 8, sin runlog dedicado, discutidas
+directamente con el usuario) siguen siendo la referencia correcta de
+cara a decidir el tamano de muestra final - paralelizar por paciente
+en esta maquina aporta como mucho ~12% de ahorro, no un cambio de
+orden de magnitud. Cualquier decision de volumen para las 5 cohortes
+debe basarse en el tiempo secuencial real (~3,09h/paciente,
+descarga+procesamiento), no en una expectativa de paralelizacion que
+esta prueba descarta como poco realista en este hardware.
