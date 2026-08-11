@@ -24,7 +24,7 @@ Cohortes TCGA:
 - COAD (cancer de colon)
 - KIRC (cancer de rinon)
 
-## Estado actual (actualizado 2026-08-07) — LEER ESTO PRIMERO
+## Estado actual (actualizado 2026-08-11) — LEER ESTO PRIMERO
 
 La sección "Estado actual del repositorio" de más abajo describe un
 punto de partida antiguo (solo BRCA, Fase 1) que ya NO refleja la
@@ -75,10 +75,41 @@ lo siguiente:
   Tabla 6 y la discusión de la Sección 5.6. Secciones 5.3/5.4/5.5
   (hipótesis H2/H3/H4) pendientes de MIL, DEC y biomarcadores.
 
-- SIGUIENTE BLOQUE: Bloque 7, VGAE (Sección 4.4 del TFM), para
-  imputación generativa de los datos faltantes (sustituyendo a la
-  imputación simple por media usada en `src/20_preprocesar_atributos_gen.py`).
-  Después: MIL (Bloque 8, imágenes WSI, aún no descargadas) y DEC
+- Bloque 7 (VGAE) — CERRADO (2026-08-09): implementado
+  (`src/23_modelo_vgae.py`, `src/24_entrenar_vgae.py`) y evaluado sobre
+  BRCA con 6 hallazgos técnicos documentados con honestidad completa
+  (NaN por logvar sin acotar, KL collapse temprano, posterior collapse
+  tardío corregido con free bits, falta de reproducibilidad por
+  semilla no fijada por canal, intento final de reducción de
+  dimensionalidad que no cruza el umbral de "mejora clara" fijado de
+  antemano). RESULTADO FINAL reproducible (semilla=0 por canal, diseño
+  de 3 VGAE independientes por canal, el único que supera la base
+  trivial en más de un canal): RNA-seq RMSE 0,9902 (+1,0%), metilación
+  0,9877 (+1,2%), CNV 1,0137 (-1,4%, PEOR que la base trivial). Mejora
+  marginal, no confirmada como robusta (una sola semilla). Documentado
+  como limitación metodológica honesta para la Sección 4.9 del TFM, NO
+  se replica en las 4 cohortes restantes. Ver
+  `results/2026-08-08-paso41/runlog.txt`,
+  `results/2026-08-08-paso42/runlog.txt` y
+  `results/2026-08-09-paso43/runlog.txt`.
+
+- Bloque 8 (MIL) — EN CURSO: prerrequisito completado (modelo GAT+GCN
+  final de BRCA guardado en `data/processed/BRCA_modelo_gat_gcn_final.pt`,
+  vía `src/25_entrenar_gat_gcn_final.py`). Arquitectura implementada
+  (`src/26_modelo_mil.py`: ResNet-50 + atención de Ilse et al. 2018;
+  `src/27_procesar_wsi_paciente.py`: teselado + filtrado de tejido +
+  ResNet-50 + atención, por paciente). HALLAZGO Y CORRECCIÓN: la
+  primera versión agotaba la RAM de la máquina (5,7 GB) a los 28.126
+  parches de un solo paciente de prueba (TCGA-A1-A0SB, WSI de 741 MB),
+  sin llegar a arrancar ResNet-50 (`results/2026-08-10-paso44/runlog.txt`);
+  corregido con procesamiento en streaming (embedding por lote de 16
+  parches, descartando los arrays crudos inmediatamente), verificado
+  con el mismo paciente completo: 36.307 parches con tejido, ~3h
+  3,5min (teselado+ResNet-50+atención), pico de RAM 1.447 MB
+  (`results/2026-08-10-paso45/runlog.txt`). Pendiente: descargar el
+  resto de WSI de las 5 cohortes (solo el paciente de prueba está
+  descargado) y decidir la estrategia de volumen completo (698 GB
+  estimados) a la luz de este tiempo real (~3h/paciente). Después: DEC
   (Bloque 9, subtipos moleculares).
 
 ## Estado actual del repositorio (punto de partida, NO empezar de cero) — HISTÓRICO, ver seccion anterior para el estado real
@@ -197,13 +228,15 @@ en el futuro).
 - src/08_figura6_subtipos_paad.py
 - src/09_figura7_roc.py
 
-### Pendiente de implementar (esto es el trabajo a realizar) — ACTUALIZADO 2026-08-07:
-Los 4 primeros puntos de esta lista (descargar las 4 cohortes
-restantes, construir el grafo heterogeneo, GAT+GCN) YA ESTAN HECHOS —
-ver "Estado actual (actualizado 2026-08-07)" al principio de este
-documento. Lo que queda realmente pendiente:
-- Implementar y entrenar VGAE (Bloque 7, Seccion 4.4 del TFM) - SIGUIENTE
-- Descargar WSI e implementar MIL (Bloque 8)
+### Pendiente de implementar (esto es el trabajo a realizar) — ACTUALIZADO 2026-08-11:
+Los primeros puntos de esta lista (descargar las 5 cohortes, construir
+el grafo heterogeneo, GAT+GCN, VGAE) YA ESTAN HECHOS — ver "Estado
+actual (actualizado 2026-08-11)" al principio de este documento. Lo
+que queda realmente pendiente:
+- Bloque 8 (MIL): descargar el resto de WSI de las 5 cohortes (solo
+  el paciente de prueba TCGA-A1-A0SB esta descargado) y decidir la
+  estrategia de volumen completo (698 GB estimados) con el tiempo real
+  ya verificado (~3h/paciente, streaming, sin problema de memoria)
 - Implementar DEC (Bloque 9)
 - Generar todas las tablas y figuras de resultados con datos reales
 - Descargar Reactome y KEGG completos para el grafo heterogeneo de vias

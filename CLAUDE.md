@@ -197,15 +197,82 @@ reales de este bloque en la Tabla 6 y la discusión de la Sección 5.6.
 Las Secciones 5.3/5.4/5.5 (hipótesis H2/H3/H4) siguen pendientes de
 MIL, DEC y el análisis de biomarcadores, respectivamente.
 
-Trabajo pendiente: Bloque 7 (VGAE, Sección 4.4 del TFM) para
-imputación generativa de los datos faltantes — siguiente bloque a
-implementar. Después, MIL (Bloque 8, imágenes WSI, aún no descargadas)
-y DEC (Bloque 9, subtipos moleculares). STRING v12 ya está descargado;
-Reactome y KEGG siguen pendientes para completar el grafo heterogéneo
-de vías (Fase 3). `docs/manifest-datos.tsv` ya está al día con este
-estado; `README.md` NO — todavía dice "solo está descargada la
-cohorte TCGA-BRCA" y no refleja las 5 cohortes completas ni el Bloque
-6 cerrado, pendiente de actualizar.
+Bloque 7 (VGAE) — CERRADO (2026-08-09): implementado en
+`src/23_modelo_vgae.py` (arquitectura Kipf y Welling 2016: encoder de
+tronco GCN compartido + 2 cabezas GCN para mu/log-varianza, decoder
+también GCN, sobre el grafo paciente-paciente k-NN ya usado en
+GAT+GCN) y `src/24_entrenar_vgae.py` (pre-entrenamiento independiente,
+ELBO con free bits). Investigación exhaustiva sobre BRCA con 6
+hallazgos técnicos documentados con honestidad completa: NaN por
+logvar sin acotar; KL collapse temprano sin annealing; smoke test
+injusto por escalado proporcional de la máscara; posterior collapse
+tardío (épocas 26-30) sin free bits (Kingma et al. 2016); falta de
+reproducibilidad por semilla global de PyTorch no fijada por canal; y
+un último intento de reducción de dimensionalidad (2.500 genes por
+varianza + arquitectura más pequeña) que mejora pero no cruza el
+umbral de "mejora clara" fijado de antemano. Ver
+`results/2026-08-08-paso41/runlog.txt`, `results/2026-08-08-paso42/runlog.txt`
+y `results/2026-08-09-paso43/runlog.txt` para el detalle completo.
+
+RESULTADO FINAL (reproducible, semilla=0 por canal, diseño de 3 VGAE
+independientes por canal — único diseño que supera la base trivial en
+más de un canal, corrigiendo la variante inicial con los 3 canales
+concatenados que nunca la superó en ningún intento): RNA-seq RMSE
+0,9902 (+1,0% vs. base trivial), metilación 0,9877 (+1,2%), CNV 1,0137
+(-1,4%, PEOR que la base trivial). Mejora marginal, no confirmada como
+robusta (una sola semilla, sin recursos para probar más). Se
+documenta como limitación metodológica honesta para la Sección 4.9
+del TFM y NO se replica en las 4 cohortes restantes; se deja la puerta
+abierta a retomarlo en el futuro con más semillas de validación o más
+pacientes por cohorte.
+
+Bloque 8 (MIL) — EN CURSO: prerrequisito completado, el modelo
+GAT+GCN final de BRCA (entrenado con `src/25_entrenar_gat_gcn_final.py`,
+sin partición k-fold) guardado en
+`data/processed/BRCA_modelo_gat_gcn_final.pt`. Arquitectura MIL
+implementada en `src/26_modelo_mil.py` (`EncoderResNetMIL`: ResNet-50
+preentrenado en ImageNet, ver NOTA en el propio fichero sobre la
+desviación respecto al checkpoint histología-específico que pide la
+fórmula del TFM; `AtencionMIL`: mecanismo de atención de Ilse et al.
+2018, Sección 4.5) y pipeline de procesamiento por paciente en
+`src/27_procesar_wsi_paciente.py` (teselado 256x256 + filtrado de
+tejido por saturación HSV + ResNet-50 + atención).
+
+HALLAZGO Y CORRECCIÓN DE MEMORIA (paciente de prueba TCGA-A1-A0SB,
+WSI de 741 MB): la primera versión de `27_procesar_wsi_paciente.py`
+acumulaba todos los parches crudos con tejido en memoria antes de
+convertirlos a tensor, lo que agotó la RAM de la máquina (5,7 GB) a
+los 28.126 parches (63% del teselado), sin llegar a arrancar
+ResNet-50 — inviable no solo para las 5 cohortes sino para UN solo
+paciente. Corregido con procesamiento en streaming: el embedding de
+cada lote de 16 parches se calcula en cuanto se completa el lote,
+descartando los arrays de imagen crudos inmediatamente (solo se
+acumulan en memoria los embeddings ya reducidos, ~8KB/parche frente a
+~192KB/parche de los arrays crudos). Ver
+`results/2026-08-10-paso44/runlog.txt` (intento fallido) y
+`results/2026-08-10-paso45/runlog.txt` (corrección y ejecución
+completa).
+
+TIEMPO REAL VERIFICADO (mismo paciente, ya con el diseño en
+streaming): 36.307 parches con tejido de 141.912 celdas en rejilla
+completa (25,6% con tejido), procesados en 11.009,1s (~3h 3,5min,
+teselado+ResNet-50 combinados) + 1,6s de atención MIL — total 183,5
+min por paciente en este hardware (CPU, sin GPU, 2 núcleos). Pico de
+RAM: 1.447 MB (frente a los >5.130 MB, sin terminar, del diseño
+original). Con este dato real, la extrapolación al volumen completo de
+las 5 cohortes (698 GB estimados) queda pendiente de decidir.
+
+Trabajo pendiente: completar el Bloque 8 (MIL) — pendiente aún
+descargar el resto de WSI de las 5 cohortes (solo el paciente de
+prueba TCGA-A1-A0SB está descargado) y decidir la estrategia de
+volumen completo a la luz del tiempo real verificado (~3h/paciente).
+Después, DEC (Bloque 9, subtipos moleculares). STRING v12 ya está
+descargado; Reactome y KEGG siguen pendientes para completar el grafo
+heterogéneo de vías (Fase 3). `docs/manifest-datos.tsv` ya está al día
+con el estado de Fase 1 (datos) pero NO refleja aún VGAE/MIL;
+`README.md` tampoco — todavía dice "solo está descargada la cohorte
+TCGA-BRCA" y no refleja las 5 cohortes completas ni los Bloques 6-8,
+pendiente de actualizar.
 
 ## Comandos
 
