@@ -62,7 +62,7 @@ No se genero ningun fichero .pt de salida (el proceso murio antes de
 esa fase); no hay tiempos reales de ResNet-50 ni de atencion MIL de
 este intento.
 
-Commit: dbc1a16c1e47e583c9f4c15569f4d32527f1f689
+Commit: dbc1a16
 
 Conclusion: bloqueante de memoria detectado y corregido en el mismo
 dia (ver results/2026-08-10-paso45/runlog.txt para el rediseño en

@@ -81,7 +81,7 @@ RESULTADO (paciente TCGA-A1-A0SB completo, 112314x82945 px a nivel 0,
 Salida: results/2026-08-10-paso45/TCGA-A1-A0SB_mil_prueba.pt (incluye
 z_wsi, pesos_atencion, coords_parches, tiempos_segundos, pico_ram_mb)
 
-Commit: dbc1a16c1e47e583c9f4c15569f4d32527f1f689
+Commit: dbc1a16
 
 COMPARATIVA con el Paso 44 (fallido): en el punto equivalente a donde
 el intento anterior se detuvo por riesgo de OOM (~28.000 parches), el
