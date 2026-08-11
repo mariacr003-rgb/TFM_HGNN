@@ -6,3 +6,8 @@ matplotlib==3.10.9
 # Fase 2 - Framework GAT+GCN+VGAE (entorno virtual venv_pytorch, Python 3.11)
 torch==2.13.0
 torch_geometric==2.8.0
+
+# Bloque 8 - MIL sobre WSI (mismo entorno venv_pytorch)
+torchvision==0.28.0
+openslide-python==1.4.6
+openslide-bin==4.0.1.2

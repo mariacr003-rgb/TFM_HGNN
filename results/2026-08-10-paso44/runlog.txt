@@ -1,0 +1,73 @@
+ID de ejecucion: 2026-08-10-paso44
+Fecha: 10 de agosto de 2026
+
+Objetivo: Bloque 8 (MIL, Seccion 4.5 del TFM). Verificar el tiempo
+real de procesar UN paciente de WSI (teselado a parches 256x256,
+embeddings con ResNet-50, pooling de atencion MIL) antes de decidir
+sobre el volumen completo (698 GB estimados para las 5 cohortes).
+Paciente de prueba: TCGA-A1-A0SB (WSI de 741.184.858 bytes, descargado
+y verificado previamente contra el manifest del GDC).
+
+Prerrequisito ya cumplido: modelo GAT+GCN final de BRCA guardado en
+data/processed/BRCA_modelo_gat_gcn_final.pt.
+
+Comando:
+  nohup python3 -u src/27_procesar_wsi_paciente.py \
+    data/raw/wsi_prueba/cea82b7d-135a-49d5-b4f6-3fb0215f7188/TCGA-A1-A0SB-01Z-00-DX1.B34C267B-CAAA-4AB6-AD5C-276C26F997A1.svs \
+    results/2026-08-10-paso44/TCGA-A1-A0SB_mil_prueba.pt \
+    > results/2026-08-10-paso44/log_procesamiento.txt 2>&1 &
+  disown
+
+Entorno: venv_pytorch_wsl (WSL, Python 3.11) - torch 2.13.0+cpu,
+torchvision 0.28.0+cpu, openslide-python 1.4.6.
+
+DISEÑO DE LA PRIMERA VERSION (fallido): src/27_procesar_wsi_paciente.py
+recorria la rejilla completa del WSI (141.912 celdas de 256x256 a
+nivel 0 de la piramide, 112314x82945 px), acumulando en una lista
+TODOS los arrays de imagen (256x256x3 uint8, ~192KB/parche) de los
+parches con tejido suficiente (filtro por saturacion HSV), antes de
+convertirlos a tensor de una sola vez y pasarlos por ResNet-50.
+
+RESULTADO: proceso detenido manualmente (SIGTERM, PID 1331) a las
+22:17:55, tras ~34 min de ejecucion, en el punto 90.000/141.912
+celdas (63,4% del recorrido), 28.126 parches con tejido acumulados
+(31,3% de las celdas escaneadas).
+
+Evolucion de la memoria RSS del proceso, medida con `ps`:
+  ~14.000 parches con tejido -> 3,6 GB RSS
+  ~18.522 parches con tejido -> 4,67 GB RSS (78,6% de RAM)
+  ~28.126 parches con tejido -> 5,13 GB RSS (86,3% de RAM) - en este
+    punto `free -h` mostraba solo 53 MB de RAM libre y 1,5/2 GB de
+    swap ya consumidos.
+
+Se detuvo el proceso de forma controlada (SIGTERM, con SIGKILL de
+respaldo si no hubiera respondido) antes de que intervininiera el
+OOM-killer del kernel, para evitar que matara un proceso distinto o
+dejara la VM de WSL inestable. Verificado con `dmesg` tras la parada:
+sin entradas de "Killed process" / "Out of memory" (la parada fue
+preventiva, no reactiva a un OOM real).
+
+HALLAZGO: con el diseño de la primera version (acumular todos los
+parches crudos en memoria antes de convertir a tensor), un solo
+paciente de WSI de tamaño medio (741 MB) agota la RAM de esta maquina
+(5,7 GB fisicos + 2 GB swap) antes de terminar el teselado, sin llegar
+a arrancar ResNet-50. Extrapolando la fraccion de tejido observada
+hasta ese punto (~26-31%) al recorrido completo, el paciente hubiera
+requerido del orden de 8-9 GB solo para la lista de parches crudos,
+por encima del techo real de la maquina. Con esto, el diseño original
+NO es viable ni para un solo paciente, y mucho menos para el volumen
+completo de las 5 cohortes.
+
+No se genero ningun fichero .pt de salida (el proceso murio antes de
+esa fase); no hay tiempos reales de ResNet-50 ni de atencion MIL de
+este intento.
+
+Commit: (pendiente)
+
+Conclusion: bloqueante de memoria detectado y corregido en el mismo
+dia (ver results/2026-08-10-paso45/runlog.txt para el rediseño en
+streaming y la ejecucion completa y exitosa sobre el mismo paciente).
+Se documenta este intento fallido explicitamente porque el propio
+punto de fallo (28.126 parches, 90.000/141.912 celdas) es un dato de
+referencia util para verificar que la correccion aplicada lo supera
+con margen de memoria.

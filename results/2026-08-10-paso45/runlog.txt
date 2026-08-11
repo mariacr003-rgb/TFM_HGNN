@@ -1,0 +1,103 @@
+ID de ejecucion: 2026-08-10-paso45
+Fecha: 10-11 de agosto de 2026 (arranca la noche del 10, termina de
+madrugada el 11)
+
+Objetivo: Corregir el bloqueo de memoria detectado en el Paso 44
+(ver results/2026-08-10-paso44/runlog.txt: el diseño original de
+src/27_procesar_wsi_paciente.py agotaba la RAM de la maquina antes de
+terminar el teselado de un solo paciente WSI) y repetir la prueba
+completa sobre el mismo paciente (TCGA-A1-A0SB) para obtener por fin
+los tiempos reales de las 3 fases (teselado, ResNet-50, atencion MIL)
+y el pico de memoria real, de cara a la decision sobre el volumen
+completo (698 GB, 5 cohortes).
+
+REDISEÑO (streaming): en vez de acumular todos los parches crudos en
+una lista antes de convertirlos a tensor, src/27_procesar_wsi_paciente.py
+ahora calcula el embedding h_k de cada lote de TAMANO_LOTE=16 parches
+en cuanto se completa (durante el propio recorrido del teselado), y
+descarta inmediatamente los arrays de imagen de ese lote. En memoria
+solo se acumulan los embeddings ya reducidos (2048 floats/parche,
+~8KB) en vez de los parches crudos (~192KB/parche, 24x mas). Esto fusiona
+las fases de "teselado" y "ResNet-50" en una sola fase medida
+conjuntamente (teselado_y_resnet50_streaming), ya que ambas ocurren
+entrelazadas por lote. La fase de atencion MIL sigue siendo posterior
+e independiente, sobre el tensor final de embeddings ya concatenados.
+
+Instrumentacion añadida: pico de RAM (resource.getrusage(...).ru_maxrss,
+sin depender de psutil) reportado en cada checkpoint de progreso
+(cada 5000 celdas) y en cada frontera de fase, ademas de guardado en
+el .pt de salida (campo "pico_ram_mb").
+
+Verificacion previa (smoke test, max_parches=32, foreground):
+  python3 -u src/27_procesar_wsi_paciente.py <wsi> /tmp/.../test_streaming.pt 32
+Resultado: 32 parches, z_wsi de forma (2048,) correcta, pico RAM 716 MB
+(descarga de los pesos de ResNet-50 incluida en ese pico). Confirmo
+que la logica de streaming es correcta antes de relanzar la prueba
+completa.
+
+Comando (ejecucion completa real):
+  nohup python3 -u src/27_procesar_wsi_paciente.py \
+    data/raw/wsi_prueba/cea82b7d-135a-49d5-b4f6-3fb0215f7188/TCGA-A1-A0SB-01Z-00-DX1.B34C267B-CAAA-4AB6-AD5C-276C26F997A1.svs \
+    results/2026-08-10-paso45/TCGA-A1-A0SB_mil_prueba.pt \
+    > results/2026-08-10-paso45/log_procesamiento.txt 2>&1 &
+  disown
+
+Entorno: venv_pytorch_wsl (WSL, Python 3.11) - torch 2.13.0+cpu,
+torchvision 0.28.0+cpu, openslide-python 1.4.6.
+
+Monitorizacion: sondeo de progreso vía tail -f del log combinado con
+comprobacion periodica `kill -0 $PID` sobre el PID real del proceso
+Python (no sobre el PID del wrapper de shell que lo lanza, error que
+habria dado falsos positivos de "proceso terminado" - PID 1331 y no
+1330 en el Paso 44, PID 2434 y no 2431 en este paso).
+
+RESULTADO (paciente TCGA-A1-A0SB completo, 112314x82945 px a nivel 0,
+141912 celdas en rejilla completa):
+
+  Parches con tejido: 36.307 (25,6% de las celdas)
+  Descartados por fondo: 105.605
+
+  Tiempos por fase:
+    carga_resnet50:                1,2 s
+    teselado_y_resnet50_streaming: 11.009,1 s (183,5 min, ~3h 3,5min)
+    atencion_mil:                  1,6 s
+    TOTAL (sin descarga del WSI):  11.011,9 s (183,5 min)
+
+  Ritmo ResNet-50 (incluye lectura+filtrado+inferencia, streaming
+  por lotes de 16): ~303 ms/parche con tejido en promedio.
+
+  Pico de RAM (resource.ru_maxrss) por punto de control:
+    Tras cargar ResNet-50:           508 MB
+    Tras teselado+ResNet-50 (final): 1.113 MB
+    Tras atencion MIL (final):       1.447 MB (el salto se debe a
+      concatenar los ~2.270 lotes de embeddings en un unico tensor
+      h de 36.307x2048 antes de aplicar la atencion)
+
+  z_wsi: vector de 2048 dimensiones (forma correcta).
+
+  Verificacion sin OOM: `dmesg` tras la finalizacion sin entradas de
+  "Killed process" / "Out of memory".
+
+Salida: results/2026-08-10-paso45/TCGA-A1-A0SB_mil_prueba.pt (incluye
+z_wsi, pesos_atencion, coords_parches, tiempos_segundos, pico_ram_mb)
+
+Commit: (pendiente)
+
+COMPARATIVA con el Paso 44 (fallido): en el punto equivalente a donde
+el intento anterior se detuvo por riesgo de OOM (~28.000 parches), el
+diseño en streaming tenia un pico de RAM de ~1.023 MB, frente a los
+5.130 MB (86% de la RAM total) del diseño original en el mismo punto -
+una reduccion de mas de 5x. El pico total de RAM para el paciente
+COMPLETO (1.447 MB) queda muy por debajo del que ya alcanzaba el
+diseño original sin ni siquiera terminar (5.130 MB).
+
+Conclusion: el rediseño en streaming resuelve el bloqueo de memoria
+del Paso 44 con margen amplio (1,45 GB de pico frente a 7,7 GB de
+techo real de la maquina). El tiempo real de referencia para UN
+paciente de tamaño medio (741 MB, 36.307 parches con tejido) es de
+~3h03min en este hardware (CPU, sin GPU, 2 nucleos). Con este dato
+real, la extrapolacion al volumen completo de las 5 cohortes (698 GB
+estimados) se deja para una decision posterior (fuera del alcance de
+este paso), pero ya no hay riesgo de memoria bloqueante para
+procesarlo paciente a paciente con el diseño actual - el cuello de
+botella pasa a ser puramente de tiempo de computo (CPU), no de RAM.
