@@ -4,7 +4,7 @@ data/raw/*.tsv.gz
 data/raw/*.txt.gz
 data/raw/*.tar.gz
 data/raw/*.txt
-data/raw/*.svs
+data/raw/**/*.svs
 data/raw/*.pt
 data/raw/rnaseq_*/
 data/raw/cnv_*/
