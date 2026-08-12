@@ -139,7 +139,7 @@ def entrenar_un_pliegue(x, edge_index_gen_gen, tiempo, evento, indices_train, in
     for epoca in range(n_epocas):
         modelo.train()
         optimizador.zero_grad()
-        riesgo_train = modelo(x_train, edge_index_gen_gen)
+        riesgo_train, _h_final_train = modelo(x_train, edge_index_gen_gen)
         perdida = perdida_cox(riesgo_train, tiempo_train, evento_train)
         if perdida is None:
             print(f"    epoca {epoca + 1}/{n_epocas}: sin eventos en el pliegue de entrenamiento, se omite")
@@ -150,7 +150,7 @@ def entrenar_un_pliegue(x, edge_index_gen_gen, tiempo, evento, indices_train, in
 
     modelo.eval()
     with torch.no_grad():
-        riesgo_val = modelo(x[indices_val], edge_index_gen_gen)
+        riesgo_val, _h_final_val = modelo(x[indices_val], edge_index_gen_gen)
         c_index = indice_concordancia(riesgo_val, tiempo[indices_val], evento[indices_val])
     return c_index
 

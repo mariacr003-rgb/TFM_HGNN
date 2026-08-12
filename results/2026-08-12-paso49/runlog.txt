@@ -1,0 +1,123 @@
+ID de ejecucion: 2026-08-12-paso49
+Fecha: 12 de agosto de 2026
+
+Objetivo: completar el prerrequisito pendiente del Bloque 8 (los 4
+modelos GAT+GCN finales que faltaban: LUSC, COAD, KIRC, tras haberse
+cortado el entrenamiento nocturno de la sesion anterior) y extender el
+barrido de DEC (Bloque 9, ver results/2026-08-11-paso47/runlog.txt) a
+las 4 cohortes que aun no lo tenian (LUAD, LUSC, COAD, KIRC), tal como
+se acordo al cerrar el paso 48.
+
+================================================================
+1) VERIFICACION DEL ENTRENAMIENTO NOCTURNO CORTADO (paso 48)
+================================================================
+
+Verificacion directa hecha por el usuario (ps aux) antes de este paso:
+ningun proceso en marcha. Confirmado leyendo
+results/2026-08-11-paso48/log_entrenamiento_4_modelos.txt:
+
+- BRCA_modelo_gat_gcn_final.pt: ya existia de antes (Bloque 8,
+  prerrequisito original).
+- LUAD: COMPLETADO. Duracion real: 3h 58min 30s (20:59:18 -> 00:57:48
+  del 2026-08-12), 168 pacientes (73 eventos), 20 epocas sobre el
+  conjunto completo. C-index de entrenamiento (no es generalizacion):
+  0,5534. Guardado en data/processed/LUAD_modelo_gat_gcn_final.pt
+  (mtime 2026-08-12 00:57).
+- LUSC: el log continua automaticamente tras LUAD (arranca a las
+  00:57:48) pero se CORTA en la epoca 16/20, sin haber llegado a
+  guardar torch.save() (el script solo guarda al final, no hay
+  checkpoint intermedio) -> LUSC_modelo_gat_gcn_final.pt NO existe.
+  Consistente con "se corto durante la noche": el proceso original NO
+  se lanzo con nohup+disown, asi que una desconexion de la sesion lo
+  mato a mitad de LUSC.
+- COAD, KIRC: ni siquiera llegaron a arrancar.
+
+CONCLUSION: hay que relanzar LUSC desde el principio (no hay nada
+recuperable de la ejecucion cortada) y encadenar COAD y KIRC despues,
+esta vez con nohup+disown.
+
+================================================================
+2) NUEVO SCRIPT: src/29_barrido_dec.py
+================================================================
+
+El barrido de 90 configuraciones que dio el resultado K=2 en BRCA
+(paso 47) se hizo de forma ad-hoc en aquel momento, sin quedar
+guardado como script reutilizable (solo la configuracion ganadora se
+codifico en src/28_entrenar_dec.py). Para poder aplicar el mismo
+barrido a LUAD/LUSC/COAD/KIRC:
+
+- Se refactorizo src/28_entrenar_dec.py: se extrajo el bucle de
+  refinamiento DEC (antes inline en main()) a una funcion
+  ejecutar_dec(z, k, lr, intervalo_actualizar_p, n_iter,
+  umbral_convergencia, semilla), reutilizable. Verificado que el
+  refactor no cambia el resultado: re-ejecutado sobre BRCA,
+  reproduce exactamente el resultado documentado en el paso 47
+  (K=2, [64, 117], entropia normalizada=0,937).
+
+- Se creo src/29_barrido_dec.py, que reutiliza ejecutar_dec() (via
+  importlib, mismo patron que 25 usa para importar 21/22) y repite el
+  mismo diseno de barrido que el paso 47 (K en {2,3,4,5,6} x
+  learning_rate en {0,001; 0,01; 0,05} x intervalo_actualizar_p en
+  {5, 20} x 3 semillas = 90 configuraciones), generalizado a
+  cualquier cohorte. Criterio de decision (igual que en el paso 47):
+  se considera "no degenerado" cualquier configuracion con entropia
+  normalizada >= 0,7; si alguna configuracion con K>=3 lo alcanza se
+  entrega esa (indicaria estructura de mas de 2 grupos, distinto del
+  patron de BRCA); si no, se entrega la mejor configuracion de K=2,
+  documentando el mismo colapso que en BRCA. Guarda
+  data/processed/<COHORTE>_dec_subtipos.pt con el mismo formato que
+  28_entrenar_dec.py mas metadatos del barrido (lr, intervalo_p,
+  semilla ganadores, n_configuraciones_barridas, duracion_barrido_s).
+
+  Verificacion rapida (no el barrido completo, solo 2 configuraciones
+  sueltas via ejecutar_dec() importado): K=3 sobre BRCA da [66, 115, 0]
+  (entropia 0,597) y K=2 da [64, 117] (entropia 0,937) -- coincide con
+  los numeros ya documentados en el paso 47, confirma que la
+  generalizacion del codigo es correcta antes de lanzarlo sobre las 4
+  cohortes nuevas.
+
+================================================================
+3) LANZAMIENTO (nohup + disown, python3 -u para log sin buffer)
+================================================================
+
+Dos procesos en paralelo, lanzados desde la raiz del repositorio:
+
+a) Orquestador secuencial LUSC -> COAD -> KIRC (entrenamiento final +
+   barrido DEC de cada cohorte, en ese orden, antes de pasar a la
+   siguiente):
+     nohup bash <script temporal, scratchpad>/orquestar_lusc_coad_kirc.sh > /dev/null 2>&1 & disown
+   PID inicial: 2102 (proceso bash del propio comando; el script hijo
+   real, PID 2105, ejecuta los pasos con python3 -u src/25_... y
+   python3 -u src/29_... redirigidos con >> a
+   results/2026-08-12-paso49/log_entrenamiento_barrido_lusc_coad_kirc.txt).
+   Cada cohorte que falle (exit code != 0) se registra con un aviso
+   explicito y se omite su barrido de DEC, pero la secuencia continua
+   con la siguiente cohorte en vez de abortar todo el lote.
+
+b) Barrido de DEC de LUAD en paralelo (su modelo GAT+GCN final ya
+   existia, no hace falta esperar a que termine LUSC/COAD/KIRC):
+     nohup bash <script temporal, scratchpad>/barrido_dec_luad.sh > /dev/null 2>&1 & disown
+   PID inicial: 2109 (hijo real PID 2111, python3 -u src/29_barrido_dec.py LUAD ...,
+   log en results/2026-08-12-paso49/log_barrido_dec_luad.txt).
+
+Verificado a los pocos segundos del lanzamiento: ambos procesos python
+activos (ps aux), ambos logs con contenido ya visible (confirmando que
+python3 -u efectivamente evita el buffering) - LUSC entrenando sobre
+185 pacientes (87 eventos), barrido de LUAD arrancado sobre
+168 pacientes con las 90 configuraciones en marcha.
+
+================================================================
+4) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
+================================================================
+
+Se documentara aqui, en cuanto termine el conjunto completo (4
+modelos GAT+GCN finales + barrido DEC en las 4 cohortes), avisado por
+un monitor de baja frecuencia:
+
+- Duracion real de LUSC, COAD y KIRC (entrenamiento final).
+- C-index de entrenamiento (sanity check) de cada uno.
+- Resultado del barrido de DEC (K ganador, entropia, reparto de
+  clusters, si alguna cohorte rompe el patron de "solo K=2 no
+  degenerado" visto en BRCA) para LUAD, LUSC, COAD y KIRC.
+
+Commit: (pendiente)

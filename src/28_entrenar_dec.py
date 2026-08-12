@@ -85,30 +85,24 @@ def entropia_normalizada(asignacion, k):
     return h / math.log(k)
 
 
-def main(cohorte, ruta_modelo_gat_gcn, ruta_salida):
-    ruta_salida = Path(ruta_salida)
-    ruta_salida.parent.mkdir(parents=True, exist_ok=True)
-
-    print(f"Cargando embedding h_final de {ruta_modelo_gat_gcn} (reutilizado de GAT+GCN, sin recalcular)...")
-    d = torch.load(ruta_modelo_gat_gcn, map_location="cpu", weights_only=False)
-    z = d["h_final"].detach().clone()
-    pacientes = d["pacientes"]
-    print(f"  z: {tuple(z.shape)} ({len(pacientes)} pacientes)")
-
-    centros, asignacion_inicial = kmeans_init(z, K, SEMILLA)
-    print(f"k-means init (K={K}): {torch.bincount(asignacion_inicial, minlength=K).tolist()}, "
-          f"entropia normalizada={entropia_normalizada(asignacion_inicial, K):.3f}")
+def ejecutar_dec(z, k, lr, intervalo_actualizar_p, n_iter, umbral_convergencia, semilla):
+    # Bucle de refinamiento DEC generico, parametrizado, para poder
+    # reutilizarse tanto en el entrenamiento final (main(), abajo) como
+    # en un barrido de configuraciones (ver 29_barrido_dec.py).
+    centros, asignacion_inicial = kmeans_init(z, k, semilla)
+    ent_inicial = entropia_normalizada(asignacion_inicial, k)
+    conteos_inicial = torch.bincount(asignacion_inicial, minlength=k).tolist()
 
     mu = torch.nn.Parameter(centros.clone())
-    optimizador = torch.optim.Adam([mu], lr=LR)
-    torch.manual_seed(SEMILLA)
+    optimizador = torch.optim.Adam([mu], lr=lr)
+    torch.manual_seed(semilla)
 
     with torch.no_grad():
         p = calcular_p(calcular_q(z, mu))
     asignacion_previa = asignacion_inicial
     iteracion_convergencia = None
-    for it in range(N_ITER):
-        if it % INTERVALO_ACTUALIZAR_P == 0 and it > 0:
+    for it in range(n_iter):
+        if it % intervalo_actualizar_p == 0 and it > 0:
             with torch.no_grad():
                 p = calcular_p(calcular_q(z, mu))
         q = calcular_q(z, mu)
@@ -119,18 +113,48 @@ def main(cohorte, ruta_modelo_gat_gcn, ruta_salida):
         with torch.no_grad():
             asignacion_actual = calcular_q(z, mu).argmax(dim=1)
         frac_cambio = (asignacion_actual != asignacion_previa).float().mean().item()
-        if frac_cambio < UMBRAL_CONVERGENCIA and iteracion_convergencia is None:
+        if frac_cambio < umbral_convergencia and iteracion_convergencia is None:
             iteracion_convergencia = it
         asignacion_previa = asignacion_actual
 
-    ent_final = entropia_normalizada(asignacion_previa, K)
-    conteos_final = torch.bincount(asignacion_previa, minlength=K).tolist()
+    ent_final = entropia_normalizada(asignacion_previa, k)
+    conteos_final = torch.bincount(asignacion_previa, minlength=k).tolist()
+    return {
+        "asignacion": asignacion_previa,
+        "centros": mu.detach(),
+        "entropia_normalizada": ent_final,
+        "conteos_cluster": conteos_final,
+        "iteracion_convergencia": iteracion_convergencia,
+        "entropia_inicial": ent_inicial,
+        "conteos_inicial": conteos_inicial,
+    }
+
+
+def main(cohorte, ruta_modelo_gat_gcn, ruta_salida):
+    ruta_salida = Path(ruta_salida)
+    ruta_salida.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"Cargando embedding h_final de {ruta_modelo_gat_gcn} (reutilizado de GAT+GCN, sin recalcular)...")
+    d = torch.load(ruta_modelo_gat_gcn, map_location="cpu", weights_only=False)
+    z = d["h_final"].detach().clone()
+    pacientes = d["pacientes"]
+    print(f"  z: {tuple(z.shape)} ({len(pacientes)} pacientes)")
+
+    resultado = ejecutar_dec(z, K, LR, INTERVALO_ACTUALIZAR_P, N_ITER, UMBRAL_CONVERGENCIA, SEMILLA)
+    print(f"k-means init (K={K}): {resultado['conteos_inicial']}, "
+          f"entropia normalizada={resultado['entropia_inicial']:.3f}")
+
+    asignacion_previa = resultado["asignacion"]
+    mu_final = resultado["centros"]
+    iteracion_convergencia = resultado["iteracion_convergencia"]
+    ent_final = resultado["entropia_normalizada"]
+    conteos_final = resultado["conteos_cluster"]
 
     torch.save({
         "cohorte": cohorte,
         "pacientes": pacientes,
         "asignacion_cluster": asignacion_previa,
-        "centros": mu.detach(),
+        "centros": mu_final,
         "K": K,
         "entropia_normalizada": ent_final,
         "conteos_cluster": conteos_final,

@@ -133,4 +133,11 @@ class ModeloGATGCN(nn.Module):
         edge_index_pacientes = construir_grafo_knn_pacientes(h0_pacientes.detach(), self.k_vecinos)
         h_final = self.propagador_paciente(h0_pacientes, edge_index_pacientes)
         riesgo = self.cabeza_riesgo(h_final).squeeze(-1)  # [n_pacientes]
-        return riesgo
+        # h_final: embedding molecular de la Capa 3 por paciente
+        # [n_pacientes, dim_salida_gcn], expuesto como segunda salida
+        # para el Bloque 8 (MIL, Seccion 4.5 del TFM): el vector
+        # conjunto del paciente concatena este embedding con z_WSI
+        # (pooling de atencion sobre parches de la WSI). Cambia la
+        # firma de forward() de "return riesgo" a "return riesgo,
+        # h_final"; actualizado tambien 22_entrenar_gat_gcn.py.
+        return riesgo, h_final

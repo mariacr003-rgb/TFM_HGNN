@@ -1,0 +1,59 @@
+=== INICIO LUAD: 2026-08-11 20:59:18 ===
+Cohorte: LUAD
+Cargando grafo gen-gen (proyeccion PPI STRING, ver 19_proyectar_grafo_gen_gen.py)...
+  19962 genes, 457162 aristas dirigidas
+Cargando atributos por gen normalizados (ver 20_preprocesar_atributos_gen.py)...
+Cruzando con supervivencia (clinical_valid.tsv)...
+  168 pacientes con supervivencia utilizable (73 eventos)
+  ENTRENAMIENTO SOBRE EL CONJUNTO COMPLETO, sin pliegues: el objetivo de este script es un modelo final para extraer embeddings, no evaluar generalizacion (ya evaluada en el Paso 36).
+Entrenando 20 epocas sobre los 168 pacientes...
+  epoca 1/20: perdida_cox=316.6079
+  epoca 2/20: perdida_cox=316.5286
+  epoca 3/20: perdida_cox=316.4560
+  epoca 4/20: perdida_cox=316.3478
+  epoca 5/20: perdida_cox=316.2686
+  epoca 6/20: perdida_cox=316.1434
+  epoca 7/20: perdida_cox=316.0677
+  epoca 8/20: perdida_cox=316.0749
+  epoca 9/20: perdida_cox=316.1510
+  epoca 10/20: perdida_cox=316.2015
+  epoca 11/20: perdida_cox=316.2422
+  epoca 12/20: perdida_cox=316.1187
+  epoca 13/20: perdida_cox=316.0015
+  epoca 14/20: perdida_cox=315.9764
+  epoca 15/20: perdida_cox=315.9660
+  epoca 16/20: perdida_cox=316.0039
+  epoca 17/20: perdida_cox=315.9839
+  epoca 18/20: perdida_cox=315.9643
+  epoca 19/20: perdida_cox=315.9467
+  epoca 20/20: perdida_cox=315.9823
+
+C-index sobre el conjunto de entrenamiento (NO es generalizacion): 0.5534
+h_final: (168, 32)
+Guardado: data/processed/LUAD_modelo_gat_gcn_final.pt
+=== FIN LUAD: 2026-08-12 00:57:48 ===
+=== INICIO LUSC: 2026-08-12 00:57:48 ===
+Cohorte: LUSC
+Cargando grafo gen-gen (proyeccion PPI STRING, ver 19_proyectar_grafo_gen_gen.py)...
+  19962 genes, 457162 aristas dirigidas
+Cargando atributos por gen normalizados (ver 20_preprocesar_atributos_gen.py)...
+Cruzando con supervivencia (clinical_valid.tsv)...
+  185 pacientes con supervivencia utilizable (87 eventos)
+  ENTRENAMIENTO SOBRE EL CONJUNTO COMPLETO, sin pliegues: el objetivo de este script es un modelo final para extraer embeddings, no evaluar generalizacion (ya evaluada en el Paso 36).
+Entrenando 20 epocas sobre los 185 pacientes...
+  epoca 1/20: perdida_cox=373.3713
+  epoca 2/20: perdida_cox=373.2822
+  epoca 3/20: perdida_cox=373.2335
+  epoca 4/20: perdida_cox=373.1793
+  epoca 5/20: perdida_cox=373.1236
+  epoca 6/20: perdida_cox=373.0743
+  epoca 7/20: perdida_cox=373.0424
+  epoca 8/20: perdida_cox=372.9847
+  epoca 9/20: perdida_cox=372.9091
+  epoca 10/20: perdida_cox=372.7816
+  epoca 11/20: perdida_cox=372.6604
+  epoca 12/20: perdida_cox=372.5363
+  epoca 13/20: perdida_cox=372.4028
+  epoca 14/20: perdida_cox=372.2178
+  epoca 15/20: perdida_cox=372.1096
+  epoca 16/20: perdida_cox=372.0057
