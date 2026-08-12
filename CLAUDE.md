@@ -226,10 +226,16 @@ del TFM y NO se replica en las 4 cohortes restantes; se deja la puerta
 abierta a retomarlo en el futuro con más semillas de validación o más
 pacientes por cohorte.
 
-Bloque 8 (MIL) — EN CURSO: prerrequisito completado, el modelo
-GAT+GCN final de BRCA (entrenado con `src/25_entrenar_gat_gcn_final.py`,
-sin partición k-fold) guardado en
-`data/processed/BRCA_modelo_gat_gcn_final.pt`. Arquitectura MIL
+Bloque 8 (MIL) — EN CURSO: prerrequisito completado en las 5
+cohortes (2026-08-13), el modelo GAT+GCN final de cada una
+(entrenado con `src/25_entrenar_gat_gcn_final.py`, sin partición
+k-fold) guardado en `data/processed/<COHORTE>_modelo_gat_gcn_final.pt`.
+LUAD, LUSC, COAD y KIRC relanzados con nohup+disown tras un corte
+nocturno del intento original (LUSC murió en la época 16/20 sin
+checkpoint intermedio, por no haberse lanzado con nohup+disown la
+primera vez); tiempos reales: LUAD 3h58m30s, LUSC 4h05m44s, COAD
+3h57m54s, KIRC 4h52m16s (más lento sin causa identificada, ver
+`results/2026-08-12-paso49/runlog.txt`). Arquitectura MIL
 implementada en `src/26_modelo_mil.py` (`EncoderResNetMIL`: ResNet-50
 preentrenado en ImageNet, ver NOTA en el propio fichero sobre la
 desviación respecto al checkpoint histología-específico que pide la
@@ -285,41 +291,58 @@ para LUAD, LUSC, COAD y KIRC (hasta ahora solo existía para BRCA,
 entrenamiento NO cuenta dentro de los 8 días de MIL, es un paso previo
 aparte. Ver `results/2026-08-11-paso48/runlog.txt`.
 
-Bloque 9 (DEC) — RESULTADO INICIAL, LIMITACIÓN DOCUMENTADA
-(2026-08-11): investigado con un presupuesto acotado de ~0,5 día (de
-los 9 días repartidos entre MIL y DEC). Reutiliza directamente
-`h_final` (el embedding de la Capa 3 ya calculado y guardado por
-`25_entrenar_gat_gcn_final.py`), sin autoencoder propio — coste
-computacional trivial (~5s por cohorte, smoke test real sobre BRCA).
-Un barrido de 90 configuraciones (K∈{2,3,4,5,6} × learning rate ×
-intervalo de actualización del target × 3 semillas) muestra que
-CUALQUIER K≥3 colapsa de forma reproducible al mismo reparto binario
-subyacente (~65-68 vs ~113-117 pacientes de BRCA), incluso con la
-reponderación 1/f_j de Xie et al. 2016 (diseñada precisamente para
-evitar esto) ya incluida en la fórmula. Solo K=2 da un resultado no
-degenerado (entropía normalizada 0,937, estable en las 18
-configuraciones probadas). Siguiendo el mismo criterio que VGAE, NO se
-persiguió IDEC (Guo et al. 2017, la corrección documentada en la
-literatura — exige un decoder y un cambio de arquitectura, fuera de
-presupuesto): se documenta el colapso como limitación metodológica
-honesta para la Sección 4.9 (el embedding de GAT+GCN, optimizado para
-riesgo de Cox, probablemente solo separa "alto riesgo/bajo riesgo", no
-subtipos moleculares múltiples) y se entrega K=2 como resultado final,
-guardado en `data/processed/BRCA_dec_subtipos.pt`
-(`src/28_entrenar_dec.py`). Ver `results/2026-08-11-paso47/runlog.txt`.
+Bloque 9 (DEC) — CERRADO EN LAS 5 COHORTES (2026-08-13): investigado
+inicialmente con un presupuesto acotado de ~0,5 día sobre BRCA
+(2026-08-11, ver `results/2026-08-11-paso47/runlog.txt`) y extendido
+a LUAD, LUSC, COAD y KIRC tras completarse el prerrequisito del
+Bloque 8. Reutiliza directamente `h_final` (el embedding de la Capa 3
+ya calculado y guardado por `25_entrenar_gat_gcn_final.py`), sin
+autoencoder propio — coste computacional trivial (~50-90s por
+cohorte para el barrido completo de 90 configuraciones).
+`src/29_barrido_dec.py` generaliza el barrido de BRCA (K∈{2,3,4,5,6}
+× learning rate × intervalo de actualización del target × 3
+semillas) a cualquier cohorte, reutilizando el bucle de refinamiento
+extraído de `src/28_entrenar_dec.py` (`ejecutar_dec()`).
 
-Trabajo pendiente: (1) generar los 4 modelos GAT+GCN finales que
-faltan (LUAD, LUSC, COAD, KIRC) — en curso; (2) seleccionar 12
-pacientes por cohorte (primeros en orden alfabético de case_id, con
-supervivencia válida y modelo GAT+GCN entrenado), verificar
-disponibilidad de WSI en el GDC para cada uno (sustituyendo si falta,
-mismo criterio que se aplicó a RNA-seq/CNV/metilación en los Pasos
-24-29) y descargar+procesar (streaming) dentro de los 8 días
-presupuestados; (3) combinar z_WSI con el embedding molecular de la
-Capa 3 y calcular el C-index de MIL+molecular por cohorte, comparado
-con el C-index solo molecular ya documentado (Bloque 6); (4) DEC
-(Bloque 9) queda cerrado con la limitación documentada arriba, sin más
-trabajo previsto salvo que se decida revisitarlo. STRING v12 ya está
+HALLAZGO Y CORRECCIÓN DE CRITERIO (2026-08-13): el criterio de
+decisión inicial ("un K≥3 gana si al menos 1 de sus 18
+configuraciones supera entropía 0,7") es estadísticamente frágil —
+en LUAD, LUSC y COAD eligió un K≥3 sostenido por solo 1-4 de 18
+configuraciones (problema de comparaciones múltiples: probar 18
+combinaciones y quedarse con el máximo hace casi inevitable que
+alguna cruce un umbral fijo por azar), mientras el resto de esas
+mismas configuraciones colapsaba igual que en BRCA/KIRC. Corregido
+exigiendo mayoría robusta (`UMBRAL_MAYORIA_ROBUSTA=0,5`: al menos la
+mitad de las 18 configuraciones de un K deben ser no degeneradas, no
+basta con una). Con el criterio corregido, LAS 5 COHORTES CONFIRMAN
+EL MISMO PATRÓN: CUALQUIER K≥3 colapsa de forma reproducible al mismo
+reparto binario subyacente, incluso con la reponderación 1/f_j de Xie
+et al. 2016 (diseñada precisamente para evitar esto) ya incluida en
+la fórmula. Solo K=2 da un resultado no degenerado en las 5 cohortes,
+estable en el 100% de sus 18 configuraciones cada vez: BRCA entropía
+0,937 [64,117], LUAD 0,906 [114,54], LUSC 0,992 [102,83], COAD 0,950
+[113,66], KIRC 0,945 [66,116]. Siguiendo el mismo criterio que VGAE,
+NO se persiguió IDEC (Guo et al. 2017 — exige un decoder y un cambio
+de arquitectura, fuera de presupuesto): se documenta el colapso como
+limitación metodológica confirmada y generalizada a las 5 cohortes
+para la Sección 4.9 (el embedding de GAT+GCN, optimizado para riesgo
+de Cox, separa de forma natural en "alto riesgo/bajo riesgo", no en
+la estructura rica de subtipos moleculares múltiples tipo PAM50 que
+DEC buscaba originalmente). Resultado final guardado en
+`data/processed/<COHORTE>_dec_subtipos.pt` en las 5 cohortes. Ver
+`results/2026-08-12-paso49/runlog.txt` para el detalle completo.
+
+Trabajo pendiente: (1) seleccionar 12 pacientes por cohorte (primeros
+en orden alfabético de case_id, con supervivencia válida y modelo
+GAT+GCN entrenado), verificar disponibilidad de WSI en el GDC para
+cada uno (sustituyendo si falta, mismo criterio que se aplicó a
+RNA-seq/CNV/metilación en los Pasos 24-29) y descargar+procesar
+(streaming) dentro de los 8 días presupuestados; (2) combinar z_WSI
+con el embedding molecular de la Capa 3 y calcular el C-index de
+MIL+molecular por cohorte, comparado con el C-index solo molecular ya
+documentado (Bloque 6); (3) DEC (Bloque 9) queda cerrado en las 5
+cohortes con la limitación documentada arriba, sin más trabajo
+previsto salvo que se decida revisitarlo. STRING v12 ya está
 descargado; Reactome y KEGG siguen pendientes para completar el grafo
 heterogéneo de vías (Fase 3). `docs/manifest-datos.tsv` ya está al día
 con el estado de Fase 1 (datos) pero NO refleja aún VGAE/MIL/DEC;

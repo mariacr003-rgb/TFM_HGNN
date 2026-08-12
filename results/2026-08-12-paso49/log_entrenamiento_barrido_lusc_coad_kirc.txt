@@ -7,3 +7,187 @@ Cruzando con supervivencia (clinical_valid.tsv)...
   185 pacientes con supervivencia utilizable (87 eventos)
   ENTRENAMIENTO SOBRE EL CONJUNTO COMPLETO, sin pliegues: el objetivo de este script es un modelo final para extraer embeddings, no evaluar generalizacion (ya evaluada en el Paso 36).
 Entrenando 20 epocas sobre los 185 pacientes...
+  epoca 1/20: perdida_cox=373.4016
+  epoca 2/20: perdida_cox=373.2772
+  epoca 3/20: perdida_cox=373.2072
+  epoca 4/20: perdida_cox=373.1833
+  epoca 5/20: perdida_cox=373.2165
+  epoca 6/20: perdida_cox=373.2487
+  epoca 7/20: perdida_cox=373.2645
+  epoca 8/20: perdida_cox=373.2451
+  epoca 9/20: perdida_cox=373.1869
+  epoca 10/20: perdida_cox=373.1657
+  epoca 11/20: perdida_cox=373.1652
+  epoca 12/20: perdida_cox=373.1310
+  epoca 13/20: perdida_cox=373.0868
+  epoca 14/20: perdida_cox=373.0693
+  epoca 15/20: perdida_cox=373.0372
+  epoca 16/20: perdida_cox=372.9998
+  epoca 17/20: perdida_cox=372.9552
+  epoca 18/20: perdida_cox=372.8681
+  epoca 19/20: perdida_cox=372.8365
+  epoca 20/20: perdida_cox=372.8043
+
+C-index sobre el conjunto de entrenamiento (NO es generalizacion): 0.5158
+h_final: (185, 32)
+Guardado: data/processed/LUSC_modelo_gat_gcn_final.pt
+=== FIN ENTRENAMIENTO LUSC (exit=0): 2026-08-12 16:08:27 ===
+=== INICIO BARRIDO DEC LUSC: 2026-08-12 16:08:27 ===
+Cargando embedding h_final de data/processed/LUSC_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
+  z: (185, 32) (185 pacientes)
+Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 50.8s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.991-0.992 (18/18 configs >= 0.7)
+  K=3: entropia 0.511-0.753 (1/18 configs >= 0.7)
+  K=4: entropia 0.484-0.623 (0/18 configs >= 0.7)
+  K=5: entropia 0.386-0.407 (0/18 configs >= 0.7)
+  K=6: entropia 0.347-0.578 (0/18 configs >= 0.7)
+
+Configuracion ganadora: K=3, lr=0.001, intervalo_p=20, semilla=0
+Distribucion final: [24, 33, 128], entropia normalizada=0.753
+Guardado: data/processed/LUSC_dec_subtipos.pt
+=== FIN BARRIDO DEC LUSC (exit=0): 2026-08-12 16:09:25 ===
+=== INICIO ENTRENAMIENTO COAD: 2026-08-12 16:09:25 ===
+Cohorte: COAD
+Cargando grafo gen-gen (proyeccion PPI STRING, ver 19_proyectar_grafo_gen_gen.py)...
+  19962 genes, 457162 aristas dirigidas
+Cargando atributos por gen normalizados (ver 20_preprocesar_atributos_gen.py)...
+Cruzando con supervivencia (clinical_valid.tsv)...
+  179 pacientes con supervivencia utilizable (41 eventos)
+  ENTRENAMIENTO SOBRE EL CONJUNTO COMPLETO, sin pliegues: el objetivo de este script es un modelo final para extraer embeddings, no evaluar generalizacion (ya evaluada en el Paso 36).
+Entrenando 20 epocas sobre los 179 pacientes...
+  epoca 1/20: perdida_cox=173.0591
+  epoca 2/20: perdida_cox=172.9473
+  epoca 3/20: perdida_cox=172.8613
+  epoca 4/20: perdida_cox=172.7783
+  epoca 5/20: perdida_cox=172.6987
+  epoca 6/20: perdida_cox=172.6523
+  epoca 7/20: perdida_cox=172.5938
+  epoca 8/20: perdida_cox=172.5331
+  epoca 9/20: perdida_cox=172.4826
+  epoca 10/20: perdida_cox=172.4481
+  epoca 11/20: perdida_cox=172.3960
+  epoca 12/20: perdida_cox=172.3826
+  epoca 13/20: perdida_cox=172.3214
+  epoca 14/20: perdida_cox=172.2851
+  epoca 15/20: perdida_cox=172.2399
+  epoca 16/20: perdida_cox=172.2875
+  epoca 17/20: perdida_cox=172.2916
+  epoca 18/20: perdida_cox=172.3180
+  epoca 19/20: perdida_cox=172.3120
+  epoca 20/20: perdida_cox=172.3132
+
+C-index sobre el conjunto de entrenamiento (NO es generalizacion): 0.5068
+h_final: (179, 32)
+Guardado: data/processed/COAD_modelo_gat_gcn_final.pt
+=== FIN ENTRENAMIENTO COAD (exit=0): 2026-08-12 20:07:19 ===
+=== INICIO BARRIDO DEC COAD: 2026-08-12 20:07:19 ===
+Cargando embedding h_final de data/processed/COAD_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
+  z: (179, 32) (179 pacientes)
+Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 56.7s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.941-0.950 (18/18 configs >= 0.7)
+  K=3: entropia 0.539-0.767 (4/18 configs >= 0.7)
+  K=4: entropia 0.470-0.635 (0/18 configs >= 0.7)
+  K=5: entropia 0.409-0.698 (0/18 configs >= 0.7)
+  K=6: entropia 0.367-0.753 (1/18 configs >= 0.7)
+
+Configuracion ganadora: K=3, lr=0.001, intervalo_p=20, semilla=0
+Distribucion final: [122, 33, 24], entropia normalizada=0.767
+Guardado: data/processed/COAD_dec_subtipos.pt
+=== FIN BARRIDO DEC COAD (exit=0): 2026-08-12 20:08:22 ===
+=== INICIO ENTRENAMIENTO KIRC: 2026-08-12 20:08:22 ===
+Cohorte: KIRC
+Cargando grafo gen-gen (proyeccion PPI STRING, ver 19_proyectar_grafo_gen_gen.py)...
+  19962 genes, 457162 aristas dirigidas
+Cargando atributos por gen normalizados (ver 20_preprocesar_atributos_gen.py)...
+Cruzando con supervivencia (clinical_valid.tsv)...
+  182 pacientes con supervivencia utilizable (68 eventos)
+  ENTRENAMIENTO SOBRE EL CONJUNTO COMPLETO, sin pliegues: el objetivo de este script es un modelo final para extraer embeddings, no evaluar generalizacion (ya evaluada en el Paso 36).
+Entrenando 20 epocas sobre los 182 pacientes...
+  epoca 1/20: perdida_cox=307.5555
+  epoca 2/20: perdida_cox=307.4326
+  epoca 3/20: perdida_cox=307.3677
+  epoca 4/20: perdida_cox=307.3158
+  epoca 5/20: perdida_cox=307.2747
+  epoca 6/20: perdida_cox=307.2449
+  epoca 7/20: perdida_cox=307.2393
+  epoca 8/20: perdida_cox=307.2124
+  epoca 9/20: perdida_cox=307.2079
+  epoca 10/20: perdida_cox=307.2425
+  epoca 11/20: perdida_cox=307.3236
+  epoca 12/20: perdida_cox=307.3192
+  epoca 13/20: perdida_cox=307.3245
+  epoca 14/20: perdida_cox=307.3276
+  epoca 15/20: perdida_cox=307.3276
+  epoca 16/20: perdida_cox=307.2988
+  epoca 17/20: perdida_cox=307.2892
+  epoca 18/20: perdida_cox=307.2529
+  epoca 19/20: perdida_cox=307.2468
+  epoca 20/20: perdida_cox=307.2480
+
+C-index sobre el conjunto de entrenamiento (NO es generalizacion): 0.5189
+h_final: (182, 32)
+Guardado: data/processed/KIRC_modelo_gat_gcn_final.pt
+=== FIN ENTRENAMIENTO KIRC (exit=0): 2026-08-13 01:00:38 ===
+=== INICIO BARRIDO DEC KIRC: 2026-08-13 01:00:38 ===
+Cargando embedding h_final de data/processed/KIRC_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
+  z: (182, 32) (182 pacientes)
+Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 56.8s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.940-0.945 (18/18 configs >= 0.7)
+  K=3: entropia 0.558-0.596 (0/18 configs >= 0.7)
+  K=4: entropia 0.442-0.636 (0/18 configs >= 0.7)
+  K=5: entropia 0.358-0.684 (0/18 configs >= 0.7)
+  K=6: entropia 0.298-0.476 (0/18 configs >= 0.7)
+
+Configuracion ganadora: K=2, lr=0.001, intervalo_p=5, semilla=0
+Distribucion final: [66, 116], entropia normalizada=0.945
+Guardado: data/processed/KIRC_dec_subtipos.pt
+=== FIN BARRIDO DEC KIRC (exit=0): 2026-08-13 01:01:42 ===
+=== SECUENCIA LUSC/COAD/KIRC COMPLETA: 2026-08-13 01:01:42 ===
+
+=== RELANZADO LUSC CON CRITERIO DE MAYORIA ROBUSTA (ver runlog, seccion 5): 2026-08-13 01:31:07 ===
+Cargando embedding h_final de data/processed/LUSC_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
+  z: (185, 32) (185 pacientes)
+Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 61.6s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.991-0.992 (18/18 configs >= 0.7)
+  K=3: entropia 0.511-0.753 (1/18 configs >= 0.7)
+  K=4: entropia 0.484-0.623 (0/18 configs >= 0.7)
+  K=5: entropia 0.386-0.407 (0/18 configs >= 0.7)
+  K=6: entropia 0.347-0.578 (0/18 configs >= 0.7)
+
+Configuracion ganadora: K=2, lr=0.001, intervalo_p=5, semilla=0
+Distribucion final: [102, 83], entropia normalizada=0.992
+Guardado: data/processed/LUSC_dec_subtipos.pt
+=== FIN RELANZAMIENTO LUSC: 2026-08-13 01:32:12 ===
+
+=== RELANZADO COAD CON CRITERIO DE MAYORIA ROBUSTA (ver runlog, seccion 5): 2026-08-13 01:32:12 ===
+[intento cortado por timeout del comando a mitad del barrido (limite de
+la herramienta, no del proceso), reintentado sin cambios inmediatamente
+despues - unico motivo de las 2 lineas "Cargando..." seguidas abajo]
+Cargando embedding h_final de data/processed/COAD_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
+  z: (179, 32) (179 pacientes)
+Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 66.3s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.941-0.950 (18/18 configs >= 0.7)
+  K=3: entropia 0.539-0.767 (4/18 configs >= 0.7)
+  K=4: entropia 0.470-0.635 (0/18 configs >= 0.7)
+  K=5: entropia 0.409-0.698 (0/18 configs >= 0.7)
+  K=6: entropia 0.367-0.753 (1/18 configs >= 0.7)
+
+Configuracion ganadora: K=2, lr=0.001, intervalo_p=5, semilla=0
+Distribucion final: [113, 66], entropia normalizada=0.950
+Guardado: data/processed/COAD_dec_subtipos.pt
+=== FIN RELANZAMIENTO COAD: 2026-08-13 01:34:26 ===

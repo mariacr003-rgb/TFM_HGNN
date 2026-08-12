@@ -2,3 +2,34 @@
 Cargando embedding h_final de data/processed/LUAD_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
   z: (168, 32) (168 pacientes)
 Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 662.0s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.886-0.906 (18/18 configs >= 0.7)
+  K=3: entropia 0.626-0.631 (0/18 configs >= 0.7)
+  K=4: entropia 0.443-0.500 (0/18 configs >= 0.7)
+  K=5: entropia 0.357-0.425 (0/18 configs >= 0.7)
+  K=6: entropia 0.343-0.716 (1/18 configs >= 0.7)
+
+Configuracion ganadora: K=6, lr=0.001, intervalo_p=5, semilla=1
+Distribucion final: [0, 16, 53, 35, 0, 64], entropia normalizada=0.716
+Guardado: data/processed/LUAD_dec_subtipos.pt
+=== FIN BARRIDO DEC LUAD (exit=0): 2026-08-12 12:14:07 ===
+
+=== RELANZADO CON CRITERIO DE MAYORIA ROBUSTA (ver runlog, seccion 5): 2026-08-13 01:29:48 ===
+Cargando embedding h_final de data/processed/LUAD_modelo_gat_gcn_final.pt (reutilizado de GAT+GCN, sin recalcular)...
+  z: (168, 32) (168 pacientes)
+Barrido de 90 configuraciones (K x lr x intervalo_p x semilla), mismo diseno que results/2026-08-11-paso47/runlog.txt (BRCA)...
+Barrido completo: 65.4s (90 configuraciones)
+
+Resumen por K (entropia normalizada, min-max sobre lr x intervalo_p x semilla):
+  K=2: entropia 0.886-0.906 (18/18 configs >= 0.7)
+  K=3: entropia 0.626-0.631 (0/18 configs >= 0.7)
+  K=4: entropia 0.443-0.500 (0/18 configs >= 0.7)
+  K=5: entropia 0.357-0.425 (0/18 configs >= 0.7)
+  K=6: entropia 0.343-0.716 (1/18 configs >= 0.7)
+
+Configuracion ganadora: K=2, lr=0.001, intervalo_p=20, semilla=0
+Distribucion final: [114, 54], entropia normalizada=0.906
+Guardado: data/processed/LUAD_dec_subtipos.pt
+=== FIN RELANZAMIENTO LUAD: 2026-08-13 01:30:57 ===

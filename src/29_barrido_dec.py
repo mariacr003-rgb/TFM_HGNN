@@ -12,11 +12,19 @@ import torch
 # patron que 25 usa para importar 21/22) en vez de duplicar el bucle
 # de refinamiento DEC.
 #
-# Criterio de decision (igual que en el barrido original de BRCA,
-# paso47): se considera "no degenerado" cualquier configuracion con
-# entropia normalizada >= 0,7. Si alguna configuracion con K>=3 lo
-# alcanza, se entrega esa (senal de estructura de mas de 2 grupos,
-# distinto del patron de BRCA); si no, se entrega la mejor
+# Criterio de decision (endurecido en el paso 49, ver
+# results/2026-08-12-paso49/runlog.txt): se considera "no degenerado"
+# cualquier configuracion con entropia normalizada >= 0,7, pero un
+# K>=3 solo se acepta como estructura ROBUSTA si al menos la MITAD de
+# sus 18 configuraciones (lr x intervalo_p x semilla) son no
+# degeneradas - no basta con una sola. El criterio original (bastaba
+# 1 de 18) resulto ser estadisticamente fragil: en LUAD, LUSC y COAD
+# eligio un K>=3 sostenido por solo 1-4 de 18 configuraciones (ruido
+# de comparaciones multiples: probar 18 combinaciones y quedarse con
+# el maximo casi garantiza que alguna cruce un umbral fijo por azar),
+# mientras que K=2 es no degenerado en el 100% de sus configuraciones
+# en las 5 cohortes probadas hasta ahora (BRCA, LUAD, LUSC, COAD,
+# KIRC). Si ningun K>=3 alcanza la mayoria, se entrega la mejor
 # configuracion de K=2, documentando el mismo colapso que en BRCA.
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -30,6 +38,7 @@ LRS = [0.001, 0.01, 0.05]
 INTERVALOS_P = [5, 20]
 SEMILLAS = [0, 1, 2]
 UMBRAL_ENTROPIA_NO_DEGENERADO = 0.7  # mismo umbral que paso47
+UMBRAL_MAYORIA_ROBUSTA = 0.5  # fraccion minima de configs de un K que deben ser no degeneradas (ver runlog paso49)
 
 
 def main(cohorte, ruta_modelo_gat_gcn, ruta_salida):
@@ -72,20 +81,29 @@ def main(cohorte, ruta_modelo_gat_gcn, ruta_salida):
         print(f"  K={k}: entropia {min(ents):.3f}-{max(ents):.3f} "
               f"({n_no_degenerado}/{len(ents)} configs >= {UMBRAL_ENTROPIA_NO_DEGENERADO})")
 
-    candidatos_no_degenerados = [r for r in resultados if r["entropia"] >= UMBRAL_ENTROPIA_NO_DEGENERADO]
-    candidatos_k_mayor = [r for r in candidatos_no_degenerados if r["k"] >= 3]
+    candidatos_k_mayor_robustos = []
+    for k in KS:
+        if k < 3:
+            continue
+        configs_k = [r for r in resultados if r["k"] == k]
+        no_degenerados_k = [r for r in configs_k if r["entropia"] >= UMBRAL_ENTROPIA_NO_DEGENERADO]
+        if len(no_degenerados_k) / len(configs_k) >= UMBRAL_MAYORIA_ROBUSTA:
+            candidatos_k_mayor_robustos.append(max(no_degenerados_k, key=lambda r: r["entropia"]))
 
-    if candidatos_k_mayor:
-        ganador = max(candidatos_k_mayor, key=lambda r: r["entropia"])
+    if candidatos_k_mayor_robustos:
+        ganador = max(candidatos_k_mayor_robustos, key=lambda r: r["entropia"])
+        n_k_configs = len(LRS) * len(INTERVALOS_P) * len(SEMILLAS)
+        n_no_degenerados_ganador = sum(
+            1 for r in resultados if r["k"] == ganador["k"] and r["entropia"] >= UMBRAL_ENTROPIA_NO_DEGENERADO
+        )
         limitacion = (
             f"Barrido de {n_configs} configuraciones: a diferencia de BRCA (paso47), {cohorte} "
-            f"SI tiene al menos una configuracion con K={ganador['k']} no degenerada "
-            f"(entropia={ganador['entropia']:.3f} >= {UMBRAL_ENTROPIA_NO_DEGENERADO}). Se entrega "
-            f"como resultado, pero sin mas verificacion de robustez que las 3 semillas probadas "
-            f"en este barrido."
+            f"SI tiene una mayoria robusta de configuraciones con K={ganador['k']} no degeneradas "
+            f"({n_no_degenerados_ganador}/{n_k_configs} configs >= {UMBRAL_ENTROPIA_NO_DEGENERADO}, "
+            f">= {UMBRAL_MAYORIA_ROBUSTA:.0%} requerido). Se entrega como resultado."
         )
     else:
-        candidatos_k2 = [r for r in candidatos_no_degenerados if r["k"] == 2] or \
+        candidatos_k2 = [r for r in resultados if r["k"] == 2 and r["entropia"] >= UMBRAL_ENTROPIA_NO_DEGENERADO] or \
             [r for r in resultados if r["k"] == 2]
         ganador = max(candidatos_k2, key=lambda r: r["entropia"])
         limitacion = (

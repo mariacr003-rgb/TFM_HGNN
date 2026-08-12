@@ -107,17 +107,104 @@ python3 -u efectivamente evita el buffering) - LUSC entrenando sobre
 168 pacientes con las 90 configuraciones en marcha.
 
 ================================================================
-4) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
+4) RESULTADO FINAL: ENTRENAMIENTO GAT+GCN (LUSC, COAD, KIRC)
 ================================================================
 
-Se documentara aqui, en cuanto termine el conjunto completo (4
-modelos GAT+GCN finales + barrido DEC en las 4 cohortes), avisado por
-un monitor de baja frecuencia:
+Los 3 entrenamientos se completaron sin cortes (nohup+disown), en
+secuencia, cada uno seguido inmediatamente de su barrido de DEC antes
+de pasar a la siguiente cohorte:
 
-- Duracion real de LUSC, COAD y KIRC (entrenamiento final).
-- C-index de entrenamiento (sanity check) de cada uno.
-- Resultado del barrido de DEC (K ganador, entropia, reparto de
-  clusters, si alguna cohorte rompe el patron de "solo K=2 no
-  degenerado" visto en BRCA) para LUAD, LUSC, COAD y KIRC.
+  Cohorte  Inicio               Fin                  Duracion    Pacientes  C-index entrenamiento*
+  LUAD     2026-08-11 20:59:18  2026-08-12 00:57:48   3h58m30s    168        0,5534
+  LUSC     2026-08-12 12:02:43  2026-08-12 16:08:27   4h05m44s    185        0,5158
+  COAD     2026-08-12 16:09:25  2026-08-12 20:07:19   3h57m54s    179        0,5068
+  KIRC     2026-08-12 20:08:22  2026-08-13 01:00:38   4h52m16s    182        0,5189
 
-Commit: (pendiente)
+  * C-index sobre el propio conjunto de entrenamiento (sin pliegue de
+    validacion, ver 25_entrenar_gat_gcn_final.py): solo es una
+    comprobacion de cordura de que el modelo aprendio algo coherente,
+    NO una metrica de generalizacion (esa ya se evaluo en el Bloque 6,
+    Paso 36-40, con validacion cruzada).
+
+KIRC fue notablemente mas lento por paciente (~4,82 s/paciente-epoca)
+que LUSC y COAD (~3,99 s/paciente-epoca), pese a tener un numero de
+pacientes similar (182 vs 179-185) y ejecutarse en la misma maquina
+sin otros procesos activos en ese tramo. No se investiga la causa (no
+afecta a la correctitud del resultado, solo al tiempo de pared) - queda
+como observacion para futuros entrenamientos largos en este hardware.
+
+Los 4 modelos finales completos: data/processed/{LUAD,LUSC,COAD,KIRC}_modelo_gat_gcn_final.pt
+(mas el ya existente BRCA_modelo_gat_gcn_final.pt).
+
+================================================================
+5) RESULTADO FINAL: BARRIDO DE DEC EN LAS 5 COHORTES
+================================================================
+
+Primera pasada (criterio original: un K>=3 gana si AL MENOS UNA de
+sus 18 configuraciones supera entropia normalizada 0,7) dio un
+resultado inconsistente entre cohortes:
+
+  Cohorte  K ganador (criterio original)  Entropia  Configs K>=3 no degeneradas
+  BRCA     K=2 (paso47)                   0,937     0/72
+  LUAD     K=6                            0,716     1/18 (solo en K=6)
+  LUSC     K=3                            0,753     1/18 (solo en K=3)
+  COAD     K=3                            0,767     4/18 (solo en K=3)
+  KIRC     K=2                            0,945     0/72
+
+HALLAZGO: en LUAD, LUSC y COAD, el K>=3 "ganador" solo lo alcanzaba
+1-4 de las 18 combinaciones de learning_rate x intervalo_p x semilla
+para ese K - el resto de esas mismas 18 configuraciones colapsaban
+igual que en BRCA/KIRC. Bastar con "al menos una configuracion no
+degenerada" es estadisticamente fragil: probar 18 combinaciones
+independientes y quedarse con el maximo hace casi inevitable que
+alguna cruce un umbral fijo por puro azar (problema de comparaciones
+multiples), sin que eso implique una estructura de clustering real.
+En cambio, K=2 fue no degenerado en el 100% de sus 18 configuraciones
+en las 5 cohortes, sin excepcion - la señal opuesta, de estructura
+consistente y reproducible independientemente del hiperparametro.
+
+CORRECCION: se endurecio el criterio de decision en
+src/29_barrido_dec.py (UMBRAL_MAYORIA_ROBUSTA=0,5): un K>=3 solo se
+acepta si AL MENOS LA MITAD de sus 18 configuraciones son no
+degeneradas, no basta con una sola. Con el criterio corregido, LUAD,
+LUSC y COAD se relanzaron (comando: python3 -u src/29_barrido_dec.py
+<COHORTE> data/processed/<COHORTE>_modelo_gat_gcn_final.pt
+data/processed/<COHORTE>_dec_subtipos.pt) y las 3 dan ahora K=2,
+consistente con BRCA y KIRC:
+
+  Cohorte  K final  Entropia  Reparto de clusters    lr / intervalo_p / semilla ganadores
+  BRCA     2        0,937     [64, 117]               (ver paso47; script fijo K=2, no barrido)
+  LUAD     2        0,906     [114, 54]                0,001 / 20 / 0
+  LUSC     2        0,992     [102, 83]                0,001 / 5  / 0
+  COAD     2        0,950     [113, 66]                0,001 / 5  / 0
+  KIRC     2        0,945     [66, 116]                0,001 / 5  / 0
+
+CONCLUSION (con la misma honestidad que VGAE y el hallazgo original de
+BRCA en el Paso 47): con el criterio de robustez corregido, LAS 5
+COHORTES DEL TFM CONFIRMAN EL MISMO PATRON. K=2 es la unica estructura
+de clustering robusta y reproducible en el embedding de GAT+GCN
+(h_final, Capa 3), independientemente del tipo de cancer. Ningun K>=3
+supera el criterio de mayoria robusta en ninguna de las 5 cohortes. Es
+consistente con la hipotesis ya planteada en el Paso 47: el embedding,
+optimizado para riesgo de Cox (alto/bajo riesgo), separa de forma
+natural en 2 grupos, no en la estructura rica de subtipos moleculares
+multiples (tipo PAM50) que DEC buscaba originalmente descubrir. Se
+documenta como limitacion metodologica confirmada y generalizada a las
+5 cohortes para la Seccion 4.9 del TFM.
+
+Ficheros finales: data/processed/{LUAD,LUSC,COAD,KIRC}_dec_subtipos.pt
+(mas el ya existente BRCA_dec_subtipos.pt, sin cambios).
+
+================================================================
+6) CIERRE
+================================================================
+
+Bloque 8 (prerrequisito GAT+GCN final): las 5 cohortes completas
+(BRCA, LUAD, LUSC, COAD, KIRC). Bloque 9 (DEC): las 5 cohortes
+completas, con el mismo resultado no degenerado unico (K=2) y el mismo
+criterio de decision, ahora codificado de forma robusta en
+src/29_barrido_dec.py en vez de aplicado a mano.
+
+Commit: 3294808 (config/), 73c5d16 (Bloque 8-9 codigo + lanzamiento),
+17f4c44 (gitignore .svs anidado), dd9ef58 (gitignore .pt en results/),
+(pendiente: commit final con estos resultados)
