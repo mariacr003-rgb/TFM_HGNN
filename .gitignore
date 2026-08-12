@@ -21,6 +21,12 @@ data/raw/metilacion_*/
 # Resultados pesados
 results/*
 !results/.gitkeep
+
+# Dentro de una carpeta de paso ya deslisteada, results/* no filtra por
+# tamano/tipo: bloquear tambien aqui los .pt pesados (embeddings,
+# tensores de prueba), que no forman parte de la convencion de
+# runlog+logs de texto.
+results/**/*.pt
 !results/2026-06-19-paso1/
 !results/2026-06-19-paso2/
 !results/2026-06-20-paso3/
