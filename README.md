@@ -20,7 +20,6 @@ data/processed/     Datos generados por los scripts (validados, preprocesados)
 src/                Scripts numerados en orden de ejecucion (00_, 01_, ...)
 results/            Runlogs y resultados de cada paso del proceso
 docs/               Manifest de datos y tests
-config/             Ficheros de configuracion
 entorno/            Especificacion del entorno (requirements.txt)
 venv_pytorch/       Entorno virtual Python 3.11 con PyTorch (no versionado)
 
