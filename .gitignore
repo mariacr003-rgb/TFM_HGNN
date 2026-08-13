@@ -11,12 +11,19 @@ data/raw/cnv_*/
 data/processed/*.tsv
 data/processed/*.txt
 data/processed/*.pt
+data/processed/**/*.pt
 data/raw/metilacion_*/
 
 
 # Mantener la carpeta en git aunque este vacia
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# Excepcion: la seleccion de pacientes de MIL (Paso 50) es una decision
+# congelada, no un dato regenerable sin mas (una repeticion de
+# 30_seleccionar_pacientes_mil.py podria dar file_id distintos si el
+# GDC anade/retira diapositivas) - se versiona explicitamente.
+!data/processed/*_pacientes_mil.tsv
 
 # Resultados pesados
 results/*
@@ -76,6 +83,7 @@ results/**/*.pt
 !results/2026-08-11-paso47/
 !results/2026-08-11-paso48/
 !results/2026-08-12-paso49/
+!results/2026-08-13-paso50/
 
 # Entornos locales
 __pycache__/

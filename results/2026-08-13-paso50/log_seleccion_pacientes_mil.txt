@@ -1,0 +1,35 @@
+=== BRCA ===
+Cohorte: BRCA
+  181 candidatos con h_final ya calculado (modelo GAT+GCN final), orden alfabetico de case_id
+  503 ficheros 'Slide Image' encontrados en el GDC para estos candidatos
+  seleccionados: 12/12
+Guardado: data/processed/BRCA_pacientes_mil.tsv
+
+=== LUAD ===
+Cohorte: LUAD
+  168 candidatos con h_final ya calculado (modelo GAT+GCN final), orden alfabetico de case_id
+  592 ficheros 'Slide Image' encontrados en el GDC para estos candidatos
+  seleccionados: 12/12
+Guardado: data/processed/LUAD_pacientes_mil.tsv
+
+=== LUSC ===
+Cohorte: LUSC
+  185 candidatos con h_final ya calculado (modelo GAT+GCN final), orden alfabetico de case_id
+  562 ficheros 'Slide Image' encontrados en el GDC para estos candidatos
+  seleccionados: 12/12
+Guardado: data/processed/LUSC_pacientes_mil.tsv
+
+=== COAD ===
+Cohorte: COAD
+  179 candidatos con h_final ya calculado (modelo GAT+GCN final), orden alfabetico de case_id
+  555 ficheros 'Slide Image' encontrados en el GDC para estos candidatos
+  seleccionados: 12/12
+Guardado: data/processed/COAD_pacientes_mil.tsv
+
+=== KIRC ===
+Cohorte: KIRC
+  182 candidatos con h_final ya calculado (modelo GAT+GCN final), orden alfabetico de case_id
+  703 ficheros 'Slide Image' encontrados en el GDC para estos candidatos
+  seleccionados: 12/12
+Guardado: data/processed/KIRC_pacientes_mil.tsv
+

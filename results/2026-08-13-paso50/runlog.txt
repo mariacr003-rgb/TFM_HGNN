@@ -1,0 +1,103 @@
+ID de ejecucion: 2026-08-13-paso50
+Fecha: 13 de agosto de 2026
+
+Objetivo: Bloque 8 (MIL). Con el prerrequisito completo (modelo
+GAT+GCN final en las 5 cohortes, Paso 49), seleccionar los 12
+pacientes por cohorte del volumen decidido en el Paso 48 (60 total) y
+verificar disponibilidad real de WSI en el GDC ANTES de descargar
+nada, siguiendo el mismo rigor que la coordinacion de RNA-seq/CNV/
+metilacion de los Pasos 24-29 (consulta a la API del GDC, no solo
+tamano de fichero).
+
+================================================================
+1) UNIVERSO DE CANDIDATOS
+================================================================
+
+Se usa la lista "pacientes" ya guardada en
+data/processed/<COHORTE>_modelo_gat_gcn_final.pt (25_entrenar_gat_gcn_final.py),
+NO <COHORTE>_clinical_valid.tsv. Motivo: clinical_valid.tsv es la
+cohorte clinica completa de la Fase 1 (1036-489 pacientes segun
+cohorte, sin cruzar con RNA-seq/CNV/metilacion ni con supervivencia
+utilizable para Cox), mientras que la lista del modelo final es
+exactamente el conjunto de pacientes (168-185 segun cohorte) con
+h_final ya calculado - el que hace falta para combinar z_WSI +
+embedding molecular, que es el objetivo final del bloque (C-index de
+MIL+molecular vs. solo molecular, comparado con Bloque 6). Seleccionar
+de clinical_valid.tsv habria podido dar pacientes sin RNA-seq/CNV/
+metilacion ni h_final, inutilizables para ese calculo final.
+
+================================================================
+2) METODO DE VERIFICACION DE WSI (src/30_seleccionar_pacientes_mil.py)
+================================================================
+
+Para cada cohorte: candidatos = lista de pacientes del modelo GAT+GCN
+final, ordenados alfabeticamente por case_id. Consulta a la API del
+GDC (endpoint /files, filtro cases.submitter_id in [candidatos] AND
+data_type = "Slide Image") para resolver, de una sola vez, que
+candidatos tienen WSI disponible y cuales no.
+
+Para pacientes con mas de un fichero candidato (varias diapositivas
+escaneadas, o Diagnostic Slide + Tissue Slide simultaneos): 1) filtro
+a sample_type = "Primary Tumor" (mismo criterio que RNA-seq/CNV/
+metilacion); 2) preferencia por experimental_strategy = "Diagnostic
+Slide" (DX) sobre "Tissue Slide" (TS) - es el tipo ya usado en el
+paciente de prueba TCGA-A1-A0SB (Pasos 44-46) y el estandar en
+literatura de MIL sobre TCGA; 3) desempate final deterministico por
+file_id si aun asi queda mas de un candidato.
+
+Se recorren los candidatos en orden alfabetico y se toman los
+primeros 12 con WSI disponible; si un candidato no tiene WSI
+(Primary Tumor) disponible, se descarta y se sustituye por el
+siguiente en orden alfabetico - sin necesidad de intervencion manual,
+el propio script hace la sustitucion.
+
+================================================================
+3) RESULTADO: 60/60 PACIENTES CON WSI DISPONIBLE, SIN SUSTITUCIONES
+================================================================
+
+Los primeros 12 candidatos alfabeticos de cada una de las 5 cohortes
+tenian WSI Primary Tumor disponible - NINGUNA cohorte necesito
+sustituir ningun paciente. Unica excepcion de tipo de fichero: BRCA
+TCGA-A1-A0SG no tiene Diagnostic Slide con Primary Tumor, se acepto su
+unico candidato Tissue Slide (Primary Tumor) segun la regla de
+respaldo del script.
+
+  Cohorte  Candidatos consultados  Ficheros Slide Image en el GDC  Seleccionados  Volumen (12 pacientes)
+  BRCA     181                     503                              12/12          13,68 GB
+  LUAD     168                     592                              12/12           2,57 GB
+  LUSC     185                     562                              12/12           9,49 GB
+  COAD     179                     555                              12/12          12,20 GB
+  KIRC     182                     703                              12/12           6,95 GB
+  TOTAL    895                     2915                             60/60          44,89 GB
+
+Nota: BRCA incluye TCGA-A1-A0SB, el mismo paciente ya procesado en los
+Pasos 44-45 (WSI de 741.184.858 bytes, tiempo real medido: 183,5 min
+de teselado+ResNet-50+atencion) - ya hay un dato real de tiempo para
+uno de los 60, no hace falta reprocesarlo si el resultado de esos
+pasos se reutiliza.
+
+Listas completas (case_id, file_id, file_name, file_size,
+experimental_strategy) guardadas en
+data/processed/<COHORTE>_pacientes_mil.tsv.
+
+================================================================
+4) PRESUPUESTO (recordatorio, sin cambios respecto al Paso 48)
+================================================================
+
+8 dias para el bloque completo (60 pacientes), ~6,8 dias estimados con
+el tiempo real medido de 185,51 min/paciente (descarga estimada +
+183,5 min de procesamiento medido), dejando ~1,2 dias de margen. El
+volumen real de descarga (44,89 GB) es una fraccion pequeña de los
+698 GB estimados para el plan original de 200 pacientes/cohorte
+(Paso 44) - el cuello de tiempo sigue siendo el procesamiento
+(teselado+ResNet-50), no la descarga, segun el Paso 46 (I/O de disco,
+no ancho de banda, es el cuello de botella dominante).
+
+================================================================
+5) PENDIENTE - NO SE HA DESCARGADO NADA TODAVIA
+================================================================
+
+Esta es solo la seleccion y verificacion de disponibilidad, pedida
+explicitamente por el usuario antes de lanzar ninguna descarga masiva.
+Lista final mostrada al usuario para confirmacion. Commit: (pendiente,
+tras confirmacion del usuario).
