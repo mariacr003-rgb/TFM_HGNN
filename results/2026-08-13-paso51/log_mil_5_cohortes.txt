@@ -1,0 +1,3 @@
+=== INICIO MIL BRCA: 2026-08-13 09:44:02 ===
+Cohorte BRCA: 12 pacientes en la lista
+[TCGA-3C-AALI] descargando TCGA-3C-AALI-01Z-00-DX2.CF4496E0-AB52-4F3E-BDF5-C34833B91B7C.svs (2.08 GB)...

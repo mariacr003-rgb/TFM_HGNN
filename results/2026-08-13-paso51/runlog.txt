@@ -1,0 +1,100 @@
+ID de ejecucion: 2026-08-13-paso51
+Fecha: 13 de agosto de 2026
+
+Objetivo: Bloque 8 (MIL). Descargar y procesar las WSI de los 60
+pacientes seleccionados en el Paso 50 (12/cohorte, ver
+data/processed/<COHORTE>_pacientes_mil.tsv), cohorte por cohorte, con
+nohup+disown para sobrevivir a desconexiones (dado el volumen de
+tiempo esperado, varios dias).
+
+================================================================
+1) HALLAZGO: ESPACIO EN DISCO INSUFICIENTE PARA DESCARGAR TODO A LA VEZ
+================================================================
+
+El disco C: (donde vive el repositorio, /mnt/c/... en WSL) solo tenia
+33 GB libres en el momento de este paso, frente a los 44,89 GB del
+volumen total verificado en el Paso 50. No cabe todo simultaneamente.
+
+Corregido con diseno "descargar -> procesar -> borrar" por paciente
+(src/31_descargar_procesar_mil.py): se descarga la WSI cruda de UN
+paciente, se procesa (teselado+ResNet-50+atencion MIL, ver
+27_procesar_wsi_paciente.py) y se borra inmediatamente la WSI cruda
+(nunca versionada, ver .gitignore) antes de pasar al siguiente. Pico
+de disco: como mucho, el tamano de UN paciente (~2,8 GB en el peor
+caso visto en el Paso 50, COAD TCGA-5M-AATE).
+
+================================================================
+2) HALLAZGO: gdc-client.exe REQUIERE RUTA DE DESTINO EN FORMATO WINDOWS
+================================================================
+
+gdc-client.exe es un binario de Windows ejecutado via interop de WSL.
+Pasarle una ruta POSIX (/mnt/c/...) como directorio de destino falla
+con "Unable to write to download directory" (el cliente concatena mal
+el nombre de fichero temporal con una barra invertida). Corregido
+convirtiendo la ruta con `wslpath -w` antes de invocar el binario.
+Verificado con una descarga de prueba real (LUAD TCGA-05-4390, 11 MB).
+
+================================================================
+3) PRUEBA DE EXTREMO A EXTREMO ANTES DEL LANZAMIENTO REAL
+================================================================
+
+Se ejecuto el orquestador completo (descarga + procesamiento + borrado)
+sobre 1 paciente real (LUAD TCGA-05-4390, el fichero mas pequeno de
+los 60) antes de comprometerse al lote completo:
+  descarga: 16,9s
+  procesamiento: 216,2s
+  total: 233,1s (3,9 min)
+Sin errores. El resultado de esta prueba se descarto (no se guardo en
+el LUAD real) para no mezclar una ejecucion de prueba con el lote
+definitivo; el paciente se reprocesa dentro del lanzamiento real de
+LUAD (coste adicional: ~4 min, insignificante frente al total).
+
+================================================================
+4) REAPROVECHAMIENTO DE TCGA-A1-A0SB (BRCA)
+================================================================
+
+Copiado directamente results/2026-08-10-paso45/TCGA-A1-A0SB_mil_prueba.pt
+a data/processed/mil_wsi/BRCA/TCGA-A1-A0SB_mil.pt (mismo formato de
+salida que produce 27_procesar_wsi_paciente.py). El orquestador
+(31_descargar_procesar_mil.py) detecta que el fichero de salida ya
+existe y omite tanto la descarga como el reprocesamiento de este
+paciente, contando como "ya procesado" en el resumen de la cohorte
+BRCA. Tiempo real ya medido para este paciente (Pasos 44-45, NO vuelto
+a medir en este lanzamiento): 183,5 min (11.009,1s teselado+ResNet-50
++ 1,6s atencion MIL).
+
+================================================================
+5) LANZAMIENTO (nohup + disown, python3 -u)
+================================================================
+
+Orden de cohortes: BRCA, LUAD, LUSC, COAD, KIRC (orden estandar del
+proyecto). Un unico proceso, secuencial, que llama a
+src/31_descargar_procesar_mil.py por cohorte; cada cohorte procesa sus
+12 pacientes uno a uno (saltando a TCGA-A1-A0SB, ya hecho), sin
+detenerse ante un fallo aislado de descarga o procesamiento (se
+registra el paciente fallido y se continua con el siguiente).
+
+  nohup bash <script temporal, scratchpad>/orquestar_mil_5_cohortes.sh > /dev/null 2>&1 & disown
+
+Log: results/2026-08-13-paso51/log_mil_5_cohortes.txt
+PID inicial: 12204 (proceso hijo real, PID 12208, python3 -u
+src/31_descargar_procesar_mil.py BRCA)
+
+Verificado a los pocos segundos: proceso activo, primer paciente
+(TCGA-3C-AALI, 2,08 GB) en descarga.
+
+Monitor de baja frecuencia activo (~20 min, solo notifica en
+transiciones de fase - INICIO/FIN de cohorte, RESUMEN, fallos - no
+por paciente), avisando al completar cada cohorte con el tiempo real
+acumulado.
+
+================================================================
+6) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
+================================================================
+
+Se documentara aqui, al completar cada cohorte y al terminar el lote
+completo: tiempo real acumulado por cohorte, cualquier paciente que
+falle la descarga o el procesamiento (si los hay, sin haber detenido
+el resto), y el estado final de los 60.
+
+Commit: (pendiente)
