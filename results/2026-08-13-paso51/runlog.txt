@@ -89,7 +89,57 @@ por paciente), avisando al completar cada cohorte con el tiempo real
 acumulado.
 
 ================================================================
-6) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
+6) AJUSTE DE PRESUPUESTO: 12 -> 10 PACIENTES/COHORTE (60 -> 50 TOTAL)
+================================================================
+
+Motivo: la velocidad de descarga real medida sobre el primer paciente
+completo (TCGA-3C-AALI, BRCA, 2,08 GB en 1747,5s = 1,19 MB/s) resulto
+mucho mas lenta que la estimacion inicial (una lectura a mitad de
+descarga habia sugerido ~5,78 MB/s, optimista). Con la tasa de
+descarga real y la tasa de procesamiento ya conocida (TCGA-A1-A0SB,
+14,853 microsegundos/byte), el total estimado para 60 pacientes subio
+de ~6,8 a ~8,02 dias - practicamente sin margen sobre el presupuesto
+de 8 dias.
+
+Decision: reducir a 10 pacientes por cohorte (50 total, en vez de 12,
+60). Para cada cohorte, se descartan los ULTIMOS 2 de los 12 ya
+seleccionados y verificados en el Paso 50 (mismo orden alfabetico, no
+hace falta reverificar disponibilidad de WSI - ya estaba confirmada
+para los 10 que se mantienen). Recalculo con las mismas tasas reales:
+
+  Cohorte  Restante (10 pac.)  Horas restantes
+  BRCA     10 pacientes         49,2 h
+  LUAD     10 pacientes         11,1 h
+  LUSC     10 pacientes         28,4 h
+  COAD     10 pacientes         51,9 h
+  KIRC     10 pacientes         20,3 h
+  TOTAL    50 pacientes        160,9 h = 6,70 dias
+
+Margen recuperado sobre el presupuesto de 8 dias: 1,30 dias - coincide
+exactamente con el margen de seguridad que se pidio recuperar.
+
+Ficheros data/processed/<COHORTE>_pacientes_mil.tsv actualizados a 10
+filas (se conserva el fichero completo de 12 en el historial de git,
+commit 2890fa2, por si hiciera falta revertir esta decision).
+
+MANEJO ESPECIAL DE BRCA: a diferencia de LUAD/LUSC/COAD/KIRC (que
+todavia no habian arrancado y recogen el recorte a 10 sin mas, al leer
+el fichero .tsv actualizado al empezar su turno), el proceso de BRCA
+ya estaba en marcha con los 12 pacientes originales cargados en
+memoria (TCGA-A1-A0SB terminado, TCGA-3C-AALI en curso en el momento
+del ajuste) - editar el fichero .tsv no le afecta, ya los tiene
+cargados. Se dejo terminar con normalidad hasta el 10o paciente
+(TCGA-A1-A0SG) y se instalo un monitor de vigilancia (sondeo cada 60s
+del log) que, en cuanto detecta la linea de finalizacion de
+TCGA-A1-A0SG, termina el proceso de BRCA (SIGTERM, con SIGKILL de
+respaldo) ANTES de que arranque TCGA-A1-A0SH (11o, descartado) -
+limpiando ademas cualquier descarga parcial residual. El bucle
+orquestador (bash, results/2026-08-13-paso51/log_mil_5_cohortes.txt)
+continua automaticamente con LUAD al ver terminar el proceso de BRCA,
+sin necesidad de relanzar nada a mano.
+
+================================================================
+7) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
 ================================================================
 
 Se documentara aqui, al completar cada cohorte y al terminar el lote
