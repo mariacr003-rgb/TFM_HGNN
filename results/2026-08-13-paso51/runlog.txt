@@ -139,12 +139,80 @@ continua automaticamente con LUAD al ver terminar el proceso de BRCA,
 sin necesidad de relanzar nada a mano.
 
 ================================================================
-7) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
+7) HALLAZGO Y CORRECCION: FALLO DE RED MASIVO EN CASCADA (2026-08-14)
+================================================================
+
+BRCA avanzo con normalidad hasta 8/10 pacientes completos (AALI, AALJ,
+AALK, AAAK, AAT1, A9QA, A0SB reutilizado, A0SE) a lo largo de ~35h de
+reloj (13/08 09:44 - 14/08 20:41), sin incidencias. Justo despues de
+completar TCGA-A1-A0SE, la red del host se cayo por completo (fallo
+de resolucion DNS del binario gdc-client.exe: "Failed to establish a
+new connection: [Errno 11001] getaddrinfo failed" al resolver
+api.gdc.cancer.gov). Como cada intento fallido de descarga era casi
+instantaneo (fallo de DNS, no un timeout largo esperando respuesta),
+el orquestador arraso en cascada, en menos de 90 segundos, por los 2
+pacientes restantes de BRCA (A0SF, A0SG) y las 40 descargas de
+LUAD/LUSC/COAD/KIRC completas - las 5 cohortes "terminaron" su bucle
+(exit=1 en las 5) sin dar tiempo a que la red se recuperase por si
+sola, y sin haber hecho ningun trabajo real en las 4 ultimas cohortes.
+
+Verificado tras el hallazgo: la red ya funcionaba de nuevo minutos
+despues (curl a https://api.gdc.cancer.gov/status devolvio HTTP 200).
+El tiempo real "perdido" fue minimo (el fallo en cascada duro
+segundos, no horas) - el problema no era de presupuesto de tiempo sino
+de diseño: sin reintento, un blip de red transitorio durante una
+ejecucion de varios dias sin supervision humana continua puede tirar
+el lote completo a cero en cuestion de segundos.
+
+CORRECCION (src/31_descargar_procesar_mil.py): se añade
+descargar_con_reintentos(), una capa de reintento con backoff creciente
+ALREDEDOR de descargar() (la funcion original de un solo intento, sin
+cambios) - NO toca procesar() ni el diseño en streaming ya validado en
+los Pasos 44-46 (verificado leyendo el diff: la funcion procesar() es
+identica a como estaba). Si el texto de salida del intento fallido
+contiene alguna señal reconocible de error de red (getaddrinfo failed,
+NewConnectionError, MaxRetryError, ConnectionError, ConnectTimeout,
+ReadTimeout, Connection refused, Network is unreachable, Failed to
+establish a new connection, Temporary failure in name resolution,
+Remote end closed connection, TimeoutExpired), se reintenta el MISMO
+paciente con espera creciente (30s, 2min, 5min - hasta 3 reintentos, 4
+intentos en total) antes de darlo por fallido definitivamente y pasar
+al siguiente. Un fallo que NO tiene ninguna de esas señales (ej. un
+checksum invalido) no se reintenta - se asume un problema real del
+fichero, no transitorio, y se registra como fallo de inmediato, igual
+que antes.
+
+Verificado con 3 pruebas unitarias controladas (simulando descargar()
+con distintos patrones de fallo, sin tocar la red real):
+  1) 2 fallos de red seguidos de exito -> reintenta y termina en OK
+     tras 3 llamadas.
+  2) fallo de red persistente -> agota los 4 intentos (1 inicial + 3
+     reintentos) y devuelve fallo definitivo.
+  3) fallo NO relacionado con red (checksum) -> falla en el primer
+     intento, sin reintentar.
+Los 3 casos se comportaron como se esperaba.
+
+RELANZAMIENTO: se relanza SOLO lo pendiente, reutilizando la deteccion
+ya existente de "si el .pt de salida ya existe, se salta" (sin
+necesidad de editar ninguna lista): BRCA completa A0SF y A0SG (los 8
+ya hechos se saltan al instante, confirmado en el log); LUAD, LUSC,
+COAD y KIRC arrancan sus 10 pacientes desde cero (ningun .pt existia
+para ellas, confirmado antes de relanzar). Mismo orden de cohortes,
+mismo mecanismo nohup+disown, mismo monitor de baja frecuencia
+(reconfigurado para avisar por cohorte completada y por cualquier
+reintento de red que ocurra).
+
+Commit: (pendiente)
+
+================================================================
+8) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
 ================================================================
 
 Se documentara aqui, al completar cada cohorte y al terminar el lote
-completo: tiempo real acumulado por cohorte, cualquier paciente que
-falle la descarga o el procesamiento (si los hay, sin haber detenido
-el resto), y el estado final de los 60.
+completo: tiempo real acumulado por cohorte (incluyendo, si los hay,
+los reintentos de red y su coste en tiempo), cualquier paciente que
+falle DEFINITIVAMENTE la descarga (tras agotar los 4 intentos) o el
+procesamiento (si los hay, sin haber detenido el resto), y el estado
+final de los 50.
 
 Commit: (pendiente)

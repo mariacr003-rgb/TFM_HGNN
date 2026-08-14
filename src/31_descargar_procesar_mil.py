@@ -24,11 +24,45 @@ from pathlib import Path
 # siguiente paciente - no se aborta el resto de la cohorte por un
 # fallo aislado (mismo criterio que otros bloques: documentar, no
 # detener).
+#
+# REINTENTO CON BACKOFF EN LA DESCARGA (Paso 52, tras el fallo de red
+# masivo del Paso 51): la red del host se cayo por completo durante un
+# tramo del lanzamiento sin supervision (fallo de resolucion DNS,
+# "getaddrinfo failed") y, al fallar cada intento de descarga de forma
+# casi instantanea (sin timeout largo), el orquestador arraso en
+# cascada por el resto de BRCA y las 4 cohortes siguientes completas
+# en menos de 90 segundos, sin dar tiempo a que la red se recuperara
+# por si sola. Corregido con una capa de reintento SOLO alrededor de
+# la descarga (descargar_con_reintentos, envoltorio de descargar() -
+# procesar() no se toca, sigue siendo el mismo diseno en streaming ya
+# validado en los Pasos 44-46): si el fallo tiene pinta de ser de red
+# (ver SENALES_ERROR_RED), se reintenta el MISMO paciente con espera
+# creciente (30s, 2min, 5min - 3 reintentos, 4 intentos en total) antes
+# de darlo por fallido y pasar al siguiente paciente. Un fallo que NO
+# es de red (ej. checksum invalido) no se reintenta - se asume un
+# problema real del fichero, no transitorio, y se pasa al siguiente
+# paciente de inmediato, igual que antes.
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 RAIZ = Path(__file__).resolve().parent.parent
 GDC_CLIENT = RAIZ / "tools" / "gdc-client.exe"
+
+ESPERAS_REINTENTO_DESCARGA_S = [30, 120, 300]  # 30s, 2min, 5min entre intentos (hasta 3 reintentos, 4 intentos totales)
+SENALES_ERROR_RED = [
+    "getaddrinfo failed",
+    "NewConnectionError",
+    "MaxRetryError",
+    "ConnectionError",
+    "ConnectTimeout",
+    "ReadTimeout",
+    "Connection refused",
+    "Network is unreachable",
+    "Failed to establish a new connection",
+    "Temporary failure in name resolution",
+    "Remote end closed connection",
+    "TimeoutExpired",
+]
 
 
 def wslpath_windows(ruta_posix):
@@ -43,6 +77,29 @@ def descargar(file_id, dir_destino):
         capture_output=True, text=True, timeout=3600,
     )
     return resultado.returncode == 0, resultado.stdout + resultado.stderr
+
+
+def es_error_de_red(salida_texto):
+    return any(senal in salida_texto for senal in SENALES_ERROR_RED)
+
+
+def descargar_con_reintentos(file_id, dir_destino, case_id):
+    intento = 1
+    while True:
+        try:
+            ok, salida = descargar(file_id, dir_destino)
+        except subprocess.TimeoutExpired as e:
+            ok, salida = False, f"TimeoutExpired: {e}"
+        if ok:
+            return True, salida
+        if intento > len(ESPERAS_REINTENTO_DESCARGA_S) or not es_error_de_red(salida):
+            return False, salida
+        espera_s = ESPERAS_REINTENTO_DESCARGA_S[intento - 1]
+        print(f"[{case_id}] fallo de red en intento {intento}/{len(ESPERAS_REINTENTO_DESCARGA_S) + 1} de descarga "
+              f"(reintentable) - esperando {espera_s}s antes de reintentar...")
+        print(salida[-1000:])
+        time.sleep(espera_s)
+        intento += 1
 
 
 def procesar(ruta_svs, ruta_salida):
@@ -81,7 +138,7 @@ def main(cohorte):
         t0 = time.time()
         dir_paciente = dir_raw / file_id
         try:
-            ok_descarga, salida_descarga = descargar(file_id, dir_raw)
+            ok_descarga, salida_descarga = descargar_con_reintentos(file_id, dir_raw, case_id)
         except Exception as e:
             ok_descarga, salida_descarga = False, str(e)
 

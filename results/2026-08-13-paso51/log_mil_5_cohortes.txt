@@ -1,3 +1,1583 @@
 === INICIO MIL BRCA: 2026-08-13 09:44:02 ===
 Cohorte BRCA: 12 pacientes en la lista
 [TCGA-3C-AALI] descargando TCGA-3C-AALI-01Z-00-DX2.CF4496E0-AB52-4F3E-BDF5-C34833B91B7C.svs (2.08 GB)...
+[TCGA-3C-AALI] descarga OK en 1747.5s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-3C-AALI] OK - descarga 1747.5s + procesamiento 21475.1s = 23222.6s (387.0 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-3C-AALI_mil.pt
+[TCGA-3C-AALJ] descargando TCGA-3C-AALJ-01Z-00-DX2.62DFE56B-B84C-40F9-9625-FCB55767B70D.svs (1.84 GB)...
+[TCGA-3C-AALJ] descarga OK en 1330.8s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-3C-AALJ] OK - descarga 1330.8s + procesamiento 17433.5s = 18764.4s (312.7 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-3C-AALJ_mil.pt
+[TCGA-3C-AALK] descargando TCGA-3C-AALK-01Z-00-DX1.4E6EB156-BB19-410F-878F-FC0EA7BD0B53.svs (1.77 GB)...
+[TCGA-3C-AALK] descarga OK en 1012.1s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-3C-AALK] OK - descarga 1012.1s + procesamiento 14215.6s = 15227.7s (253.8 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-3C-AALK_mil.pt
+[TCGA-4H-AAAK] descargando TCGA-4H-AAAK-01Z-00-DX1.ABF1B042-1970-4E28-8671-43AAD393D2F9.svs (1.02 GB)...
+[TCGA-4H-AAAK] descarga OK en 656.6s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-4H-AAAK] OK - descarga 656.6s + procesamiento 10127.5s = 10784.1s (179.7 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-4H-AAAK_mil.pt
+[TCGA-5L-AAT1] descargando TCGA-5L-AAT1-01Z-00-DX1.F3449A5B-2AC4-4ED7-BF44-4C8946CDB47D.svs (0.59 GB)...
+[TCGA-5L-AAT1] descarga OK en 198.2s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-5L-AAT1] OK - descarga 198.2s + procesamiento 6897.7s = 7095.9s (118.3 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-5L-AAT1_mil.pt
+[TCGA-5T-A9QA] descargando TCGA-5T-A9QA-01Z-00-DX1.B4212117-E0A7-4EF2-B324-8396042ACEC1.svs (2.06 GB)...
+[TCGA-5T-A9QA] descarga OK en 662.5s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-5T-A9QA] OK - descarga 662.5s + procesamiento 30712.1s = 31374.6s (522.9 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-5T-A9QA_mil.pt
+[TCGA-A1-A0SB] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-A1-A0SB_mil.pt
+[TCGA-A1-A0SE] descargando TCGA-A1-A0SE-01Z-00-DX1.04B09232-C6C4-46EF-AA2C-41D078D0A80A.svs (1.11 GB)...
+[TCGA-A1-A0SE] descarga OK en 926.4s. Procesando (teselado+ResNet-50+atencion)...
+[TCGA-A1-A0SE] OK - descarga 926.4s + procesamiento 18447.4s = 19373.8s (322.9 min). Guardado: /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-A1-A0SE_mil.pt
+[TCGA-A1-A0SF] descargando TCGA-A1-A0SF-01Z-00-DX1.7F252D89-EA78-419F-A969-1B7313D77499.svs (0.66 GB)...
+[TCGA-A1-A0SF] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000029626292DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000029626292DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000029626292DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A1-A0SG] descargando TCGA-A1-A0SG-01A-01-BS1.84831814-39ee-4e94-9ee0-48031507eb9a.svs (0.15 GB)...
+[TCGA-A1-A0SG] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001497CB02DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001497CB02DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001497CB02DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A1-A0SH] descargando TCGA-A1-A0SH-01Z-00-DX1.90E71B08-E1D9-4FC2-85AC-062E56DDF17C.svs (0.71 GB)...
+[TCGA-A1-A0SH] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000221BC54ED90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000221BC54ED90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000221BC54ED90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A1-A0SI] descargando TCGA-A1-A0SI-01Z-00-DX1.AB717348-F964-4F29-BBE2-972B7C640432.svs (0.95 GB)...
+[TCGA-A1-A0SI] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001F7F37D1DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F7F37D1DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F7F37D1DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+
+=== RESUMEN COHORTE BRCA ===
+  Completados en esta ejecucion: 7/12 (['TCGA-3C-AALI', 'TCGA-3C-AALJ', 'TCGA-3C-AALK', 'TCGA-4H-AAAK', 'TCGA-5L-AAT1', 'TCGA-5T-A9QA', 'TCGA-A1-A0SE'])
+  Ya procesados de antes (reutilizados): 1 (['TCGA-A1-A0SB'])
+  FALLOS DE DESCARGA: 4 (['TCGA-A1-A0SF', 'TCGA-A1-A0SG', 'TCGA-A1-A0SH', 'TCGA-A1-A0SI'])
+  FALLOS DE PROCESAMIENTO: 0 ([])
+  Tiempo real acumulado (descarga+procesamiento, esta ejecucion): 125843.0s (2097.4 min, 34.96 h)
+=== FIN MIL BRCA (exit=1): 2026-08-14 20:41:43 ===
+=== INICIO MIL LUAD: 2026-08-14 20:41:43 ===
+Cohorte LUAD: 10 pacientes en la lista
+[TCGA-05-4390] descargando TCGA-05-4390-01Z-00-DX1.858E64DF-DD3E-4F43-B7C1-CE35B33F1C90.svs (0.01 GB)...
+[TCGA-05-4390] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000164E7B12E80>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000164E7B12E80>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000164E7B12E80>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4396] descargando TCGA-05-4396-01Z-00-DX1.49DD5F68-7473-4945-B384-EA6D5AE383CB.svs (0.47 GB)...
+[TCGA-05-4396] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000150A6E92E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000150A6E92E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000150A6E92E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4410] descargando TCGA-05-4410-01Z-00-DX1.E5B66334-4949-4F45-9200-296B1A2F1AD5.svs (0.01 GB)...
+[TCGA-05-4410] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001EBF6022E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001EBF6022E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001EBF6022E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4415] descargando TCGA-05-4415-01Z-00-DX1.55E0C429-B308-4962-8DA9-41D7D3F7764E.svs (0.43 GB)...
+[TCGA-05-4415] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000020544DE2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000020544DE2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000020544DE2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4417] descargando TCGA-05-4417-01Z-00-DX1.6E534856-996F-4BD9-8AFC-7B1BF627E505.svs (0.40 GB)...
+[TCGA-05-4417] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001C428DE2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C428DE2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C428DE2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4424] descargando TCGA-05-4424-01Z-00-DX1.4892016C-1A96-4A72-ACB8-FFD282FC4E69.svs (0.22 GB)...
+[TCGA-05-4424] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000016E85101DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000016E85101DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000016E85101DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4425] descargando TCGA-05-4425-01Z-00-DX1.82B093EE-49BC-4FD9-91AC-4CC89944309D.svs (0.01 GB)...
+[TCGA-05-4425] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000241740C2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000241740C2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000241740C2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4427] descargando TCGA-05-4427-01Z-00-DX1.36CF4E93-3FBB-4346-A26B-85F0D9D0575D.svs (0.43 GB)...
+[TCGA-05-4427] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000028EC6632DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000028EC6632DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000028EC6632DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-4433] descargando TCGA-05-4433-01Z-00-DX1.5843D3CC-CB24-4A0A-BB65-78A5DAA11D84.svs (0.56 GB)...
+[TCGA-05-4433] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001A98CAFFD90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001A98CAFFD90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001A98CAFFD90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-05-5423] descargando TCGA-05-5423-01Z-00-DX1.CCCF5FDB-ACAD-4D9D-80DF-556F0D6284AF.svs (0.01 GB)...
+[TCGA-05-5423] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000002A6A6A12E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002A6A6A12E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002A6A6A12E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+
+=== RESUMEN COHORTE LUAD ===
+  Completados en esta ejecucion: 0/10 ([])
+  Ya procesados de antes (reutilizados): 0 ([])
+  FALLOS DE DESCARGA: 10 (['TCGA-05-4390', 'TCGA-05-4396', 'TCGA-05-4410', 'TCGA-05-4415', 'TCGA-05-4417', 'TCGA-05-4424', 'TCGA-05-4425', 'TCGA-05-4427', 'TCGA-05-4433', 'TCGA-05-5423'])
+  FALLOS DE PROCESAMIENTO: 0 ([])
+  Tiempo real acumulado (descarga+procesamiento, esta ejecucion): 0.0s (0.0 min, 0.00 h)
+=== FIN MIL LUAD (exit=1): 2026-08-14 20:42:07 ===
+=== INICIO MIL LUSC: 2026-08-14 20:42:07 ===
+Cohorte LUSC: 10 pacientes en la lista
+[TCGA-18-3417] descargando TCGA-18-3417-01Z-00-DX1.B424DA03-9007-4FD0-9A92-BCB40319711C.svs (0.67 GB)...
+[TCGA-18-3417] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000263BD2D2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000263BD2D2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000263BD2D2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-18-4721] descargando TCGA-18-4721-01Z-00-DX1.C4952E79-071A-49C5-8E28-474442832D4E.svs (0.65 GB)...
+[TCGA-18-4721] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001E957ACCD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001E957ACCD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001E957ACCD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-18-5592] descargando TCGA-18-5592-01Z-00-DX1.41BD6380-A3A0-4ED1-8752-42BBC3B4680C.svs (0.84 GB)...
+[TCGA-18-5592] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000169C71B2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000169C71B2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000169C71B2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-18-5595] descargando TCGA-18-5595-01Z-00-DX1.75235488-2F6F-42CE-8D7D-0E9A360E1C61.svs (0.76 GB)...
+[TCGA-18-5595] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000017824E12DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000017824E12DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000017824E12DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-21-5782] descargando TCGA-21-5782-01Z-00-DX1.E0C856C0-9055-4437-9393-695D699E4F57.svs (0.72 GB)...
+[TCGA-21-5782] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000017C29382E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000017C29382E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000017C29382E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-21-5783] descargando TCGA-21-5783-01Z-00-DX1.3FAB28DF-5748-42D5-8257-3D440C4FB5FB.svs (0.44 GB)...
+[TCGA-21-5783] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001DEE6BB2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001DEE6BB2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001DEE6BB2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-21-5784] descargando TCGA-21-5784-01Z-00-DX1.E50E7F4B-BE37-4171-94A7-E824CFF4B3BB.svs (0.45 GB)...
+[TCGA-21-5784] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001D7E6312E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001D7E6312E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001D7E6312E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-21-5786] descargando TCGA-21-5786-01Z-00-DX1.928370C0-0BD4-43D6-94EB-FE7CB172265E.svs (0.47 GB)...
+[TCGA-21-5786] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001F800E82E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F800E82E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F800E82E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-21-5787] descargando TCGA-21-5787-01Z-00-DX1.FEE037E3-B9B0-4C2E-97EF-D6E4F64E1DF9.svs (0.96 GB)...
+[TCGA-21-5787] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001B237442DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001B237442DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001B237442DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-21-A5DI] descargando TCGA-21-A5DI-01Z-00-DX1.E9123261-ADE7-468C-9E9A-334E131FFF97.svs (0.55 GB)...
+[TCGA-21-A5DI] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001C15EF12DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C15EF12DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C15EF12DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+
+=== RESUMEN COHORTE LUSC ===
+  Completados en esta ejecucion: 0/10 ([])
+  Ya procesados de antes (reutilizados): 0 ([])
+  FALLOS DE DESCARGA: 10 (['TCGA-18-3417', 'TCGA-18-4721', 'TCGA-18-5592', 'TCGA-18-5595', 'TCGA-21-5782', 'TCGA-21-5783', 'TCGA-21-5784', 'TCGA-21-5786', 'TCGA-21-5787', 'TCGA-21-A5DI'])
+  FALLOS DE PROCESAMIENTO: 0 ([])
+  Tiempo real acumulado (descarga+procesamiento, esta ejecucion): 0.0s (0.0 min, 0.00 h)
+=== FIN MIL LUSC (exit=1): 2026-08-14 20:42:28 ===
+=== INICIO MIL COAD: 2026-08-14 20:42:28 ===
+Cohorte COAD: 10 pacientes en la lista
+[TCGA-3L-AA1B] descargando TCGA-3L-AA1B-01Z-00-DX2.17CE3683-F4B1-4978-A281-8F620C4D77B4.svs (0.74 GB)...
+[TCGA-3L-AA1B] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000002904CFA2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002904CFA2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002904CFA2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-4N-A93T] descargando TCGA-4N-A93T-01Z-00-DX2.875E7F95-A6D4-4BEB-A331-F9D8080898C2.svs (1.59 GB)...
+[TCGA-4N-A93T] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001F8F31B2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F8F31B2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F8F31B2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-4T-AA8H] descargando TCGA-4T-AA8H-01Z-00-DX1.A46C759C-74A2-4724-B6B5-DECA0D16E029.svs (2.15 GB)...
+[TCGA-4T-AA8H] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000013EF2C12E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000013EF2C12E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000013EF2C12E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-5M-AAT4] descargando TCGA-5M-AAT4-01Z-00-DX1.725C46CA-9354-43AC-AA81-3E5A66354D6B.svs (2.39 GB)...
+[TCGA-5M-AAT4] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000013F1B0A2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000013F1B0A2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000013F1B0A2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-5M-AAT6] descargando TCGA-5M-AAT6-01Z-00-DX1.8834C952-14E3-4491-8156-52FC917BB014.svs (1.77 GB)...
+[TCGA-5M-AAT6] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000027605EDDD90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000027605EDDD90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000027605EDDD90>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-5M-AATE] descargando TCGA-5M-AATE-01Z-00-DX1.483FFD2F-61A1-477E-8F94-157383803FC7.svs (2.76 GB)...
+[TCGA-5M-AATE] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001F0808B2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F0808B2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F0808B2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A6-2671] descargando TCGA-A6-2671-01Z-00-DX1.13d1a0d9-78cd-4cfc-b670-34a79ebe52ee.svs (0.16 GB)...
+[TCGA-A6-2671] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000204DC172DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000204DC172DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000204DC172DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A6-2672] descargando TCGA-A6-2672-01Z-00-DX1.e2a845c8-6d77-4120-9f43-abec84a66c1c.svs (0.16 GB)...
+[TCGA-A6-2672] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001F8BDBFFD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F8BDBFFD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F8BDBFFD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A6-2675] descargando TCGA-A6-2675-01Z-00-DX1.d37847d6-c17f-44b9-b90a-84cd1946c8ab.svs (0.04 GB)...
+[TCGA-A6-2675] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000025861652E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000025861652E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000025861652E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A6-2677] descargando TCGA-A6-2677-01Z-00-DX1.dc0903dc-fef2-47ca-8f04-1ef25a4d8338.svs (0.14 GB)...
+[TCGA-A6-2677] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000179077A2E80>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000179077A2E80>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000179077A2E80>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+
+=== RESUMEN COHORTE COAD ===
+  Completados en esta ejecucion: 0/10 ([])
+  Ya procesados de antes (reutilizados): 0 ([])
+  FALLOS DE DESCARGA: 10 (['TCGA-3L-AA1B', 'TCGA-4N-A93T', 'TCGA-4T-AA8H', 'TCGA-5M-AAT4', 'TCGA-5M-AAT6', 'TCGA-5M-AATE', 'TCGA-A6-2671', 'TCGA-A6-2672', 'TCGA-A6-2675', 'TCGA-A6-2677'])
+  FALLOS DE PROCESAMIENTO: 0 ([])
+  Tiempo real acumulado (descarga+procesamiento, esta ejecucion): 0.0s (0.0 min, 0.00 h)
+=== FIN MIL COAD (exit=1): 2026-08-14 20:42:50 ===
+=== INICIO MIL KIRC: 2026-08-14 20:42:51 ===
+Cohorte KIRC: 10 pacientes en la lista
+[TCGA-3Z-A93Z] descargando TCGA-3Z-A93Z-01Z-00-DX1.79F4D1A6-ACDB-4AB1-B8A8-C1CEE617C734.svs (1.85 GB)...
+[TCGA-3Z-A93Z] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001D2CFDF2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001D2CFDF2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001D2CFDF2DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-6D-AA2E] descargando TCGA-6D-AA2E-01Z-00-DX1.81E7420E-9C8B-4076-A604-F2B2AD3340D5.svs (1.49 GB)...
+[TCGA-6D-AA2E] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000023AB1C7FD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000023AB1C7FD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000023AB1C7FD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3357] descargando TCGA-A3-3357-01Z-00-DX1.b85a8293-7b4f-4a8a-b799-77d7d7b39b3e.svs (0.13 GB)...
+[TCGA-A3-3357] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000180DD102E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000180DD102E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000180DD102E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3358] descargando TCGA-A3-3358-01Z-00-DX1.1bd1c720-f6db-4837-8f83-e7476dd2b0a3.svs (0.25 GB)...
+[TCGA-A3-3358] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000023258092DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000023258092DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000023258092DF0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3367] descargando TCGA-A3-3367-01Z-00-DX1.9fca6a91-bb71-4632-8b20-e9f4d7030699.svs (0.17 GB)...
+[TCGA-A3-3367] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001D50B0F2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001D50B0F2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001D50B0F2E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3370] descargando TCGA-A3-3370-01Z-00-DX1.85c55ab4-8f44-4e76-af56-d42226764135.svs (0.08 GB)...
+[TCGA-A3-3370] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x00000257DCC7FD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000257DCC7FD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000257DCC7FD60>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3373] descargando TCGA-A3-3373-01Z-00-DX1.681dd573-9832-4739-92b5-5cdf6e993802.svs (0.16 GB)...
+[TCGA-A3-3373] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001F37CAE2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F37CAE2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001F37CAE2DC0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3376] descargando TCGA-A3-3376-01Z-00-DX1.f386e709-91ae-43b3-8835-b9f878bff2e0.svs (0.23 GB)...
+[TCGA-A3-3376] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000001C55C8C2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C55C8C2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C55C8C2E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3385] descargando TCGA-A3-3385-01Z-00-DX1.c7b1827d-aa03-4622-a736-e6f27992b7cd.svs (0.08 GB)...
+[TCGA-A3-3385] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x000002C69EF22E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002C69EF22E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002C69EF22E50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+[TCGA-A3-3387] descargando TCGA-A3-3387-01Z-00-DX1.01a24641-ab38-41bc-9151-48e262eb4826.svs (0.20 GB)...
+[TCGA-A3-3387] FALLO DE DESCARGA:
+ring handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "urllib3\connectionpool.py", line 670, in urlopen
+  File "urllib3\connectionpool.py", line 381, in _make_request
+  File "urllib3\connectionpool.py", line 978, in _validate_conn
+  File "urllib3\connection.py", line 309, in connect
+  File "urllib3\connection.py", line 171, in _new_conn
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPSConnection object at 0x0000022AC2822E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "requests\adapters.py", line 667, in send
+  File "urllib3\connectionpool.py", line 726, in urlopen
+  File "urllib3\util\retry.py", line 446, in increment
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000022AC2822E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "gdc_client\cli.py", line 102, in main
+  File "gdc_client\download\parser.py", line 67, in download
+  File "gdc_client\query\versions.py", line 33, in get_latest_versions
+  File "requests\api.py", line 115, in post
+  File "requests\api.py", line 59, in request
+  File "requests\sessions.py", line 589, in request
+  File "requests\sessions.py", line 703, in send
+  File "requests\adapters.py", line 700, in send
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.gdc.cancer.gov', port=443): Max retries exceeded with url: /files/versions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000022AC2822E20>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+ERROR: Exiting
+
+
+=== RESUMEN COHORTE KIRC ===
+  Completados en esta ejecucion: 0/10 ([])
+  Ya procesados de antes (reutilizados): 0 ([])
+  FALLOS DE DESCARGA: 10 (['TCGA-3Z-A93Z', 'TCGA-6D-AA2E', 'TCGA-A3-3357', 'TCGA-A3-3358', 'TCGA-A3-3367', 'TCGA-A3-3370', 'TCGA-A3-3373', 'TCGA-A3-3376', 'TCGA-A3-3385', 'TCGA-A3-3387'])
+  FALLOS DE PROCESAMIENTO: 0 ([])
+  Tiempo real acumulado (descarga+procesamiento, esta ejecucion): 0.0s (0.0 min, 0.00 h)
+=== FIN MIL KIRC (exit=1): 2026-08-14 20:43:13 ===
+=== SECUENCIA MIL 5 COHORTES COMPLETA: 2026-08-14 20:43:13 ===
+
+=== RELANZAMIENTO TRAS FALLO DE RED (Paso 52, con reintento+backoff): 2026-08-14 21:26:21 ===
+=== INICIO MIL BRCA: 2026-08-14 21:26:21 ===
+Cohorte BRCA: 10 pacientes en la lista
+[TCGA-3C-AALI] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-3C-AALI_mil.pt
+[TCGA-3C-AALJ] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-3C-AALJ_mil.pt
+[TCGA-3C-AALK] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-3C-AALK_mil.pt
+[TCGA-4H-AAAK] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-4H-AAAK_mil.pt
+[TCGA-5L-AAT1] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-5L-AAT1_mil.pt
+[TCGA-5T-A9QA] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-5T-A9QA_mil.pt
+[TCGA-A1-A0SB] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-A1-A0SB_mil.pt
+[TCGA-A1-A0SE] YA PROCESADO (reutilizado, no se descarga ni reprocesa): /mnt/c/Users/USUARIO/Desktop/TFM_HGNN_OmicSurv/data/processed/mil_wsi/BRCA/TCGA-A1-A0SE_mil.pt
+[TCGA-A1-A0SF] descargando TCGA-A1-A0SF-01Z-00-DX1.7F252D89-EA78-419F-A969-1B7313D77499.svs (0.66 GB)...
+[TCGA-A1-A0SF] descarga OK en 219.8s. Procesando (teselado+ResNet-50+atencion)...
