@@ -142,6 +142,19 @@ sin necesidad de relanzar nada a mano.
 7) HALLAZGO Y CORRECCION: FALLO DE RED MASIVO EN CASCADA (2026-08-14)
 ================================================================
 
+NOTA DE NUMERACION (añadida 2026-08-18, auditoria previa a la
+entrega): el comentario de cabecera de src/31_descargar_procesar_mil.py
+referencia esta correccion como "Paso 52", pero no se creo ninguna
+carpeta results/2026-08-XX-paso52/ - toda la documentacion del
+hallazgo y la correccion (deteccion del fallo, diseño del reintento
+con backoff, pruebas unitarias, relanzamiento) queda registrada aqui,
+en las secciones 7 y 8 de este mismo runlog de paso51. Se decide no
+crear una carpeta nueva retroactivamente (el trabajo real ocurrio
+dentro de la misma sesion de trabajo del paso51, sin un punto de corte
+limpio que justificara un paso independiente); esta nota es
+suficiente aclaracion para que quien lea el comentario del codigo
+sepa donde encontrar el detalle completo.
+
 BRCA avanzo con normalidad hasta 8/10 pacientes completos (AALI, AALJ,
 AALK, AAAK, AAT1, A9QA, A0SB reutilizado, A0SE) a lo largo de ~35h de
 reloj (13/08 09:44 - 14/08 20:41), sin incidencias. Justo despues de

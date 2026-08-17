@@ -12,7 +12,12 @@ y docs/manifest-datos.tsv), y muestra representativa de RNA-seq, CNV y metilacio
 **Fase 2 (en curso):** implementacion y entrenamiento de las cinco arquitecturas del framework —GAT (Graph Attention Network), GCN (Graph Convolutional
 Network), VGAE (Variational Graph Autoencoder), MIL (Multiple Instance Learning con atencion) y DEC (Deep Embedded Clustering)— sobre PyTorch Geometric,
 usando los datos verificados en la Fase 1, para la prediccion de supervivencia, el manejo generativo de datos faltantes, la integracion de imagenes WSI
-y el descubrimiento de subtipos moleculares en pacientes de cancer. Actualmente en desarrollo: GAT, GCN y VGAE sobre TCGA-BRCA; MIL y DEC pendientes de implementar.
+y el descubrimiento de subtipos moleculares en pacientes de cancer. Estado real (actualizado 2026-08-18, ver CLAUDE.md para el detalle completo):
+
+- **GAT+GCN (Bloque 6) — CERRADO**, entrenado y evaluado con validacion cruzada en las 5 cohortes.
+- **VGAE (Bloque 7) — CERRADO**, investigado a fondo sobre BRCA; mejora marginal sobre la base trivial, no confirmada como robusta (limitacion metodologica documentada, no replicado en las 4 cohortes restantes).
+- **MIL (Bloque 8) — EN CURSO**: BRCA, LUAD y LUSC completos (10/10 pacientes cada una); COAD en curso; KIRC pendiente de arrancar. Ver resultados abajo.
+- **DEC (Bloque 9) — CERRADO en las 5 cohortes**: unico resultado no degenerado es K=2 (limitacion metodologica confirmada y generalizada, no el descubrimiento de subtipos multiples buscado originalmente).
 
 ## Estructura del proyecto
 data/raw/           Datos originales descargados (GDC, STRING)
@@ -96,7 +101,11 @@ trabajo.
 - Python 3.11 (entorno virtual independiente: venv_pytorch/)
 - PyTorch 2.13 (CPU)
 - PyTorch Geometric 2.8
-- Dependencias adicionales para MIL (lectura de WSI) y DEC: pendientes de definir e incorporar a este fichero
+- torchvision 0.28 (ResNet-50 preentrenado en ImageNet, encoder de MIL)
+- openslide-python 1.4.6 + openslide-bin 4.0.1.2 (lectura de WSI .svs para MIL)
+- DEC (Bloque 9) no añade dependencias nuevas: reutiliza directamente el embedding ya calculado por GAT+GCN (`h_final`), sin autoencoder propio
+
+Todas las dependencias de Fase 2 estan fijadas en `entorno/requirements.txt`.
 
 ## Como ejecutar
 
@@ -113,6 +122,44 @@ python src/01_validate_data.py BRCA data/raw/BRCA_clinical.tsv data/raw/BRCA_rna
 ### Fase 2 - Framework GAT+GCN+VGAE+MIL+DEC
 venv_pytorch\Scripts\activate
 python src/12_prueba_pytorch_geometric.py
+
+Scripts principales de cada bloque (todos numerados en `src/`, ejecutables de forma independiente):
+
+- `19_proyectar_grafo_gen_gen.py`, `20_preprocesar_atributos_gen.py`, `21_modelo_gat_gcn.py`, `22_entrenar_gat_gcn.py` — Bloque 6 (GAT+GCN): grafo gen-gen, atributos por gen, modelo y entrenamiento con validacion cruzada.
+- `23_modelo_vgae.py`, `24_entrenar_vgae.py` — Bloque 7 (VGAE): imputacion generativa de datos faltantes.
+- `25_entrenar_gat_gcn_final.py` — modelo GAT+GCN final por cohorte (sin pliegues), prerrequisito de MIL y DEC.
+- `26_modelo_mil.py`, `27_procesar_wsi_paciente.py`, `30_seleccionar_pacientes_mil.py`, `31_descargar_procesar_mil.py` — Bloque 8 (MIL): arquitectura, procesamiento de WSI por paciente en streaming, seleccion de pacientes y orquestacion de descarga+procesamiento con reintento ante fallos de red.
+- `28_entrenar_dec.py`, `29_barrido_dec.py` — Bloque 9 (DEC): clustering sobre el embedding de GAT+GCN, con barrido de hiperparametros.
+
+Ejemplo de uso (barrido de DEC sobre una cohorte ya entrenada):
+
+python src/29_barrido_dec.py BRCA data/processed/BRCA_modelo_gat_gcn_final.pt data/processed/BRCA_dec_subtipos.pt
+
+## Resultados reales (actualizado 2026-08-18)
+
+**GAT+GCN (Bloque 6), C-index medio ± desviacion estandar entre pliegues, validacion cruzada 5-fold:**
+
+| Cohorte | C-index |
+|---|---|
+| BRCA | 0,6255 ± 0,1301 |
+| LUAD | 0,5329 ± 0,0720 |
+| LUSC | 0,4514 ± 0,0642 |
+| COAD | 0,4599 ± 0,1107 |
+| KIRC | 0,4928 ± 0,0481 |
+
+Solo BRCA y LUAD superan el azar (0,5) con claridad; ver CLAUDE.md (Paso 40) para la discusion completa.
+
+**DEC (Bloque 9), K=2 como unico resultado no degenerado en las 5 cohortes (entropia normalizada, 0=colapsado, 1=perfectamente equilibrado):**
+
+| Cohorte | Entropia | Reparto de clusters |
+|---|---|---|
+| BRCA | 0,937 | [64, 117] |
+| LUAD | 0,906 | [114, 54] |
+| LUSC | 0,992 | [102, 83] |
+| COAD | 0,950 | [113, 66] |
+| KIRC | 0,945 | [66, 116] |
+
+Cualquier K≥3 colapsa de forma reproducible en las 5 cohortes (ver CLAUDE.md, Bloque 9, para el detalle del hallazgo y la correccion del criterio de decision).
 
 
 

@@ -332,23 +332,78 @@ DEC buscaba originalmente). Resultado final guardado en
 `data/processed/<COHORTE>_dec_subtipos.pt` en las 5 cohortes. Ver
 `results/2026-08-12-paso49/runlog.txt` para el detalle completo.
 
-Trabajo pendiente: (1) seleccionar 12 pacientes por cohorte (primeros
-en orden alfabético de case_id, con supervivencia válida y modelo
-GAT+GCN entrenado), verificar disponibilidad de WSI en el GDC para
-cada uno (sustituyendo si falta, mismo criterio que se aplicó a
-RNA-seq/CNV/metilación en los Pasos 24-29) y descargar+procesar
-(streaming) dentro de los 8 días presupuestados; (2) combinar z_WSI
-con el embedding molecular de la Capa 3 y calcular el C-index de
-MIL+molecular por cohorte, comparado con el C-index solo molecular ya
-documentado (Bloque 6); (3) DEC (Bloque 9) queda cerrado en las 5
-cohortes con la limitación documentada arriba, sin más trabajo
-previsto salvo que se decida revisitarlo. STRING v12 ya está
-descargado; Reactome y KEGG siguen pendientes para completar el grafo
-heterogéneo de vías (Fase 3). `docs/manifest-datos.tsv` ya está al día
-con el estado de Fase 1 (datos) pero NO refleja aún VGAE/MIL/DEC;
-`README.md` tampoco — todavía dice "solo está descargada la cohorte
-TCGA-BRCA" y no refleja las 5 cohortes completas ni los Bloques 6-9,
-pendiente de actualizar.
+ACTUALIZACIÓN BLOQUE 8 — SELECCIÓN Y DESCARGA+PROCESAMIENTO DE WSI
+(Pasos 50-51): completado el prerrequisito (arriba) y el barrido de
+DEC (Bloque 9), se seleccionaron y verificaron 12 pacientes por
+cohorte con WSI disponible en el GDC (Paso 50, 2026-08-13,
+`src/30_seleccionar_pacientes_mil.py`,
+`results/2026-08-13-paso50/runlog.txt`): 60/60 con WSI Primary Tumor
+disponible, sin ninguna sustitución necesaria (los primeros 12
+alfabéticos de cada cohorte ya tenían diapositiva). Volumen total
+44,89 GB.
+
+AJUSTE DE PRESUPUESTO (Paso 51, 2026-08-14): la velocidad de descarga
+real medida (1,19 MB/s) resultó mucho más lenta que la estimación
+inicial optimista, subiendo el total proyectado de ~6,8 a ~8,02 días
+— sin margen sobre el presupuesto de 8 días. Se recortó a 10
+pacientes por cohorte (50 en vez de 60), descartando los últimos 2 de
+cada lista ya verificada (sin reverificar disponibilidad, ya
+confirmada para los 10 que se mantienen). Recupera ~1,3 días de
+margen.
+
+HALLAZGO Y CORRECCIÓN: FALLO DE RED MASIVO EN CASCADA (Paso 51,
+2026-08-14/15): tras completar 8/10 pacientes de BRCA sin
+incidencias, la red del host se cayó por completo (fallo de
+resolución DNS de `gdc-client.exe` resolviendo
+`api.gdc.cancer.gov`). Al fallar cada intento de descarga de forma
+casi instantánea (sin timeout largo), el orquestador arrasó en
+cascada por los 2 pacientes restantes de BRCA y las 40 descargas de
+LUAD/LUSC/COAD/KIRC completas, en menos de 90 segundos, sin dar
+tiempo a que la red se recuperase (que lo hizo minutos después,
+verificado con curl). Corregido en `src/31_descargar_procesar_mil.py`
+(`descargar_con_reintentos()`): reintento con backoff creciente (30s,
+2min, 5min — hasta 3 reintentos) SOLO si el fallo tiene señales
+reconocibles de error de red (getaddrinfo failed, ConnectionError,
+timeout, etc.); un fallo no relacionado con red (ej. checksum
+inválido) no se reintenta, se registra de inmediato. `procesar()` no
+se tocó — el diseño en streaming ya validado (Pasos 44-46) queda
+intacto. Verificado con 3 pruebas unitarias controladas antes de
+relanzar. El mecanismo ya se puso a prueba en producción: LUSC tuvo
+un segundo blip de red menor durante `TCGA-21-5787`, que se completó
+correctamente tras 2 reintentos. Ver
+`results/2026-08-13-paso51/runlog.txt` para el detalle completo del
+incidente y la corrección (nota: el código referencia este arreglo
+como "Paso 52" en un comentario, pero no se creó una carpeta nueva —
+queda documentado en las secciones 7-8 de ese mismo runlog de
+paso51).
+
+ESTADO REAL DE DESCARGA+PROCESAMIENTO (actualizado 2026-08-18; el
+proceso sigue en marcha en segundo plano, ver
+`results/2026-08-13-paso51/log_mil_5_cohortes.txt` para el progreso
+más reciente): BRCA COMPLETO (10/10 pacientes, 0 fallos, 521.878
+parches con tejido, 39,55h de cómputo real acumulado), LUAD COMPLETO
+(10/10, 0 fallos, 141.409 parches, 12,33h), LUSC COMPLETO (10/10, 0
+fallos, 450.573 parches, 31,68h). COAD EN CURSO (4/10 completados a
+fecha de esta actualización, sin fallos). KIRC PENDIENTE (sin
+arrancar). Resultados por paciente (`z_wsi`, `n_parches`,
+`pico_ram_mb`, tiempos) guardados en
+`data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt`.
+
+Trabajo pendiente: (1) completar COAD (6 pacientes restantes a fecha
+de esta actualización) y KIRC (10 pacientes, sin empezar) — ver el
+log en vivo referenciado arriba; (2) combinar z_WSI con el embedding
+molecular de la Capa 3 y calcular el C-index de MIL+molecular por
+cohorte, comparado con el C-index solo molecular ya documentado
+(Bloque 6) — bloqueado hasta que las 5 cohortes de MIL estén
+completas; (3) DEC (Bloque 9) queda cerrado en las 5 cohortes con la
+limitación documentada arriba, sin más trabajo previsto salvo que se
+decida revisitarlo. STRING v12 ya está descargado; Reactome y KEGG
+siguen pendientes para completar el grafo heterogéneo de vías (Fase
+3; parcialmente incorporados ya en
+`data/processed/grafo_heterogeneo.pt`, Paso 23).
+`docs/manifest-datos.tsv` y `README.md` actualizados en este mismo
+commit (auditoría previa a la entrega) para reflejar las 5 cohortes
+completas y el estado real de los Bloques 6-9.
 
 ## Comandos
 
