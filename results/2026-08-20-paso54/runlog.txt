@@ -1,0 +1,101 @@
+ID de ejecucion: 2026-08-20-paso54
+Fecha: 20 de agosto de 2026
+
+Objetivo: completar las visualizaciones de estadisticas descriptivas y
+supervivencia (Bloque 5, src/05_estadisticas_descriptivas.py y
+src/06_grafico_supervivencia.py) para LUAD, LUSC, COAD y KIRC. Solo
+existian para BRCA (results/2026-06-20-paso3/, Paso 3, 2026-06-20),
+generadas antes de que el resto de cohortes estuvieran descargadas.
+Se piden ahora las 5 completas para el documento final del TFM.
+
+================================================================
+1) HALLAZGO Y CORRECCION: TITULO CODIFICADO A FUEGO COMO "TCGA-BRCA"
+================================================================
+
+src/06_grafico_supervivencia.py tenia el titulo de la figura escrito
+literalmente como "Distribucion de tiempos de seguimiento - TCGA-BRCA"
+(sin parametrizar por cohorte). Reutilizar el script tal cual para
+LUAD/LUSC/COAD/KIRC habria generado 4 figuras con datos correctos pero
+tituladas incorrectamente "TCGA-BRCA" - un error facil de pasar por
+alto visualmente pero incorrecto de cara al documento final.
+
+CORRECCION: se anade un tercer argumento posicional opcional
+"cohorte" a main() y al bloque __main__, con valor por defecto "BRCA"
+(preserva exactamente el comportamiento original si se invoca con
+solo 2 argumentos, no rompe la reproducibilidad de la figura de BRCA
+del Paso 3). El titulo pasa a construirse como
+"... - TCGA-" + cohorte. Sin ningun otro cambio de estilo (colores,
+bins, figsize, ejes, leyenda identicos).
+
+================================================================
+2) HALLAZGO: matplotlib NO INSTALADO EN EL ENTORNO WSL ACTUAL
+================================================================
+
+CLAUDE.md documenta la Fase 1 (pipeline de datos, incluidos estos dos
+scripts) como "Python del sistema, Windows, 3.14" - pero esta sesion
+opera en WSL, donde el unico Python accesible es el del entorno
+virtual venv_pytorch_wsl (Fase 2, Python 3.11). matplotlib no estaba
+instalado en ese entorno ni en ningun otro Python accesible desde WSL
+(system Python 3, python3.14 tampoco disponibles). src/05 (sin
+dependencias mas alla de la libreria estandar) funciono sin problema;
+src/06 fallo con ModuleNotFoundError: No module named 'matplotlib'.
+
+CORRECCION PRAGMATICA: se instalo matplotlib DENTRO de
+venv_pytorch_wsl con pip, fijando la version exacta ya pineada en
+entorno/requirements.txt (matplotlib==3.10.9) - un primer intento sin
+version exacta instalo 3.11.1 por defecto, corregido inmediatamente
+reinstalando la version pineada para no introducir una discrepancia
+de entorno no documentada. No hace falta tocar
+entorno/requirements.txt: la dependencia ya estaba declarada alli
+desde el principio (Fase 1), simplemente no estaba fisicamente
+instalada en este entorno WSL concreto.
+
+================================================================
+3) EJECUCION (las 4 cohortes, en las 5:00h de la madrugada del 20/08)
+================================================================
+
+Entrada: data/raw/<COHORTE>_clinical.tsv (cohorte clinica COMPLETA,
+no la muestra de 200 coordinados con RNA-seq/CNV/metilacion - mismo
+fichero que se uso para BRCA en el Paso 3), verificado el numero de
+filas de las 5 antes de ejecutar nada, coincide exacto con la Tabla 2
+del TFM: BRCA 1.098, LUAD 585, LUSC 504, COAD 461, KIRC 537.
+
+Comandos (por cohorte, <c>=cohorte en mayusculas, <cl>=en minusculas):
+  python3 src/05_estadisticas_descriptivas.py data/raw/<c>_clinical.tsv results/2026-08-20-paso54/estadisticas_<cl>_real.txt
+  python3 src/06_grafico_supervivencia.py data/raw/<c>_clinical.tsv results/2026-08-20-paso54/histograma_supervivencia_<cl>.png <c>
+
+RESULTADO POR COHORTE:
+
+  Cohorte  Total  Dead  Alive  Edad media  Dead con dato valido (histograma)  Alive con dato valido (histograma)
+  LUAD     585    188   334    65,7 anos   184                                 266
+  LUSC     504    220   284    67,9 anos   215                                 259
+  COAD     461    102   357    67,1 anos   102                                 311
+  KIRC     537    177   360    61,1 anos   177                                 311
+
+(BRCA, ya existente del Paso 3, para referencia: 1.098 total, 152
+Dead, 945 Alive, 59,2 anos, 151/884 con dato valido para el
+histograma.)
+
+Verificacion visual: las 4 figuras nuevas se inspeccionaron una a una
+y son visualmente consistentes con la de BRCA (mismos colores -
+steelblue para Vivos, indianred para Fallecidos -, mismo tamano de
+figura, mismos ejes/leyenda/rejilla), con el titulo correctamente
+parametrizado por cohorte tras la correccion de la seccion 1.
+
+================================================================
+4) UBICACION FINAL DE LAS 5 FIGURAS (BRCA + 4 nuevas)
+================================================================
+
+  BRCA: results/2026-06-20-paso3/histograma_supervivencia_brca.png (ya existente, sin regenerar)
+  LUAD: results/2026-08-20-paso54/histograma_supervivencia_luad.png
+  LUSC: results/2026-08-20-paso54/histograma_supervivencia_lusc.png
+  COAD: results/2026-08-20-paso54/histograma_supervivencia_coad.png
+  KIRC: results/2026-08-20-paso54/histograma_supervivencia_kirc.png
+
+Estadisticas descriptivas (texto, no figura) de las 4 cohortes nuevas
+en results/2026-08-20-paso54/estadisticas_<cohorte>_real.txt (BRCA:
+results/2026-06-20-paso3/estadisticas_brca_real.txt, ya existente).
+05_estadisticas_descriptivas.py no genera ninguna figura adicional,
+solo el fichero de texto.
+
+Commit: (pendiente)
