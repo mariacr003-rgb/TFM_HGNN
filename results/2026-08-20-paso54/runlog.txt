@@ -98,4 +98,32 @@ results/2026-06-20-paso3/estadisticas_brca_real.txt, ya existente).
 05_estadisticas_descriptivas.py no genera ninguna figura adicional,
 solo el fichero de texto.
 
+================================================================
+5) EXPORTACION DE DATOS CRUDOS (pedido por el usuario, mismo dia)
+================================================================
+
+Se pidieron los datos crudos que alimentan los 5 histogramas (no las
+imagenes), para reconstruirlos en otro entorno. Nuevo script
+src/33_exportar_datos_supervivencia.py: replica EXACTAMENTE el mismo
+filtro que usa 06_grafico_supervivencia.py (vital_status Dead con
+days_to_death valido, o Alive con days_to_last_follow_up valido;
+excluye el resto) para las 5 cohortes, y vuelca cohorte + tiempo_dias
+(crudo, SIN convertir a meses) + vital_status a un TSV combinado.
+
+Comando:
+  python3 src/33_exportar_datos_supervivencia.py results/2026-08-20-paso54/datos_supervivencia_5_cohortes.tsv
+
+Salida: results/2026-08-20-paso54/datos_supervivencia_5_cohortes.tsv
+(2.860 filas: BRCA 1.035, LUAD 450, LUSC 474, COAD 413, KIRC 488 -
+mismos conteos Dead/Alive que la seccion 3, confirma que son
+exactamente los mismos pacientes que aparecen en los 5 histogramas).
+
+Junto con el fichero de datos, se confirmaron por escrito (en el chat,
+no repetido aqui) las especificaciones exactas de estilo de
+06_grafico_supervivencia.py: 20 bins calculados de forma independiente
+por serie, eje X en meses (dias/30), color "steelblue" (#4682B4) para
+Vivos y "indianred" (#CD5C5C) para Fallecidos, alpha=0.6,
+figsize=(8,6), dpi=150, titulo
+"Distribucion de tiempos de seguimiento - TCGA-{COHORTE}".
+
 Commit: (pendiente)
