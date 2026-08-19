@@ -1,0 +1,8 @@
+Cohorte: BRCA
+Pacientes con vector conjunto MIL+molecular (32+2048=2080 dim): 10
+Eventos observados: 0
+Parametros de la cabeza de riesgo (lineal, 2080 dim + sesgo): 2081
+Estado: SIN_EVENTOS
+C-index MIL+molecular: NO CALCULABLE (0 eventos, perdida de Cox indefinida)
+C-index solo molecular (Bloque 6, validacion cruzada 5-fold, ~168-185 pacientes): 0.6255
+ADVERTENCIA: los dos C-index NO son directamente comparables - protocolos de evaluacion distintos (validacion cruzada sobre ~200 pacientes vs. C-index de entrenamiento sobre 10 pacientes, sin holdout). Ver runlog para la discusion completa de fiabilidad estadistica.

@@ -1,0 +1,179 @@
+ID de ejecucion: 2026-08-19-paso53
+Fecha: 19 de agosto de 2026
+
+Objetivo: ultimo paso del Bloque 8 (MIL, Seccion 4.5 del TFM). Con la
+descarga+procesamiento de WSI completa en las 5 cohortes (Paso 51),
+combinar el embedding z_WSI con el embedding molecular de la Capa 3
+(h_final, GAT+GCN) y calcular el C-index de MIL+molecular por
+cohorte, comparado con el C-index solo molecular ya documentado
+(Bloque 6, Paso 40).
+
+NOTA DE NUMERACION: se usa "Paso 53" (no "Paso 52") para evitar
+colisionar con la referencia a "Paso 52" que ya aparece en un
+comentario de src/31_descargar_procesar_mil.py (el fix de reintento
+de red del Paso 51) - ver la nota aclaratoria en
+results/2026-08-13-paso51/runlog.txt, seccion 7. Ese "Paso 52" nunca
+tuvo una carpeta propia; este es un trabajo distinto y se numera
+limpio a partir de ahi.
+
+================================================================
+1) DISEÑO (src/32_entrenar_mil_final.py)
+================================================================
+
+Formula de la Seccion 4.5 del TFM: vector conjunto = concat[h_final
+(32 dim, Capa 3 de GAT+GCN, ya guardado por 25_entrenar_gat_gcn_final.py)
+|| z_WSI (2048 dim, pooling de atencion MIL, ya guardado por
+27_procesar_wsi_paciente.py)] = 2080 dim por paciente.
+
+Para cada uno de los 10 pacientes de <COHORTE>_pacientes_mil.tsv, se
+busca su fila de h_final en data/processed/<COHORTE>_modelo_gat_gcn_final.pt
+por case_id (mismo case_id en ambos, ya que el Paso 50 selecciono los
+pacientes de MIL directamente de la lista de ese modelo) y se
+concatena con su z_wsi de data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt.
+
+Cabeza de riesgo: una unica capa lineal (torch.nn.Linear(2080, 1)),
+mismo tipo que ModeloGATGCN.cabeza_riesgo en 21_modelo_gat_gcn.py -
+sin excepcion de estilo "sin clases" del proyecto, no hace falta una
+subclase de nn.Module para un unico Linear.
+
+Reutilizado de 22_entrenar_gat_gcn.py (via importlib, mismo patron
+que 25 y 29): cargar_supervivencia(), perdida_cox() (log-verosimilitud
+parcial negativa de Cox, indefinida sin eventos) e
+indice_concordancia() (C-index estandar, con empates a 0,5). Ninguna
+de las 3 se reimplemento.
+
+Entrenamiento: 20 epocas, Adam lr=1e-3, semilla=0, sobre TODOS los
+pacientes disponibles de la cohorte, SIN pliegue de validacion (mismo
+criterio que 25_entrenar_gat_gcn_final.py: con n=10 no hay margen
+para un holdout con al menos 1 evento en cada lado). El C-index
+resultante es, por tanto, una metrica de ajuste al propio conjunto de
+entrenamiento, no de generalizacion - exactamente igual de honesto
+que la nota que ya lleva 25_entrenar_gat_gcn_final.py para su propio
+C-index de entrenamiento.
+
+================================================================
+2) ADVERTENCIA DE SOBREAJUSTE (pedida explicitamente, verificada)
+================================================================
+
+La cabeza de riesgo tiene 2.081 parametros (2.080 pesos + 1 sesgo)
+para SOLO 10 pacientes por cohorte. Esto es ~208 parametros por cada
+muestra de entrenamiento - muy por encima de cualquier regla practica
+de generalizacion razonable (lo habitual en la literatura es exigir
+varias muestras POR parametro, no al reves). No se ha intentado
+corregir esto con regularizacion, reduccion de dimensionalidad u otra
+arquitectura: la formula de concatenacion (32+2048 dim) viene fijada
+por la Seccion 4.5 del TFM y el volumen de 10 pacientes/cohorte fue
+una decision de presupuesto ya tomada y documentada (Paso 51) -
+corregir el sobreajuste esta fuera del alcance de este paso. Se
+documenta con la misma honestidad que VGAE (Paso 43) y DEC (Paso 47),
+sin intentar arreglarlo con tecnicas no pedidas.
+
+================================================================
+3) RESULTADO POR COHORTE
+================================================================
+
+  Cohorte  Pacientes  Eventos  C-index MIL+molecular  Pares comparables  C-index solo molecular (Bloque 6)
+  BRCA     10         0        NO CALCULABLE           0/90               0,6255
+  LUAD     10         2        0,9286                  14/90              0,5329
+  LUSC     10         5        0,8276                  29/90              0,4514
+  COAD     10         4        0,9048                  21/90              0,4599
+  KIRC     10         1        1,0000                  4/90               0,4928
+
+HALLAZGO BRCA - SIN EVENTOS: de los 10 pacientes MIL seleccionados de
+BRCA (Paso 50, primeros 10 en orden alfabetico de case_id con
+supervivencia valida y modelo GAT+GCN entrenado), NINGUNO tiene
+vital_status=Dead en clinical_valid.tsv - los 10 estan vivos
+("Alive", evento=0). La perdida de Cox esta matematicamente indefinida
+sin al menos 1 evento observado (ver perdida_cox() en
+22_entrenar_gat_gcn.py, devuelve None si evento.sum()==0), asi que NO
+se pudo entrenar ni calcular ningun C-index para BRCA con esta muestra
+concreta de 10 pacientes. No es un fallo del pipeline: es una
+consecuencia directa y esperable de que BRCA tenga muy pocos eventos
+en general incluso en la cohorte completa (17 eventos en 181
+pacientes con supervivencia valida, Bloque 6, Paso 36 - la tasa de
+eventos mas baja de las 5 cohortes) combinado con una muestra de solo
+10 pacientes elegidos por orden alfabetico de case_id (sin
+estratificar por evento, ya que el Paso 50 no lo exigia). Con una tasa
+de eventos de ~9,4% en la cohorte completa, la probabilidad de que
+los primeros 10 alfabeticamente no contengan NINGUN evento no es
+sorprendente.
+
+HALLAZGO EN LAS 4 COHORTES RESTANTES - SOBREAJUSTE EXTREMO CONFIRMADO:
+en LUAD, LUSC, COAD y KIRC, el C-index MIL+molecular (0,83-1,00) es
+DRAMATICAMENTE mas alto que el C-index solo molecular del Bloque 6
+(0,45-0,53, validacion cruzada real sobre ~168-185 pacientes). Esta
+diferencia NO se interpreta como evidencia de que anadir MIL mejora
+la prediccion de supervivencia - es casi con toda seguridad un
+artefacto de sobreajuste: con 2.081 parametros ajustandose a un
+maximo de 10 puntos (y en el caso mas extremo, KIRC, solo 1 evento y
+4 pares comparables), un modelo lineal puede separar practicamente
+cualquier configuracion de datos de forma perfecta o casi perfecta,
+sin que eso implique haber aprendido ninguna señal real. El caso KIRC
+(C-index=1,0000 sobre solo 4 pares comparables, con 1 unico evento en
+la muestra) es el ejemplo mas claro: un C-index perfecto calculado
+sobre 4 pares no es una senal fiable de nada, es lo esperable de un
+modelo con 2.081 grados de libertad ajustandose a un unico punto con
+evento observado.
+
+CONCLUSION (misma honestidad que VGAE y DEC): el resultado de este
+paso NO permite concluir que la integracion de imagenes WSI mejora la
+prediccion de supervivencia frente al C-index solo molecular del
+Bloque 6. Los C-index de MIL+molecular obtenidos son metricas de
+ajuste al conjunto de entrenamiento con una relacion
+parametros/muestras extrema (~208:1), no metricas de generalizacion,
+y por tanto NO SON DIRECTAMENTE COMPARABLES con el C-index de
+validacion cruzada del Bloque 6 pese a presentarse en la misma tabla
+por conveniencia. Con la muestra de 10 pacientes/cohorte decidida por
+presupuesto en el Paso 51, el diseño de la Seccion 4.5 (cabeza lineal
+sobre 2.080 dim) no permite una evaluacion de generalizacion fiable
+del Bloque 8 completo (MIL+molecular). Para obtener una comparacion
+metodologicamente valida haria falta, como minimo, una muestra mucho
+mayor (acercandose a los ~200 pacientes/cohorte del Bloque 6) o una
+arquitectura con muchos menos parametros (p. ej. reduccion de
+dimensionalidad de z_WSI antes de concatenar) - ambas fuera del
+presupuesto de 8 dias ya consumido en este bloque.
+
+Se documenta como limitacion metodologica honesta para la Seccion 4.9
+del TFM, en la misma linea que la mejora marginal no confirmada de
+VGAE (Paso 43) y el colapso de clusters de DEC (Paso 47/49): el
+Bloque 8, con el volumen de datos y el presupuesto de tiempo
+disponibles en este proyecto, no permite una conclusion fiable sobre
+si MIL aporta señal real sobre el C-index solo molecular.
+
+================================================================
+4) EJECUCION Y TIEMPOS REALES
+================================================================
+
+Las 5 cohortes se ejecutaron de forma secuencial, en primer plano
+(sin nohup+disown - cada cohorte tardo segundos, muy por debajo del
+umbral de "unos minutos" que hubiera justificado lanzarlo en segundo
+plano):
+
+  LUSC: 7,68s (prueba inicial, verificacion de que el diseño funciona
+    antes de lanzar el resto)
+  BRCA, LUAD, COAD, KIRC: cada una unos pocos segundos, ejecutadas en
+    un unico bucle de shell
+
+Comando (por cohorte):
+  python3 src/32_entrenar_mil_final.py <COHORTE>
+
+Salida por cohorte: data/processed/<COHORTE>_mil_final_metricas.txt
+(resumen legible, formato pedido por el usuario) y
+data/processed/<COHORTE>_mil_final_metricas.pt (mismos datos mas el
+state_dict de la cabeza de riesgo entrenada, para quien quiera
+reutilizarla).
+
+================================================================
+5) CIERRE DEL BLOQUE 8 (MIL)
+================================================================
+
+Con este paso, el Bloque 8 queda COMPLETO en las 5 cohortes: modelo
+GAT+GCN final (prerrequisito), descarga+procesamiento de WSI (Paso
+50-51) y calculo de C-index MIL+molecular (este paso). El resultado
+final es una limitacion metodologica documentada (no un resultado
+positivo de mejora), consistente con el patron ya visto en VGAE y
+DEC: el diseño mas simple posible dentro del presupuesto disponible
+no siempre confirma la hipotesis original del TFM, y se documenta con
+la misma honestidad en los 3 casos.
+
+Commit: (pendiente)

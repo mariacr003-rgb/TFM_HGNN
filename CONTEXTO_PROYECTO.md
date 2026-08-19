@@ -93,8 +93,9 @@ lo siguiente:
   `results/2026-08-08-paso42/runlog.txt` y
   `results/2026-08-09-paso43/runlog.txt`.
 
-- Bloque 8 (MIL) — DESCARGA+PROCESAMIENTO COMPLETO, C-INDEX
-  MIL+MOLECULAR PENDIENTE: prerrequisito COMPLETADO en las 5 cohortes
+- Bloque 8 (MIL) — CERRADO EN LAS 5 COHORTES (2026-08-19), CON
+  LIMITACIÓN METODOLÓGICA DOCUMENTADA (ver hallazgo de sobreajuste
+  abajo): prerrequisito COMPLETADO en las 5 cohortes
   (2026-08-13, modelo GAT+GCN final
   guardado en `data/processed/<COHORTE>_modelo_gat_gcn_final.pt`, vía
   `src/25_entrenar_gat_gcn_final.py`). LUAD/LUSC/COAD/KIRC relanzados
@@ -148,10 +149,24 @@ lo siguiente:
   `results/2026-08-13-paso50/runlog.txt` y
   `results/2026-08-13-paso51/runlog.txt` para el detalle completo.
 
-  Pendiente ahora: combinar z_WSI (`data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt`)
-  con el embedding molecular de la Capa 3 (`h_final`) y calcular el
-  C-index de MIL+molecular por cohorte, comparado con el C-index solo
-  molecular (Bloque 6) — único paso que falta para cerrar el Bloque 8.
+  C-INDEX MIL+MOLECULAR — CERRADO CON LIMITACIÓN DOCUMENTADA (Paso
+  53, 2026-08-19, `src/32_entrenar_mil_final.py`): vector conjunto =
+  concat[h_final (32) || z_WSI (2048)] = 2080 dim, cabeza de riesgo
+  lineal entrenada con la pérdida de Cox del Bloque 6 (reutilizada,
+  no reimplementada), sobre los 10 pacientes de cada cohorte, sin
+  holdout. ADVERTENCIA DE SOBREAJUSTE VERIFICADA: 2.081 parámetros
+  para 10 muestras (~208/muestra). Resultado: BRCA sin eventos (0/10,
+  C-index no calculable); LUAD 0,9286 (14 pares), LUSC 0,8276 (29
+  pares), COAD 0,9048 (21 pares), KIRC 1,0000 (solo 4 pares, 1 único
+  evento) — todos dramáticamente por encima del C-index solo
+  molecular (0,45-0,53, Bloque 6), casi con toda seguridad un
+  artefacto de sobreajuste, NO evidencia de que MIL mejore la
+  predicción. Los dos C-index NO son directamente comparables
+  (protocolos de evaluación distintos). Documentado como limitación
+  metodológica honesta para la Sección 4.9, misma línea que VGAE y
+  DEC. Ver `results/2026-08-19-paso53/runlog.txt` para el detalle
+  completo. Con esto, el Bloque 8 (MIL) queda COMPLETO en las 5
+  cohortes.
 
 - Bloque 9 (DEC) — CERRADO EN LAS 5 COHORTES (2026-08-13,
   `results/2026-08-11-paso47/runlog.txt` para BRCA,
@@ -306,11 +321,12 @@ Los primeros puntos de esta lista (descargar las 5 cohortes, construir
 el grafo heterogeneo, GAT+GCN, VGAE) YA ESTAN HECHOS — ver "Estado
 actual (actualizado 2026-08-11)" al principio de este documento. Lo
 que queda realmente pendiente:
-- Bloque 8 (MIL): descarga+procesamiento de WSI COMPLETO en las 5
-  cohortes (2026-08-19, 50/50 pacientes, 10 por cohorte, 0 fallos -
-  ver "Estado actual" arriba para el detalle). Pendiente ahora, unico
-  paso que falta: calcular C-index de MIL+molecular vs. solo molecular
-  por cohorte
+- Bloque 8 (MIL): CERRADO en las 5 cohortes (2026-08-19, ver "Estado
+  actual" arriba para el detalle completo) - descarga+procesamiento
+  de WSI (50/50 pacientes, 0 fallos) y C-index MIL+molecular
+  calculado, con limitacion metodologica documentada (sobreajuste
+  severo, n=10/cohorte), sin mas trabajo previsto salvo que se
+  decida revisitarlo con mas presupuesto
 - DEC (Bloque 9): cerrado en las 5 cohortes con limitacion documentada
   y confirmada (colapso de clusters con K>=3, se entrega K=2 en las 5)
   - ver arriba, sin mas trabajo previsto

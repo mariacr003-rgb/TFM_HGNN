@@ -25,6 +25,13 @@ data/raw/metilacion_*/
 # GDC anade/retira diapositivas) - se versiona explicitamente.
 !data/processed/*_pacientes_mil.tsv
 
+# Excepcion: metricas finales de MIL+molecular (Paso 53) - ficheros
+# pequenos (<11KB cada uno, resumen + state_dict de una unica capa
+# lineal), es el resultado final del Bloque 8, se versiona
+# explicitamente en vez de tratarlo como dato regenerable pesado.
+!data/processed/*_mil_final_metricas.txt
+!data/processed/*_mil_final_metricas.pt
+
 # Resultados pesados
 results/*
 !results/.gitkeep
@@ -85,6 +92,7 @@ results/**/*.pt
 !results/2026-08-12-paso49/
 !results/2026-08-13-paso50/
 !results/2026-08-13-paso51/
+!results/2026-08-19-paso53/
 
 # Entornos locales
 __pycache__/

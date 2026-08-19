@@ -226,8 +226,9 @@ del TFM y NO se replica en las 4 cohortes restantes; se deja la puerta
 abierta a retomarlo en el futuro con más semillas de validación o más
 pacientes por cohorte.
 
-Bloque 8 (MIL) — DESCARGA+PROCESAMIENTO COMPLETO, C-INDEX
-MIL+MOLECULAR PENDIENTE: prerrequisito completado en las 5
+Bloque 8 (MIL) — CERRADO EN LAS 5 COHORTES (2026-08-19), CON
+LIMITACIÓN METODOLÓGICA DOCUMENTADA (ver el hallazgo de sobreajuste
+más abajo): prerrequisito completado en las 5
 cohortes (2026-08-13), el modelo GAT+GCN final de cada una
 (entrenado con `src/25_entrenar_gat_gcn_final.py`, sin partición
 k-fold) guardado en `data/processed/<COHORTE>_modelo_gat_gcn_final.pt`.
@@ -397,16 +398,60 @@ en `data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt`. Ver
 `results/2026-08-13-paso51/runlog.txt` (sección 8) para el cierre
 completo.
 
-Trabajo pendiente: (1) combinar z_WSI con el embedding molecular de
-la Capa 3 (`h_final`) y calcular el C-index de MIL+molecular por
-cohorte, comparado con el C-index solo molecular ya documentado
-(Bloque 6, Paso 40) — único paso que falta para cerrar el Bloque 8;
-(2) DEC (Bloque 9) queda cerrado en las 5 cohortes con la limitación
-documentada arriba, sin más trabajo previsto salvo que se decida
-revisitarlo. STRING v12 ya está descargado; Reactome y KEGG siguen
-pendientes para completar el grafo heterogéneo de vías (Fase 3;
-parcialmente incorporados ya en `data/processed/grafo_heterogeneo.pt`,
-Paso 23).
+C-INDEX MIL+MOLECULAR — CERRADO EN LAS 5 COHORTES (2026-08-19,
+`src/32_entrenar_mil_final.py`, `results/2026-08-19-paso53/runlog.txt`):
+vector conjunto = concat[h_final (32 dim) || z_WSI (2048 dim)] = 2080
+dim por paciente (Sección 4.5), cabeza de riesgo lineal entrenada con
+la misma pérdida de Cox del Bloque 6 (reutilizada de
+`22_entrenar_gat_gcn.py`, sin reimplementar), sobre los 10 pacientes
+de cada cohorte, sin pliegue de validación (n=10 no da margen para
+holdout).
+
+ADVERTENCIA DE SOBREAJUSTE (verificada, no solo teórica): 2.081
+parámetros (2.080 pesos + sesgo) para 10 muestras — ~208
+parámetros/muestra. RESULTADO:
+
+  Cohorte  C-index MIL+molecular  Pares comparables  C-index solo molecular (Bloque 6)
+  BRCA     NO CALCULABLE (0 eventos)   0/90            0,6255
+  LUAD     0,9286                      14/90           0,5329
+  LUSC     0,8276                      29/90           0,4514
+  COAD     0,9048                      21/90           0,4599
+  KIRC     1,0000                      4/90            0,4928
+
+BRCA: de los 10 pacientes MIL, ninguno tiene evento observado
+(vital_status=Alive en los 10) — la pérdida de Cox está indefinida
+sin eventos, no se pudo entrenar ni calcular C-index para esta
+cohorte con esta muestra concreta. Consistente con que BRCA ya tenía
+la tasa de eventos más baja de las 5 en la cohorte completa (17/181,
+Paso 36).
+
+LAS 4 COHORTES RESTANTES: el C-index MIL+molecular (0,83-1,00) es
+dramáticamente más alto que el solo molecular (0,45-0,53) — casi con
+toda seguridad un artefacto de sobreajuste (2.081 parámetros
+ajustándose a un máximo de 10 puntos), NO evidencia de que MIL
+mejore la predicción. El caso extremo es KIRC: C-index=1,0000
+calculado sobre solo 4 pares comparables (1 único evento en la
+muestra) — lo esperable de un modelo con miles de grados de libertad
+ajustándose a un único punto con evento, no una señal fiable.
+
+CONCLUSIÓN (misma honestidad que VGAE y DEC): el Bloque 8, con el
+volumen de datos y presupuesto de tiempo disponibles en este
+proyecto (10 pacientes/cohorte, decidido por presupuesto en el Paso
+51), NO permite una conclusión fiable sobre si MIL aporta señal real
+sobre el C-index solo molecular. Los C-index de MIL+molecular y de
+Bloque 6 NO son directamente comparables (protocolos de evaluación
+distintos: validación cruzada sobre ~200 pacientes vs. C-index de
+entrenamiento sobre 10, sin holdout). Se documenta como limitación
+metodológica honesta para la Sección 4.9, en la misma línea que la
+mejora marginal no confirmada de VGAE y el colapso de clusters de
+DEC. Con esto, el Bloque 8 (MIL) queda COMPLETO en las 5 cohortes.
+
+Trabajo pendiente en el proyecto: DEC (Bloque 9) queda cerrado en las
+5 cohortes con la limitación documentada arriba, sin más trabajo
+previsto salvo que se decida revisitarlo. STRING v12 ya está
+descargado; Reactome y KEGG siguen pendientes para completar el grafo
+heterogéneo de vías (Fase 3; parcialmente incorporados ya en
+`data/processed/grafo_heterogeneo.pt`, Paso 23).
 
 ## Comandos
 

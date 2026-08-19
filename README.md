@@ -16,7 +16,7 @@ y el descubrimiento de subtipos moleculares en pacientes de cancer. Estado real 
 
 - **GAT+GCN (Bloque 6) — CERRADO**, entrenado y evaluado con validacion cruzada en las 5 cohortes.
 - **VGAE (Bloque 7) — CERRADO**, investigado a fondo sobre BRCA; mejora marginal sobre la base trivial, no confirmada como robusta (limitacion metodologica documentada, no replicado en las 4 cohortes restantes).
-- **MIL (Bloque 8) — EN CURSO**: BRCA, LUAD y LUSC completos (10/10 pacientes cada una); COAD en curso; KIRC pendiente de arrancar. Ver resultados abajo.
+- **MIL (Bloque 8) — CERRADO en las 5 cohortes** (2026-08-19): descarga+procesamiento de WSI completo (50/50 pacientes, 0 fallos) y C-index de MIL+molecular calculado; limitacion metodologica documentada (sobreajuste severo con solo 10 pacientes/cohorte, ver resultados abajo).
 - **DEC (Bloque 9) — CERRADO en las 5 cohortes**: unico resultado no degenerado es K=2 (limitacion metodologica confirmada y generalizada, no el descubrimiento de subtipos multiples buscado originalmente).
 
 ## Estructura del proyecto
@@ -160,6 +160,18 @@ Solo BRCA y LUAD superan el azar (0,5) con claridad; ver CLAUDE.md (Paso 40) par
 | KIRC | 0,945 | [66, 116] |
 
 Cualquier K≥3 colapsa de forma reproducible en las 5 cohortes (ver CLAUDE.md, Bloque 9, para el detalle del hallazgo y la correccion del criterio de decision).
+
+**MIL+molecular (Bloque 8), C-index sobre 10 pacientes/cohorte (sin holdout - ver advertencia abajo), comparado con el C-index solo molecular del Bloque 6:**
+
+| Cohorte | C-index MIL+molecular | Pares comparables | C-index solo molecular (Bloque 6) |
+|---|---|---|---|
+| BRCA | no calculable (0 eventos) | 0/90 | 0,6255 |
+| LUAD | 0,9286 | 14/90 | 0,5329 |
+| LUSC | 0,8276 | 29/90 | 0,4514 |
+| COAD | 0,9048 | 21/90 | 0,4599 |
+| KIRC | 1,0000 | 4/90 | 0,4928 |
+
+**ADVERTENCIA (leer antes de interpretar esta tabla):** la cabeza de riesgo tiene 2.081 parametros para solo 10 pacientes por cohorte (~208 parametros/muestra) - el C-index de MIL+molecular es una metrica de ajuste al propio conjunto de entrenamiento, NO de generalizacion, y casi con toda seguridad refleja sobreajuste extremo (el caso KIRC, C-index=1,0000 sobre solo 4 pares comparables con 1 unico evento, es el ejemplo mas claro). NO es evidencia de que MIL mejore la prediccion de supervivencia frente al Bloque 6, y los dos C-index de esta tabla NO son directamente comparables (protocolos de evaluacion distintos). Se documenta como limitacion metodologica honesta, ver CLAUDE.md (Bloque 8) y results/2026-08-19-paso53/runlog.txt para el detalle completo.
 
 
 
