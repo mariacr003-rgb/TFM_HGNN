@@ -93,8 +93,9 @@ lo siguiente:
   `results/2026-08-08-paso42/runlog.txt` y
   `results/2026-08-09-paso43/runlog.txt`.
 
-- Bloque 8 (MIL) — EN CURSO, alcance decidido: prerrequisito
-  COMPLETADO en las 5 cohortes (2026-08-13, modelo GAT+GCN final
+- Bloque 8 (MIL) — DESCARGA+PROCESAMIENTO COMPLETO, C-INDEX
+  MIL+MOLECULAR PENDIENTE: prerrequisito COMPLETADO en las 5 cohortes
+  (2026-08-13, modelo GAT+GCN final
   guardado en `data/processed/<COHORTE>_modelo_gat_gcn_final.pt`, vía
   `src/25_entrenar_gat_gcn_final.py`). LUAD/LUSC/COAD/KIRC relanzados
   con nohup+disown tras un corte nocturno del intento original (LUSC
@@ -123,16 +124,34 @@ lo siguiente:
   CAMBIO DE ALCANCE (2026-08-11): con el tiempo real por paciente
   (185,51 min = descarga estimada + 183,5 min de procesamiento medido)
   y sin margen de paralelización, se decidió correr MIL sobre las 5
-  cohortes (no solo BRCA) con 12 pacientes por cohorte (60 total, ~6,8
-  de 8 días presupuestados exclusivamente para descarga+procesamiento,
-  ~1,2 días de margen), en vez de los 200 pacientes completos de una
-  sola cohorte. Prerrequisito COMPLETADO (2026-08-13): modelo GAT+GCN
-  final en las 5 cohortes. Pendiente ahora: seleccionar 12 pacientes/
-  cohorte (primeros por case_id con supervivencia válida), verificar
-  disponibilidad de WSI en el GDC (sustituir si falta, mismo criterio
-  que RNA-seq/CNV/metilación en los Pasos 24-29), descargar+procesar,
-  y calcular C-index de MIL+molecular por cohorte comparado con el
-  C-index solo molecular (Bloque 6).
+  cohortes (no solo BRCA) con 12 pacientes por cohorte, luego
+  recortado a 10 por presupuesto (Paso 51, ver abajo), en vez de los
+  200 pacientes completos de una sola cohorte. Prerrequisito
+  COMPLETADO (2026-08-13): modelo GAT+GCN final en las 5 cohortes.
+
+  SELECCIÓN Y DESCARGA+PROCESAMIENTO DE WSI — COMPLETO (Pasos 50-51,
+  2026-08-13 a 2026-08-19): 12 pacientes/cohorte seleccionados y
+  verificados con WSI disponible en el GDC (Paso 50, 60/60, sin
+  sustituciones), recortado a 10/cohorte (Paso 51) al medir que la
+  velocidad de descarga real (1,19 MB/s) subía el total proyectado de
+  ~6,8 a ~8,02 días — sin margen sobre el presupuesto de 8 días.
+  HALLAZGO Y CORRECCIÓN: durante el lanzamiento sin supervisión, la
+  red del host se cayó por completo (fallo de resolución DNS) y, al
+  fallar cada descarga casi instantáneamente, el orquestador arrasó
+  en cascada por 42 de los 50 pacientes en menos de 90 segundos.
+  Corregido con reintento y backoff creciente (30s/2min/5min) SOLO
+  ante señales de error de red, sin tocar el diseño en streaming ya
+  validado. Relanzado, cerrado sin más incidencias: 50/50 pacientes,
+  0 fallos definitivos, 1.881.229 parches con tejido en total, 138,54h
+  de cómputo de procesamiento acumulado, 6,06 días de pared real
+  (4,57 desde el relanzamiento). Ver
+  `results/2026-08-13-paso50/runlog.txt` y
+  `results/2026-08-13-paso51/runlog.txt` para el detalle completo.
+
+  Pendiente ahora: combinar z_WSI (`data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt`)
+  con el embedding molecular de la Capa 3 (`h_final`) y calcular el
+  C-index de MIL+molecular por cohorte, comparado con el C-index solo
+  molecular (Bloque 6) — único paso que falta para cerrar el Bloque 8.
 
 - Bloque 9 (DEC) — CERRADO EN LAS 5 COHORTES (2026-08-13,
   `results/2026-08-11-paso47/runlog.txt` para BRCA,
@@ -287,13 +306,11 @@ Los primeros puntos de esta lista (descargar las 5 cohortes, construir
 el grafo heterogeneo, GAT+GCN, VGAE) YA ESTAN HECHOS — ver "Estado
 actual (actualizado 2026-08-11)" al principio de este documento. Lo
 que queda realmente pendiente:
-- Bloque 8 (MIL), alcance decidido (2026-08-11): 12 pacientes por
-  cohorte en las 5 cohortes (60 total, ~6,8 de 8 dias presupuestados).
-  Prerrequisito COMPLETADO (2026-08-13): modelo GAT+GCN final en las 5
-  cohortes. Pendiente ahora: seleccionar los 12 pacientes/cohorte,
-  verificar WSI disponible en el GDC, descargar+procesar (streaming,
-  ya validado sin problema de memoria) y calcular C-index de
-  MIL+molecular vs. solo molecular
+- Bloque 8 (MIL): descarga+procesamiento de WSI COMPLETO en las 5
+  cohortes (2026-08-19, 50/50 pacientes, 10 por cohorte, 0 fallos -
+  ver "Estado actual" arriba para el detalle). Pendiente ahora, unico
+  paso que falta: calcular C-index de MIL+molecular vs. solo molecular
+  por cohorte
 - DEC (Bloque 9): cerrado en las 5 cohortes con limitacion documentada
   y confirmada (colapso de clusters con K>=3, se entrega K=2 en las 5)
   - ver arriba, sin mas trabajo previsto

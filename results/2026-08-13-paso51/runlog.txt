@@ -218,14 +218,46 @@ reintento de red que ocurra).
 Commit: (pendiente)
 
 ================================================================
-8) PENDIENTE DE COMPLETAR EN ESTE MISMO RUNLOG
+8) CIERRE: LAS 5 COHORTES COMPLETAS (2026-08-19)
 ================================================================
 
-Se documentara aqui, al completar cada cohorte y al terminar el lote
-completo: tiempo real acumulado por cohorte (incluyendo, si los hay,
-los reintentos de red y su coste en tiempo), cualquier paciente que
-falle DEFINITIVAMENTE la descarga (tras agotar los 4 intentos) o el
-procesamiento (si los hay, sin haber detenido el resto), y el estado
-final de los 50.
+Lote completo: 50/50 pacientes (10 por cohorte), 0 fallos de
+descarga definitivos (tras agotar los 4 intentos) y 0 fallos de
+procesamiento en las 5 cohortes. El unico incidente real de todo el
+lote fue el fallo de red masivo documentado en la seccion 7 (resuelto
+antes de que se perdiera ningun paciente), mas un segundo blip de red
+menor durante LUSC (`TCGA-21-5787`), resuelto por el mismo mecanismo
+de reintento sin intervencion manual.
 
-Commit: (pendiente)
+RESULTADO FINAL POR COHORTE (parches con tejido y tiempo total de
+procesamiento, sin contar descarga; ver
+data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt para el detalle por
+paciente):
+
+  Cohorte  Parches con tejido  Tiempo procesamiento  Pico RAM maximo
+  BRCA     521.878             39,55 h                2.982 MB
+  LUAD     141.409             12,33 h                1.576 MB
+  LUSC     450.573             31,68 h                2.642 MB
+  COAD     524.694             37,67 h                3.541 MB
+  KIRC     242.675             17,31 h                2.686 MB
+  TOTAL    1.881.229           138,54 h
+
+TIEMPO DE PARED REAL DEL BLOQUE COMPLETO:
+  - Desde el primer lanzamiento (13/08 09:44:02) hasta el cierre
+    (19/08 11:04:43): 6 dias 1h20min (6,06 dias) - incluye el hueco
+    del incidente de red y el tiempo hasta el relanzamiento con la
+    correccion.
+  - Desde el relanzamiento con reintento+backoff (14/08 21:26:21)
+    hasta el cierre: 4 dias 13h38min (4,57 dias) - sin incidencias
+    desde entonces.
+  - Presupuesto original: 8 dias. Cerrado con margen, pese al
+    incidente de red y la correccion de diseno a mitad de ejecucion.
+
+CONCLUSION: la descarga+procesamiento de WSI del Bloque 8 (MIL) queda
+COMPLETA en las 5 cohortes del TFM. Pendiente (fuera del alcance de
+este paso): combinar z_wsi con el embedding molecular de la Capa 3
+(h_final, ya guardado por 25_entrenar_gat_gcn_final.py) y calcular el
+C-index de MIL+molecular por cohorte, comparado con el C-index solo
+molecular ya documentado (Bloque 6, Paso 40).
+
+Commit: (pendiente, se completa en el commit de cierre de este runlog)

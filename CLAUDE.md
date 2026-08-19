@@ -226,7 +226,8 @@ del TFM y NO se replica en las 4 cohortes restantes; se deja la puerta
 abierta a retomarlo en el futuro con más semillas de validación o más
 pacientes por cohorte.
 
-Bloque 8 (MIL) — EN CURSO: prerrequisito completado en las 5
+Bloque 8 (MIL) — DESCARGA+PROCESAMIENTO COMPLETO, C-INDEX
+MIL+MOLECULAR PENDIENTE: prerrequisito completado en las 5
 cohortes (2026-08-13), el modelo GAT+GCN final de cada una
 (entrenado con `src/25_entrenar_gat_gcn_final.py`, sin partición
 k-fold) guardado en `data/processed/<COHORTE>_modelo_gat_gcn_final.pt`.
@@ -377,33 +378,35 @@ como "Paso 52" en un comentario, pero no se creó una carpeta nueva —
 queda documentado en las secciones 7-8 de ese mismo runlog de
 paso51).
 
-ESTADO REAL DE DESCARGA+PROCESAMIENTO (actualizado 2026-08-18; el
-proceso sigue en marcha en segundo plano, ver
-`results/2026-08-13-paso51/log_mil_5_cohortes.txt` para el progreso
-más reciente): BRCA COMPLETO (10/10 pacientes, 0 fallos, 521.878
-parches con tejido, 39,55h de cómputo real acumulado), LUAD COMPLETO
-(10/10, 0 fallos, 141.409 parches, 12,33h), LUSC COMPLETO (10/10, 0
-fallos, 450.573 parches, 31,68h). COAD EN CURSO (4/10 completados a
-fecha de esta actualización, sin fallos). KIRC PENDIENTE (sin
-arrancar). Resultados por paciente (`z_wsi`, `n_parches`,
-`pico_ram_mb`, tiempos) guardados en
-`data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt`.
+DESCARGA+PROCESAMIENTO DE WSI — COMPLETO EN LAS 5 COHORTES
+(2026-08-19): las 50 pacientes (10 por cohorte) quedan procesados sin
+ningún fallo definitivo de descarga ni de procesamiento. Resultado
+final por cohorte (parches con tejido, tiempo de procesamiento sin
+contar descarga):
 
-Trabajo pendiente: (1) completar COAD (6 pacientes restantes a fecha
-de esta actualización) y KIRC (10 pacientes, sin empezar) — ver el
-log en vivo referenciado arriba; (2) combinar z_WSI con el embedding
-molecular de la Capa 3 y calcular el C-index de MIL+molecular por
+  BRCA 521.878 parches, 39,55h · LUAD 141.409 parches, 12,33h · LUSC
+  450.573 parches, 31,68h · COAD 524.694 parches, 37,67h · KIRC
+  242.675 parches, 17,31h — TOTAL 1.881.229 parches, 138,54h de
+  cómputo de procesamiento acumulado.
+
+Tiempo de pared real: 6,06 días desde el primer lanzamiento (incluye
+el hueco del incidente de red), 4,57 días desde el relanzamiento con
+la corrección — cerrado con margen sobre el presupuesto de 8 días.
+Resultados por paciente (`z_wsi`, `n_parches`, `pico_ram_mb`, tiempos)
+en `data/processed/mil_wsi/<COHORTE>/<case_id>_mil.pt`. Ver
+`results/2026-08-13-paso51/runlog.txt` (sección 8) para el cierre
+completo.
+
+Trabajo pendiente: (1) combinar z_WSI con el embedding molecular de
+la Capa 3 (`h_final`) y calcular el C-index de MIL+molecular por
 cohorte, comparado con el C-index solo molecular ya documentado
-(Bloque 6) — bloqueado hasta que las 5 cohortes de MIL estén
-completas; (3) DEC (Bloque 9) queda cerrado en las 5 cohortes con la
-limitación documentada arriba, sin más trabajo previsto salvo que se
-decida revisitarlo. STRING v12 ya está descargado; Reactome y KEGG
-siguen pendientes para completar el grafo heterogéneo de vías (Fase
-3; parcialmente incorporados ya en
-`data/processed/grafo_heterogeneo.pt`, Paso 23).
-`docs/manifest-datos.tsv` y `README.md` actualizados en este mismo
-commit (auditoría previa a la entrega) para reflejar las 5 cohortes
-completas y el estado real de los Bloques 6-9.
+(Bloque 6, Paso 40) — único paso que falta para cerrar el Bloque 8;
+(2) DEC (Bloque 9) queda cerrado en las 5 cohortes con la limitación
+documentada arriba, sin más trabajo previsto salvo que se decida
+revisitarlo. STRING v12 ya está descargado; Reactome y KEGG siguen
+pendientes para completar el grafo heterogéneo de vías (Fase 3;
+parcialmente incorporados ya en `data/processed/grafo_heterogeneo.pt`,
+Paso 23).
 
 ## Comandos
 
