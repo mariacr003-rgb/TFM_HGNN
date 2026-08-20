@@ -1,0 +1,23 @@
+# Baseline SVM/RF (Seccion 1.3 del TFM, src/34_baseline_svm_rf.py).
+#
+# NO instalar en el mismo entorno que entorno/requirements.txt (Fase
+# 2: torch_geometric). Instalar en un venv NUEVO Y SEPARADO:
+#
+#   python3.11 -m venv tfm_entorno/venv_baseline_svm_rf
+#   tfm_entorno/venv_baseline_svm_rf/bin/pip install -r entorno/requirements-baseline-svm-rf.txt
+#
+# Motivo: scikit-survival fija rangos de version de numpy/scipy/
+# scikit-learn que podrian entrar en conflicto con los ya fijados por
+# torch/torch_geometric en el entorno principal (venv_pytorch_wsl),
+# ya validado en 4 bloques (GAT+GCN, VGAE, MIL, DEC). Aislar el
+# entorno elimina ese riesgo de raiz en vez de solo mitigarlo: si algo
+# sale mal instalando estas dependencias, el entorno principal queda
+# intacto. Ver results/2026-08-20-paso55/runlog.txt para el
+# diagnostico de viabilidad completo.
+#
+# torch se incluye aqui tambien, pero SOLO se usa para leer los .pt
+# del proyecto (I/O, torch.load) - ningun calculo de este bloque usa
+# torch, todo es numpy/scikit-survival.
+torch==2.13.0
+scikit-survival==0.28.0
+scikit-learn==1.9.0

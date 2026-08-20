@@ -110,8 +110,7 @@ Todas las dependencias de Fase 2 estan fijadas en `entorno/requirements.txt`.
 
 ### Baseline SVM/RF (Seccion 1.3)
 - Python 3.11, entorno virtual **aislado y distinto**: `tfm_entorno/venv_baseline_svm_rf` (no `venv_pytorch`, no necesita `torch_geometric`)
-- scikit-survival 0.28.0, scikit-learn 1.9.0
-- torch 2.13 (solo para leer los `.pt` del proyecto, ningun calculo lo usa)
+- Dependencias fijadas por separado en `entorno/requirements-baseline-svm-rf.txt` (NO en `entorno/requirements.txt`, para no mezclar con Fase 2): scikit-survival 0.28.0, scikit-learn 1.9.0, torch 2.13 (solo para leer los `.pt` del proyecto, ningun calculo lo usa)
 
 ## Como ejecutar
 
