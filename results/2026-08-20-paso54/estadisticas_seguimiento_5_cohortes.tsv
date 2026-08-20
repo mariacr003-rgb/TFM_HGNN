@@ -1,0 +1,6 @@
+cohorte	n_valido	n_fallecidos	pct_fallecidos	n_vivos	pct_vivos	mediana_meses	media_meses	q1_meses	q3_meses	min_meses	max_meses
+BRCA	1035	151	14.6	884	85.4	27.03	40.27	14.6	54.95	-0.23	285.2
+LUAD	450	184	40.9	266	59.1	21.72	29.31	12.54	37.52	0.0	241.6
+LUSC	474	215	45.4	259	54.6	21.45	31.74	10.1	40.27	0.0	176.23
+COAD	413	102	24.7	311	75.3	20.57	26.65	11.9	35.13	0.0	150.07
+KIRC	488	177	36.3	311	63.7	37.67	42.2	16.58	62.14	0.0	135.57

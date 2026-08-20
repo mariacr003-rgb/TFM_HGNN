@@ -126,4 +126,49 @@ Vivos y "indianred" (#CD5C5C) para Fallecidos, alpha=0.6,
 figsize=(8,6), dpi=150, titulo
 "Distribucion de tiempos de seguimiento - TCGA-{COHORTE}".
 
+================================================================
+6) ESTADISTICOS DE SEGUIMIENTO PARA LA TABLA 4 Y LA SECCION 3.3
+================================================================
+
+Se pidieron mediana, media, cuartiles, minimo y maximo del tiempo de
+seguimiento por cohorte, para la Tabla 4 y el parrafo de analisis de
+la Seccion 3.3 del TFM. Estos valores se habian calculado antes en el
+chat (numpy sobre el TSV de la seccion 5) pero no quedaban guardados
+en ningun fichero del repositorio - solo en el historial de la
+conversacion, no reproducibles ni verificables por nadie que revisara
+el repositorio despues.
+
+Nuevo script src/35_estadisticas_seguimiento.py (siguiente numero
+disponible en src/, tras 34_baseline_svm_rf.py): calcula, a partir del
+TSV combinado de la seccion 5 (sin descargar ni recalcular ningun dato
+nuevo desde el GDC), n valido, fallecidos (n y %), vivos (n y %),
+mediana, media, Q1, Q3, minimo y maximo del tiempo de seguimiento en
+meses, por cohorte. numpy 2.4.6 (venv_pytorch_wsl).
+
+Comando:
+  python3 src/35_estadisticas_seguimiento.py results/2026-08-20-paso54/datos_supervivencia_5_cohortes.tsv results/2026-08-20-paso54/estadisticas_seguimiento_5_cohortes.tsv
+
+Salida: results/2026-08-20-paso54/estadisticas_seguimiento_5_cohortes.tsv
+
+  Cohorte  n     Fallecidos    Vivos         Mediana  Media  Q1     Q3     Min    Max
+  BRCA     1035  151 (14,6%)   884 (85,4%)   27,03    40,27  14,60  54,95  -0,23  285,20
+  LUAD     450   184 (40,9%)   266 (59,1%)   21,72    29,31  12,54  37,52  0,00   241,60
+  LUSC     474   215 (45,4%)   259 (54,6%)   21,45    31,74  10,10  40,27  0,00   176,23
+  COAD     413   102 (24,7%)   311 (75,3%)   20,57    26,65  11,90  35,13  0,00   150,07
+  KIRC     488   177 (36,3%)   311 (63,7%)   37,67    42,20  16,58  62,14  0,00   135,57
+
+Valores identicos a los ya reportados en el chat antes de este paso
+(mediana BRCA=27,03; LUAD=21,72; LUSC=21,45; COAD=20,57; KIRC=37,67, y
+las mismas medias/cuartiles/minimos/maximos) - verificado explicitamente
+que el fichero guardado coincide con lo que ya esta en el TFM, sin
+discrepancias.
+
+NOTA (ya documentada en el chat, se deja constancia aqui tambien): el
+minimo de BRCA es negativo (-0,23 meses = -7 dias). Verificado en
+data/raw/BRCA_clinical.tsv: paciente TCGA-PL-A8LV, vital_status=Alive,
+days_to_last_follow_up=-7,0 - un valor negativo real del dato clinico
+del GDC, no un artefacto introducido por el pipeline de este proyecto.
+Caso aislado (el resto de minimos de BRCA y de las otras 4 cohortes
+son 0,00).
+
 Commit: (pendiente)
