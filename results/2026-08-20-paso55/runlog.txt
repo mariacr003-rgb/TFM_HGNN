@@ -1,0 +1,237 @@
+ID de ejecucion: 2026-08-20-paso55
+Fecha: 20 de agosto de 2026
+
+Objetivo: ejecutar el baseline SVM/RF sobre una sola capa omica, uno
+de los 6 objetivos declarados en la Seccion 1.3 del TFM pero nunca
+ejecutado ni reportado en resultados hasta ahora. Se trata como un
+bloque de trabajo normal del proyecto (mismo rigor que VGAE/MIL/DEC),
+tras un diagnostico de viabilidad previo (sin runlog propio, discutido
+en el chat) que confirmo: los datos coordinados de GAT+GCN son
+directamente reutilizables (canal RNA-seq de
+<COHORTE>_atributos_gen_norm.pt, sin descargar ni procesar nada
+nuevo), y que la Seccion 4.8 del TFM no fija ni la capa omica ni el K
+de reduccion de dimensionalidad (confirmado por el usuario) - decision
+tomada de forma razonada: RNA-seq como capa (canal 0, ya preparado) y
+top-1000 genes por varianza (mismo criterio que VGAE, Paso 43, K
+distinto por motivo distinto).
+
+================================================================
+1) ENTORNO: VENV AISLADO PARA scikit-survival
+================================================================
+
+scikit-survival no se instala en venv_pytorch_wsl (el entorno
+compartido de GAT+GCN/VGAE/MIL/DEC) sino en un venv nuevo y aislado,
+tfm_entorno/venv_baseline_svm_rf: no necesita torch/PyG para nada (solo
+numpy/scipy/scikit-learn/pandas), y mantenerlo aparte evita cualquier
+riesgo de conflicto de version con el entorno ya validado en 4
+bloques.
+
+HALLAZGO 1 - DIAGNOSTICO INICIAL INCORRECTO, CORREGIDO: el primer
+intento de venv se creo con Python 3.14 (system Python, misma
+convencion documentada para Fase 1). La instalacion de
+scikit-survival se quedo colgada 8 minutos consumiendo solo ~5s de CPU
+real (proceso vivo pero sin avanzar) - se atribuyo inicialmente,
+erroneamente, a que Python 3.14 era demasiado reciente para tener
+wheels precompiladas de scikit-survival, obligando a compilar desde
+fuente. Al matar el proceso y revisar el log completo con detalle
+(antes de descartar el intento), aparecio la causa real:
+NameResolutionError: Failed to resolve 'files.pythonhosted.org' - un
+fallo de resolucion DNS, el MISMO patron ya documentado en el
+incidente de red masivo del Paso 51 (fallo de gdc-client.exe
+resolviendo api.gdc.cancer.gov). No era un problema de Python 3.14 en
+absoluto, era la red. Verificado con curl que pypi.org y
+files.pythonhosted.org respondian HTTP 200 antes de reintentar.
+
+Se recreo igualmente el venv con Python 3.11 (mismo Python que
+venv_pytorch_wsl, mejor soporte de wheels en general para el
+ecosistema cientifico, decision que se mantiene aunque el diagnostico
+inicial fuera incorrecto) y, con la red ya estable, la instalacion fue
+limpia en un solo intento: scikit-survival 0.28.0, scikit-learn 1.9.0,
+numpy 2.4.6, scipy 1.17.1, sin ningun conflicto de version.
+
+Se instalo ademas torch 2.13.0+cpu (misma version que venv_pytorch_wsl)
+en el venv aislado: el script necesita torch SOLO para leer los .pt
+del proyecto (I/O, torch.load), ningun calculo de este bloque usa
+torch - sigue siendo una dependencia ligera y sin riesgo para el
+entorno principal, al estar en un venv completamente separado.
+
+================================================================
+2) HALLAZGO 2 - DEPENDENCIA TRANSITIVA INNECESARIA, CORREGIDA
+================================================================
+
+Al ejecutar el primer smoke test, src/22_entrenar_gat_gcn.py (de donde
+se reutilizan cargar_supervivencia(), construir_pliegues() e
+indice_concordancia()) fallo con ModuleNotFoundError: No module named
+'torch_geometric'. Causa: el modulo importaba ModeloGATGCN de
+21_modelo_gat_gcn.py A NIVEL DE MODULO (linea 20 original), y
+21_modelo_gat_gcn.py importa torch_geometric - una dependencia pesada
+que NO hace falta para las 3 funciones que este bloque reutiliza
+(ModeloGATGCN nunca se usa fuera de entrenar_un_pliegue()).
+
+CORRECCION (src/22_entrenar_gat_gcn.py): se movio el import de
+ModeloGATGCN de nivel de modulo a DENTRO de entrenar_un_pliegue()
+(unico sitio donde se usa) - import diferido, sin cambiar ningun
+comportamiento del script cuando se ejecuta normalmente. Verificado
+tras el cambio: el modulo sigue important correctamente en
+venv_pytorch_wsl (con torch_geometric disponible) y las 4 funciones
+publicas (cargar_supervivencia, construir_pliegues,
+indice_concordancia, entrenar_un_pliegue) siguen expuestas igual.
+
+================================================================
+3) DISEÑO FINAL (src/34_baseline_svm_rf.py)
+================================================================
+
+- Capa omica: RNA-seq, canal 0 ("rnaseq_tpm") de
+  <COHORTE>_atributos_gen_norm.pt - mismo tensor que usa GAT+GCN, ya
+  imputado (media por gen) y normalizado (log1p + z-score), sin
+  descargar ni procesar nada nuevo.
+- Reduccion de dimensionalidad: top-1000 genes por varianza (mismo
+  criterio que VGAE Paso 43, K distinto: 1000 en vez de 2500, elegido
+  por el ratio features/muestras de un modelo clasico, no por
+  arquitectura de autoencoder).
+- Validacion cruzada: construir_pliegues() reutilizado de
+  22_entrenar_gat_gcn.py (K-fold estratificado por evento, 5 pliegues,
+  semilla=0) - EXACTAMENTE el mismo protocolo y los mismos pliegues
+  train/val que uso GAT+GCN en el Bloque 6 (verificado: mismos tamanos
+  de pliegue y mismo numero de eventos en validacion por pliegue que
+  los ya documentados en el Paso 36-40).
+- C-index: indice_concordancia() reutilizado de 22_entrenar_gat_gcn.py
+  (NO el concordance-index propio de scikit-survival) - decision de
+  diseño explicita: usar dos implementaciones distintas de C-index
+  para GAT+GCN y para este baseline podria introducir una diferencia
+  de resultado debida a la definicion de concordancia, no a los
+  modelos, invalidando la comparacion.
+- Modelo: RandomSurvivalForest (sksurv.ensemble), n_estimators=300,
+  random_state=0.
+
+================================================================
+4) SMOKE TEST (BRCA, solo RandomSurvivalForest)
+================================================================
+
+Antes de comprometerse a las 5 cohortes, se probo BRCA en solitario
+(la cohorte con menos eventos, la mas probable de revelar problemas de
+convergencia pronto - mismo criterio de "smoke test con el caso mas
+dificil primero" ya usado en otros bloques).
+
+Comando:
+  /home/mariacuenca/tfm_entorno/venv_baseline_svm_rf/bin/python3 src/34_baseline_svm_rf.py BRCA rsf <ruta>
+
+Resultado: limpio, sin warnings de convergencia, sin colapso. 20,1s.
+  Pliegue 1/5: 144 train, 37 val (4 eventos en val) -> C-index=0,7619
+  Pliegue 2/5: 144 train, 37 val (4 eventos en val) -> C-index=0,7143
+  Pliegue 3/5: 145 train, 36 val (3 eventos en val) -> C-index=0,5435
+  Pliegue 4/5: 145 train, 36 val (3 eventos en val) -> C-index=0,8235
+  Pliegue 5/5: 146 train, 35 val (3 eventos en val) -> C-index=0,8814
+  C-index medio = 0,7449 +/- 0,1154
+
+Confirmado que los pliegues train/val (144/37, 144/37, 145/36, 145/36,
+146/35, con 4/4/3/3/3 eventos en val) coinciden exactamente con los ya
+documentados para BRCA en el Bloque 6 - construir_pliegues() reutilizado
+sin ninguna diferencia de comportamiento.
+
+Smoke test aprobado -> se procede a las 4 cohortes restantes.
+
+================================================================
+5) RESULTADO FINAL: LAS 5 COHORTES (RandomSurvivalForest)
+================================================================
+
+Ejecucion completa de las 5 cohortes: ~65s de computo total (11,4-14,5s
+por cohorte), sin ningun fallo, sin ningun pliegue omitido por falta
+de eventos.
+
+  Cohorte  C-index RF (5-fold CV)   C-index GAT+GCN (Bloque 6)   Diferencia
+  BRCA     0,7449 +/- 0,1154        0,6255                        RF +0,1194
+  LUAD     0,5577 +/- 0,0881        0,5329                        RF +0,0248
+  LUSC     0,4839 +/- 0,1036        0,4514                        RF +0,0325
+  COAD     0,5310 +/- 0,1490        0,4599                        RF +0,0711
+  KIRC     0,7138 +/- 0,0452        0,4928                        RF +0,2210
+
+Ficheros: data/processed/<COHORTE>_baseline_svm_rf_metricas.txt
+(resumen legible) y .pt (con el detalle completo por pliegue).
+
+================================================================
+6) HALLAZGO PRINCIPAL - HONESTO, SIN NARRATIVA FORZADA
+================================================================
+
+RandomSurvivalForest (baseline de una sola capa omica, sin GNN, sin
+grafo PPI, sin arquitectura compleja) SUPERA a GAT+GCN en LAS 5
+COHORTES, no en una o dos. No es un resultado parcial ni mixto: es
+consistente en toda la muestra de cohortes disponible.
+
+El caso mas llamativo es KIRC: GAT+GCN (0,4928) ya estaba documentado
+en el Bloque 6 (Paso 40) como "practicamente indistinguible del azar".
+El baseline RF saca 0,7138 en esa misma cohorte, con la varianza mas
+baja de las 5 (+/-0,0452) - el resultado mas estable de toda la tabla,
+no un pico aislado de un pliegue afortunado.
+
+En el otro extremo, LUSC sigue rondando el azar en ambos metodos
+(0,4514 GAT+GCN vs 0,4839 RF) - ninguno de los dos captura señal real
+en esa cohorte. Es la unica cohorte donde la diferencia RF-GAT+GCN es
+pequeña Y ambos resultados son igual de pobres.
+
+Nota de fiabilidad metodologica: a diferencia del baseline de MIL
+(Paso 53, sin holdout, 2.081 parametros para 10 muestras - un
+C-index de entrenamiento, no de generalizacion), este resultado usa
+el MISMO protocolo de validacion cruzada de verdad que GAT+GCN
+(evaluacion en datos no vistos, mismos pliegues), con un ratio
+features/muestras mucho mas sano (~1.000 genes / ~145 pacientes de
+entrenamiento, ~7:1, no los ~110:1 en crudo de los 19.962 genes). Es
+un resultado mas digno de confianza que el de MIL.
+
+================================================================
+7) FastSurvivalSVM - INTENTADO, NO EJECUTADO (fallo estructural real)
+================================================================
+
+Tras el resultado de RF, se evaluo si compensaba anadir
+FastSurvivalSVM como segundo modelo (decision explicita del usuario:
+"mejor uno solido que dos a medias" si no sale limpio). Dado que el
+computo de RF fue tan rapido (~65s las 5 cohortes), el tiempo dejo de
+ser la variable relevante - se hizo un smoke test real de SVM sobre
+BRCA en vez de estimar.
+
+RESULTADO: FastSurvivalSVM.fit() fallo con
+  ValueError: observed time contains values smaller or equal to zero
+
+CAUSA VERIFICADA (no solo de BRCA - se comprobo en las 5 cohortes):
+sksurv.svm.FastSurvivalSVM exige tiempos de supervivencia
+ESTRICTAMENTE positivos (parametro interno allow_time_zero=False,
+check_array_survival). Varios pacientes reales de las 5 cohortes
+tienen days_to_last_follow_up=0 o days_to_death=0 (censurados o
+fallecidos el mismo dia del diagnostico - dato clinico real, no un
+defecto de los datos):
+
+  Cohorte  Pacientes con tiempo=0
+  BRCA     2  (TCGA-AC-A23H, TCGA-B6-A0IC)
+  LUAD     1  (TCGA-05-4395)
+  LUSC     1  (TCGA-77-A5GB)
+  COAD     7  (TCGA-AA-3850, TCGA-AA-A03F, TCGA-AA-3852, TCGA-G4-6302, TCGA-G4-6298, TCGA-AA-3845, TCGA-AA-3529)
+  KIRC     2  (TCGA-CJ-5689, TCGA-B0-5104)
+
+No es un problema aislado de una cohorte: FastSurvivalSVM fallaria en
+las 5 tal como estan preparados los datos. RandomSurvivalForest NO
+tiene esta restriccion (por eso no fallo antes con los mismos datos).
+
+DECISION (explicita del usuario, sin forzar una correccion que
+comprometiera los datos reales): NO se excluye a esos pacientes (
+cambiaria el n de SVM respecto al de RF, dejarian de ser comparables
+con el mismo conjunto) NI se desplaza artificialmente su tiempo a un
+valor positivo pequeño (maquillar el dato para que el modelo lo
+acepte). Se documenta como limitacion tecnica real y verificada, no
+como "no dio tiempo" - el baseline final entregado es UNICAMENTE
+RandomSurvivalForest, un resultado solido y completo en las 5
+cohortes, en vez de dos baselines a medias.
+
+================================================================
+8) CIERRE
+================================================================
+
+Objetivo de la Seccion 1.3 del TFM (baseline SVM/RF sobre una sola
+capa omica) cumplido parcialmente pero con un resultado real y
+solido: RandomSurvivalForest ejecutado y evaluado en las 5 cohortes
+con el mismo rigor metodologico que GAT+GCN (misma validacion
+cruzada, mismo C-index). FastSurvivalSVM queda documentado como
+intentado, con la causa tecnica exacta de por que no se ejecuto -
+misma honestidad que el resto de limitaciones ya documentadas en el
+proyecto (VGAE, DEC, MIL).
+
+Commit: (pendiente)

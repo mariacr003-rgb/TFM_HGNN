@@ -1,0 +1,6 @@
+Cohorte: KIRC
+Genes (top-K por varianza): 1000
+Pliegues: 5
+RandomSurvivalForest: C-index medio = 0.7138 +/- 0.0452
+  pliegues: [0.6471, 0.7431, 0.7077, 0.6914, 0.7799]
+C-index GAT+GCN (Bloque 6, referencia): 0.4928

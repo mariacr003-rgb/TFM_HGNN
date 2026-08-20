@@ -1,0 +1,6 @@
+Cohorte: LUSC
+Genes (top-K por varianza): 1000
+Pliegues: 5
+RandomSurvivalForest: C-index medio = 0.4839 +/- 0.1036
+  pliegues: [0.4199, 0.5872, 0.5126, 0.3162, 0.5836]
+C-index GAT+GCN (Bloque 6, referencia): 0.4514

@@ -1,0 +1,6 @@
+Cohorte: BRCA
+Genes (top-K por varianza): 1000
+Pliegues: 5
+RandomSurvivalForest: C-index medio = 0.7449 +/- 0.1154
+  pliegues: [0.7619, 0.7143, 0.5435, 0.8235, 0.8814]
+C-index GAT+GCN (Bloque 6, referencia): 0.6255

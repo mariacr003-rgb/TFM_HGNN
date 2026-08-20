@@ -1,0 +1,6 @@
+Cohorte: COAD
+Genes (top-K por varianza): 1000
+Pliegues: 5
+RandomSurvivalForest: C-index medio = 0.5310 +/- 0.1490
+  pliegues: [0.5359, 0.3089, 0.5829, 0.764, 0.4631]
+C-index GAT+GCN (Bloque 6, referencia): 0.4599

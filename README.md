@@ -12,12 +12,13 @@ y docs/manifest-datos.tsv), y muestra representativa de RNA-seq, CNV y metilacio
 **Fase 2 (en curso):** implementacion y entrenamiento de las cinco arquitecturas del framework —GAT (Graph Attention Network), GCN (Graph Convolutional
 Network), VGAE (Variational Graph Autoencoder), MIL (Multiple Instance Learning con atencion) y DEC (Deep Embedded Clustering)— sobre PyTorch Geometric,
 usando los datos verificados en la Fase 1, para la prediccion de supervivencia, el manejo generativo de datos faltantes, la integracion de imagenes WSI
-y el descubrimiento de subtipos moleculares en pacientes de cancer. Estado real (actualizado 2026-08-18, ver CLAUDE.md para el detalle completo):
+y el descubrimiento de subtipos moleculares en pacientes de cancer. Estado real (actualizado 2026-08-20, ver CLAUDE.md para el detalle completo):
 
 - **GAT+GCN (Bloque 6) — CERRADO**, entrenado y evaluado con validacion cruzada en las 5 cohortes.
 - **VGAE (Bloque 7) — CERRADO**, investigado a fondo sobre BRCA; mejora marginal sobre la base trivial, no confirmada como robusta (limitacion metodologica documentada, no replicado en las 4 cohortes restantes).
 - **MIL (Bloque 8) — CERRADO en las 5 cohortes** (2026-08-19): descarga+procesamiento de WSI completo (50/50 pacientes, 0 fallos) y C-index de MIL+molecular calculado; limitacion metodologica documentada (sobreajuste severo con solo 10 pacientes/cohorte, ver resultados abajo).
 - **DEC (Bloque 9) — CERRADO en las 5 cohortes**: unico resultado no degenerado es K=2 (limitacion metodologica confirmada y generalizada, no el descubrimiento de subtipos multiples buscado originalmente).
+- **Baseline SVM/RF (Seccion 1.3) — CERRADO en las 5 cohortes** (2026-08-20): RandomSurvivalForest sobre RNA-seq, mismo protocolo de validacion cruzada que GAT+GCN. Hallazgo sin narrativa forzada: SUPERA a GAT+GCN en las 5 cohortes (ver resultados abajo). FastSurvivalSVM intentado, no ejecutado (fallo estructural real, ver abajo).
 
 ## Estructura del proyecto
 data/raw/           Datos originales descargados (GDC, STRING)
@@ -107,6 +108,11 @@ trabajo.
 
 Todas las dependencias de Fase 2 estan fijadas en `entorno/requirements.txt`.
 
+### Baseline SVM/RF (Seccion 1.3)
+- Python 3.11, entorno virtual **aislado y distinto**: `tfm_entorno/venv_baseline_svm_rf` (no `venv_pytorch`, no necesita `torch_geometric`)
+- scikit-survival 0.28.0, scikit-learn 1.9.0
+- torch 2.13 (solo para leer los `.pt` del proyecto, ningun calculo lo usa)
+
 ## Como ejecutar
 
 ### Fase 1 - Pipeline de datos
@@ -128,8 +134,10 @@ Scripts principales de cada bloque (todos numerados en `src/`, ejecutables de fo
 - `19_proyectar_grafo_gen_gen.py`, `20_preprocesar_atributos_gen.py`, `21_modelo_gat_gcn.py`, `22_entrenar_gat_gcn.py` — Bloque 6 (GAT+GCN): grafo gen-gen, atributos por gen, modelo y entrenamiento con validacion cruzada.
 - `23_modelo_vgae.py`, `24_entrenar_vgae.py` — Bloque 7 (VGAE): imputacion generativa de datos faltantes.
 - `25_entrenar_gat_gcn_final.py` — modelo GAT+GCN final por cohorte (sin pliegues), prerrequisito de MIL y DEC.
-- `26_modelo_mil.py`, `27_procesar_wsi_paciente.py`, `30_seleccionar_pacientes_mil.py`, `31_descargar_procesar_mil.py` — Bloque 8 (MIL): arquitectura, procesamiento de WSI por paciente en streaming, seleccion de pacientes y orquestacion de descarga+procesamiento con reintento ante fallos de red.
+- `26_modelo_mil.py`, `27_procesar_wsi_paciente.py`, `30_seleccionar_pacientes_mil.py`, `31_descargar_procesar_mil.py`, `32_entrenar_mil_final.py` — Bloque 8 (MIL): arquitectura, procesamiento de WSI por paciente en streaming, seleccion de pacientes, orquestacion de descarga+procesamiento con reintento ante fallos de red, y C-index final de MIL+molecular.
 - `28_entrenar_dec.py`, `29_barrido_dec.py` — Bloque 9 (DEC): clustering sobre el embedding de GAT+GCN, con barrido de hiperparametros.
+- `33_exportar_datos_supervivencia.py` — exporta los datos crudos (tiempo + vital_status) que alimentan los histogramas de supervivencia de las 5 cohortes.
+- `34_baseline_svm_rf.py` — baseline SVM/RF (Seccion 1.3): RandomSurvivalForest/FastSurvivalSVM sobre una sola capa omica, se ejecuta en el entorno aislado `venv_baseline_svm_rf` (ver Dependencias).
 
 Ejemplo de uso (barrido de DEC sobre una cohorte ya entrenada):
 
@@ -160,6 +168,18 @@ Solo BRCA y LUAD superan el azar (0,5) con claridad; ver CLAUDE.md (Paso 40) par
 | KIRC | 0,945 | [66, 116] |
 
 Cualquier K≥3 colapsa de forma reproducible en las 5 cohortes (ver CLAUDE.md, Bloque 9, para el detalle del hallazgo y la correccion del criterio de decision).
+
+**Baseline SVM/RF (Seccion 1.3), RandomSurvivalForest sobre RNA-seq (top-1000 genes por varianza), mismo protocolo de validacion cruzada 5-fold que GAT+GCN:**
+
+| Cohorte | C-index RandomSurvivalForest | C-index GAT+GCN (Bloque 6) |
+|---|---|---|
+| BRCA | 0,7449 ± 0,1154 | 0,6255 |
+| LUAD | 0,5577 ± 0,0881 | 0,5329 |
+| LUSC | 0,4839 ± 0,1036 | 0,4514 |
+| COAD | 0,5310 ± 0,1490 | 0,4599 |
+| KIRC | 0,7138 ± 0,0452 | 0,4928 |
+
+**Hallazgo sin narrativa forzada:** RandomSurvivalForest (baseline simple, una sola capa omica, sin grafo, sin arquitectura compleja) supera a GAT+GCN en las 5 cohortes, no solo en alguna. El caso mas llamativo es KIRC, donde GAT+GCN ya estaba documentado como "practicamente indistinguible del azar" y el baseline saca 0,7138 con la varianza mas baja de la tabla. `FastSurvivalSVM` se intento como segundo modelo pero fallo en las 5 cohortes por un motivo estructural real (exige tiempos de supervivencia estrictamente positivos, y hay pacientes reales con censura/fallecimiento el mismo dia del diagnostico) - no se forzo ninguna correccion que comprometiera los datos reales, y el baseline final es unicamente RandomSurvivalForest. Ver CLAUDE.md y `results/2026-08-20-paso55/runlog.txt` para el detalle completo, incluida una interpretacion honesta de por que un baseline mas simple podria superar al framework mas complejo.
 
 **MIL+molecular (Bloque 8), C-index sobre 10 pacientes/cohorte (sin holdout - ver advertencia abajo), comparado con el C-index solo molecular del Bloque 6:**
 

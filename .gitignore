@@ -32,6 +32,12 @@ data/raw/metilacion_*/
 !data/processed/*_mil_final_metricas.txt
 !data/processed/*_mil_final_metricas.pt
 
+# Excepcion: metricas finales del baseline SVM/RF (Paso 55) - mismo
+# criterio que el Bloque 8 (fichero pequeño, resultado final, no dato
+# regenerable pesado).
+!data/processed/*_baseline_svm_rf_metricas.txt
+!data/processed/*_baseline_svm_rf_metricas.pt
+
 # Resultados pesados
 results/*
 !results/.gitkeep
@@ -94,6 +100,7 @@ results/**/*.pt
 !results/2026-08-13-paso51/
 !results/2026-08-19-paso53/
 !results/2026-08-20-paso54/
+!results/2026-08-20-paso55/
 
 # Entornos locales
 __pycache__/

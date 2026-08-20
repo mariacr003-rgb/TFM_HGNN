@@ -168,6 +168,35 @@ lo siguiente:
   completo. Con esto, el Bloque 8 (MIL) queda COMPLETO en las 5
   cohortes.
 
+- Baseline SVM/RF — CERRADO EN LAS 5 COHORTES CON RANDOMSURVIVALFOREST
+  (2026-08-20, `src/34_baseline_svm_rf.py`,
+  `results/2026-08-20-paso55/runlog.txt`): objetivo de la Sección 1.3
+  del TFM, nunca ejecutado hasta este paso. RNA-seq (canal 0 de
+  `<COHORTE>_atributos_gen_norm.pt`, sin datos nuevos), top-1000 genes
+  por varianza, mismo protocolo 5-fold y mismo C-index que GAT+GCN
+  (funciones reutilizadas de `22_entrenar_gat_gcn.py`).
+  `scikit-survival` en venv aislado (`venv_baseline_svm_rf`), sin
+  riesgo para el entorno de los 4 bloques ya validados.
+  HALLAZGO SIN NARRATIVA FORZADA: RandomSurvivalForest SUPERA a
+  GAT+GCN en las 5 cohortes (BRCA 0,7449 vs 0,6255; LUAD 0,5577 vs
+  0,5329; LUSC 0,4839 vs 0,4514; COAD 0,5310 vs 0,4599; KIRC 0,7138
+  vs 0,4928 — este último el caso más llamativo, GAT+GCN ya
+  documentado como "indistinguible del azar" en Paso 40). Validación
+  cruzada real (no solo entrenamiento como MIL), ratio
+  features/muestras mucho más sano (~7:1). `FastSurvivalSVM`
+  intentado, NO ejecutado: falla en las 5 cohortes
+  (`ValueError: observed time... smaller or equal to zero`) porque
+  exige tiempos estrictamente positivos y hay pacientes reales con
+  censura/fallecimiento el mismo día del diagnóstico (BRCA 2, LUAD 1,
+  LUSC 1, COAD 7, KIRC 2) — decisión explícita de no excluir ni
+  desplazar esos tiempos artificialmente; baseline final entregado:
+  únicamente RandomSurvivalForest. Dos hallazgos técnicos de proceso
+  corregidos en el camino (falso diagnóstico Python 3.14 vs. fallo
+  real de DNS igual que Paso 51; import innecesario de
+  `torch_geometric` en `22_entrenar_gat_gcn.py`, corregido con import
+  diferido sin cambiar su comportamiento normal). Ver
+  `results/2026-08-20-paso55/runlog.txt` para el detalle completo.
+
 - Bloque 9 (DEC) — CERRADO EN LAS 5 COHORTES (2026-08-13,
   `results/2026-08-11-paso47/runlog.txt` para BRCA,
   `results/2026-08-12-paso49/runlog.txt` para el resto y la corrección
@@ -330,6 +359,12 @@ que queda realmente pendiente:
 - DEC (Bloque 9): cerrado en las 5 cohortes con limitacion documentada
   y confirmada (colapso de clusters con K>=3, se entrega K=2 en las 5)
   - ver arriba, sin mas trabajo previsto
+- Baseline SVM/RF (Seccion 1.3): CERRADO en las 5 cohortes
+  (2026-08-20, ver "Estado actual" arriba) - RandomSurvivalForest
+  ejecutado y evaluado, SUPERA a GAT+GCN en las 5 cohortes.
+  FastSurvivalSVM intentado pero no ejecutado (fallo estructural real,
+  tiempos de supervivencia =0 en pacientes reales de las 5 cohortes),
+  sin mas trabajo previsto salvo que se decida revisitarlo
 - Generar todas las tablas y figuras de resultados con datos reales
 - Descargar Reactome y KEGG completos para el grafo heterogeneo de vias
   (Fase 3; STRING/PPI, BioMart, Reactome, KEGG y TRRUST parciales ya

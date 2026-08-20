@@ -15,9 +15,18 @@ import torch
 # guion bajo al principio), asi que no es un identificador de modulo
 # valido para "import 21_modelo_gat_gcn"; se carga con importlib
 # (verificado que funciona igual que con el resto de scripts numerados).
+#
+# Import de ModeloGATGCN DIFERIDO a entrenar_un_pliegue() (unico sitio
+# donde se usa), en vez de a nivel de modulo: 21_modelo_gat_gcn.py
+# importa torch_geometric, una dependencia pesada que NO hace falta
+# para reutilizar cargar_supervivencia()/construir_pliegues()/
+# indice_concordancia() desde otros scripts (25, 29, 32, 34) - varios
+# de ellos corren en entornos sin torch_geometric instalado (ver
+# src/34_baseline_svm_rf.py, venv aislado sin PyG). Cambio puramente de
+# ubicacion del import, sin tocar su comportamiento cuando se ejecuta
+# este script normalmente (con torch_geometric disponible).
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-ModeloGATGCN = importlib.import_module("21_modelo_gat_gcn").ModeloGATGCN
 
 RUTA_GRAFO_GEN_GEN = Path("data/processed/grafo_gen_gen_ppi.pt")
 
@@ -129,6 +138,7 @@ def construir_pliegues(n_pacientes, eventos, n_pliegues, semilla):
 
 
 def entrenar_un_pliegue(x, edge_index_gen_gen, tiempo, evento, indices_train, indices_val, n_epocas, k_vecinos):
+    ModeloGATGCN = importlib.import_module("21_modelo_gat_gcn").ModeloGATGCN
     modelo = ModeloGATGCN(k_vecinos=k_vecinos)
     optimizador = torch.optim.Adam(modelo.parameters(), lr=1e-3)
 

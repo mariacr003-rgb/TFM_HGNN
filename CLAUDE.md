@@ -446,6 +446,60 @@ metodológica honesta para la Sección 4.9, en la misma línea que la
 mejora marginal no confirmada de VGAE y el colapso de clusters de
 DEC. Con esto, el Bloque 8 (MIL) queda COMPLETO en las 5 cohortes.
 
+Baseline SVM/RF — CERRADO EN LAS 5 COHORTES CON RANDOMSURVIVALFOREST
+(2026-08-20, `src/34_baseline_svm_rf.py`,
+`results/2026-08-20-paso55/runlog.txt`): objetivo declarado en la
+Sección 1.3 del TFM, nunca ejecutado hasta este paso. Capa RNA-seq
+(canal 0 de `<COHORTE>_atributos_gen_norm.pt`, sin descargar ni
+procesar nada nuevo), top-1000 genes por varianza (mismo criterio que
+VGAE Paso 43, K distinto), mismo protocolo de validación cruzada
+5-fold que GAT+GCN (`construir_pliegues()` reutilizado) y mismo
+cálculo de C-index (`indice_concordancia()` reutilizado, no el propio
+de `scikit-survival`, para que la comparación sea válida).
+`scikit-survival` instalado en un venv AISLADO
+(`tfm_entorno/venv_baseline_svm_rf`), no en `venv_pytorch_wsl`, sin
+riesgo para el entorno de los 4 bloques ya validados.
+
+HALLAZGO PRINCIPAL, SIN NARRATIVA FORZADA: RandomSurvivalForest
+SUPERA a GAT+GCN en LAS 5 COHORTES:
+
+  BRCA 0,7449±0,1154 (GAT+GCN 0,6255) · LUAD 0,5577±0,0881 (0,5329) ·
+  LUSC 0,4839±0,1036 (0,4514) · COAD 0,5310±0,1490 (0,4599) · KIRC
+  0,7138±0,0452 (0,4928)
+
+KIRC es el caso más llamativo: GAT+GCN ya estaba documentado como
+"prácticamente indistinguible del azar" (Paso 40); RF saca 0,7138 con
+la varianza más baja de las 5 cohortes. Único resultado igual de
+pobre en ambos métodos: LUSC (ninguno de los dos captura señal real
+ahí). A diferencia del baseline de MIL (sin holdout, 2.081 parámetros
+para 10 muestras), este usa validación cruzada de verdad con un ratio
+features/muestras mucho más sano (~7:1, no ~110:1) — resultado más
+digno de confianza que el de MIL.
+
+`FastSurvivalSVM` INTENTADO, NO EJECUTADO: falla con
+`ValueError: observed time contains values smaller or equal to zero`
+en las 5 cohortes — exige tiempos estrictamente positivos y varias
+cohortes tienen pacientes reales con `days_to_death`/
+`days_to_last_follow_up`=0 (censura/fallecimiento el mismo día del
+diagnóstico, dato clínico real, no defecto: BRCA 2, LUAD 1, LUSC 1,
+COAD 7, KIRC 2 pacientes). Decisión explícita: no excluir esos
+pacientes (cambiaría el n frente a RF) ni desplazar su tiempo
+artificialmente (maquillar el dato) — se documenta como limitación
+técnica real, y el baseline final es únicamente RandomSurvivalForest,
+preferible sólido a dos a medias.
+
+Dos hallazgos técnicos de proceso, ambos corregidos: (1) un
+diagnóstico inicial incorrecto — 8 min de instalación colgada se
+atribuyó primero a que Python 3.14 era muy reciente para
+`scikit-survival`, pero el log real mostraba un fallo de resolución
+DNS (mismo patrón que el incidente de red del Paso 51), no un
+problema de versión de Python; (2) `22_entrenar_gat_gcn.py` importaba
+`torch_geometric` a nivel de módulo solo por `ModeloGATGCN` (usado
+únicamente en `entrenar_un_pliegue()`) — corregido con import
+diferido, sin cambiar el comportamiento del script en su entorno
+normal, para poder reutilizar sus 3 funciones auxiliares desde un
+venv sin PyG instalado.
+
 Trabajo pendiente en el proyecto: DEC (Bloque 9) queda cerrado en las
 5 cohortes con la limitación documentada arriba, sin más trabajo
 previsto salvo que se decida revisitarlo. STRING v12 ya está
